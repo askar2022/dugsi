@@ -1,3 +1,5 @@
+import { applySupabaseEnv } from "./supabase-env";
+
 export type AppEnv = "development" | "staging" | "production";
 
 function readEnv(name: string, fallback?: string) {
@@ -9,6 +11,7 @@ function readEnv(name: string, fallback?: string) {
 }
 
 export function getAppEnv(): AppEnv {
+  applySupabaseEnv();
   const value = (process.env.APP_ENV ?? "development").toLowerCase();
   if (value === "staging" || value === "production" || value === "development") {
     return value;
@@ -21,6 +24,7 @@ export function getAuthSecret() {
 }
 
 export function getAppUrl() {
+  applySupabaseEnv();
   return process.env.APP_URL ?? "http://localhost:3000";
 }
 
