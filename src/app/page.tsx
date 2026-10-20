@@ -1,68 +1,98 @@
-import Image from "next/image";
+import Link from "next/link";
+import { BookOpen, ClipboardList, Receipt, Users } from "lucide-react";
 
-export default function Home() {
+const sections = [
+  {
+    title: "Dugsi Management",
+    text: "Enrollment, teachers, classes, tuition records, expenses, and reports for each school.",
+    icon: Users,
+  },
+  {
+    title: "Teacher Portal",
+    text: "Class roster, attendance, Quran progress, and homework for the teacher's own class.",
+    icon: BookOpen,
+  },
+  {
+    title: "Parent Portal",
+    text: "Online enrollment, attendance, homework, child progress, and tuition status colors.",
+    icon: Receipt,
+  },
+];
+
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen">
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+        <div>
+          <p className="text-xs uppercase tracking-[0.24em] text-gold">Multi-tenant</p>
+          <p className="font-[family-name:var(--font-fraunces)] text-2xl text-green">Dugsi</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="flex gap-3">
+          <Link href="/login" className="btn btn-ghost">
+            Sign in
+          </Link>
+          <Link href="/register" className="btn btn-primary">
+            Register a dugsi
+          </Link>
         </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl px-6 pb-20">
+        <section className="grid items-center gap-10 py-10 lg:grid-cols-2">
+          <div>
+            <p className="text-sm uppercase tracking-[0.2em] text-gold">Each school keeps its own records</p>
+            <h1 className="mt-3 font-[family-name:var(--font-fraunces)] text-5xl leading-tight text-green md:text-6xl">
+              One platform. Many dugsis. Three portals.
+            </h1>
+            <p className="mt-5 max-w-xl text-lg text-muted">
+              Every dugsi registers with its own name and school code. Students, attendance,
+              billing records, and reports stay inside that school. Web and mobile use the same backend.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/register" className="btn btn-primary">
+                Create your school
+              </Link>
+              <Link href="/login" className="btn btn-ghost">
+                Use a demo school
+              </Link>
+            </div>
+          </div>
+          <div className="card p-6">
+            <div className="grid gap-4">
+              {sections.map((section) => {
+                const Icon = section.icon;
+                return (
+                  <div key={section.title} className="rounded-2xl bg-green-soft p-4">
+                    <div className="flex items-center gap-3 text-green">
+                      <Icon size={20} />
+                      <h2 className="font-semibold">{section.title}</h2>
+                    </div>
+                    <p className="mt-2 text-sm text-muted">{section.text}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-4">
+          {[
+            ["Enrollment", Users],
+            ["Teachers & Classes", BookOpen],
+            ["Tuition & Expenses", Receipt],
+            ["Reports", ClipboardList],
+          ].map(([label, Icon]) => {
+            const Glyph = Icon as typeof Users;
+            return (
+              <div key={String(label)} className="card p-5 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green text-white">
+                  <Glyph size={20} />
+                </div>
+                <p className="mt-3 font-medium text-green">{label}</p>
+              </div>
+            );
+          })}
+        </section>
       </main>
     </div>
   );
