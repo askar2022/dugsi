@@ -91,9 +91,9 @@ In the `ourdugsi.com` DNS host, point Vercel:
 
 | Host | Type | Value |
 | --- | --- | --- |
-| `@` | A | `10.0.1.2` (or the A record Vercel shows) |
-| `www` | CNAME | `cname.vercel-dns.com` |
-| `staging` | CNAME | `cname.vercel-dns.com` |
+| `@` | A | `76.76.21.21` |
+| `www` | A | `76.76.21.21` |
+| `staging` | A | `76.76.21.21` |
 
 Then add `ourdugsi.com`, `www.ourdugsi.com`, and `staging.ourdugsi.com` in the Vercel project domains.
 
