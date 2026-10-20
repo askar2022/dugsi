@@ -57,7 +57,19 @@ Demo password for every seeded account: `Dugsi123!`
 
 ## Vercel + ourdugsi.com
 
-Import [askar2022/dugsi](https://github.com/askar2022/dugsi) into Vercel. Then set environment variables **separately** for Production and Preview (staging).
+Vercel only has Production and Preview by default. `staging.ourdugsi.com` must **not** sit on Production, or both URLs serve the same app and the same secrets.
+
+Create a real Staging environment:
+
+1. In Vercel, open **Settings → Environments**.
+2. Click **Create Environment**.
+3. Name it `Staging`.
+4. Track the Git branch `staging`.
+5. Open **Settings → Domains**.
+6. Click `staging.ourdugsi.com` and assign it to **Staging**, not Production.
+7. Leave Production with only `ourdugsi.com` and `www.ourdugsi.com`.
+
+Then add environment variables on the matching environment. Do not attach the staging database to Production.
 
 ### Production (`ourdugsi.com`)
 
