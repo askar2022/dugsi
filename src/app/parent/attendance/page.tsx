@@ -62,23 +62,28 @@ export default function ParentAttendancePage() {
           text="Use Online Enrollment to add a child to your family record."
         />
       ) : (
-        <section className="family-list">
-          {rows.map((row) => (
-            <article key={row.id} className={`card family-item is-${row.status}`}>
-              <div className="family-item-top">
-                <div>
-                  <p className="family-item-name">{row.name}</p>
-                  <p className="family-item-class">{row.className}</p>
-                </div>
-                <StatusBadge status={row.status} />
-              </div>
-              <p className="family-item-money">{row.date || "No class yet"}</p>
-              <p className="family-item-meta">
-                {row.status === "no_record" ? "No attendance yet" : row.status.replaceAll("_", " ")}
-              </p>
-            </article>
-          ))}
-        </section>
+        <div className="card table-wrap p-2">
+          <table className="family-table">
+            <thead>
+              <tr>
+                <th>Child</th>
+                <th>Class</th>
+                <th>Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id} className={`is-${row.status}`}>
+                  <td>{row.name}</td>
+                  <td>{row.className}</td>
+                  <td>{row.date || "—"}</td>
+                  <td><StatusBadge status={row.status} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
