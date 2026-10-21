@@ -606,6 +606,52 @@ tbody tr:hover td {
   line-height: 1.65;
 }
 
+.login-shell {
+  display: grid;
+  gap: 1.1rem;
+  width: min(52rem, calc(100% - 2rem));
+  margin: 0 auto 3rem;
+}
+
+.login-form {
+  width: 100%;
+  max-width: 28rem;
+  justify-self: center;
+}
+
+.login-shell.has-welcome .login-form {
+  max-width: none;
+}
+
+.login-welcome {
+  overflow: hidden;
+  padding: 0;
+}
+
+.login-welcome-copy {
+  padding: 1.2rem 1.2rem 1rem;
+}
+
+.login-welcome-art {
+  min-height: 12rem;
+}
+
+.login-welcome-art img,
+.login-welcome-art .school-placeholder {
+  min-height: 12rem;
+}
+
+@media (min-width: 800px) {
+  .login-shell.has-welcome {
+    grid-template-columns: 1.1fr 0.9fr;
+    align-items: start;
+  }
+
+  .login-welcome {
+    display: grid;
+  }
+}
+
 .hero-art {
   position: relative;
   min-height: 9rem;

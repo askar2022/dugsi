@@ -6,6 +6,7 @@ import { FormEvent, Suspense, useEffect, useState } from "react";
 import { api, ApiRequestError } from "@/lib/api";
 import { portalForRole, type Session } from "@/lib/types";
 import { FormField } from "@/components/forms/FormField";
+import { SchoolImage } from "@/components/portal/SchoolImage";
 import { PublicHeader } from "@/components/PublicHeader";
 
 const showDemo = process.env.NEXT_PUBLIC_APP_ENV !== "production";
@@ -18,7 +19,7 @@ const NOOR = {
   parent: "parent@noor.dugsi",
 };
 
-type School = { name: string; code: string };
+type School = { name: string; code: string; imageUrl?: string | null; welcomeNote?: string | null };
 
 function LoginForm() {
   const router = useRouter();
@@ -119,8 +120,27 @@ function LoginForm() {
       ) : (
         <PublicHeader />
       )}
-      <div className="flex justify-center px-4 pb-16">
-        <form onSubmit={onSubmit} className="card mx-auto w-full max-w-md space-y-4 p-6">
+      <div className={`login-shell${school ? " has-welcome" : ""}`}>
+        {school ? (
+          <section className="card login-welcome">
+            <div className="login-welcome-copy">
+              <p className="hero-kicker">{portal === "parent" ? "Parent Portal" : school.name}</p>
+              <h2 className="hero-title">{school.name}</h2>
+              <p className="hero-text">
+                {school.welcomeNote || "Assalamu alaikum. Sign in with your email and password for this school."}
+              </p>
+            </div>
+            <div className="login-welcome-art">
+              <SchoolImage
+                src={school.imageUrl}
+                name={school.name}
+                alt={`${school.name} welcome`}
+                message={school.name}
+              />
+            </div>
+          </section>
+        ) : null}
+        <form onSubmit={onSubmit} className="card login-form space-y-4 p-6">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-gold">{school?.name ?? "Our Dugsi"}</p>
             <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">{heading}</h1>

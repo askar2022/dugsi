@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { CalendarDays } from "lucide-react";
-import { SchoolImage } from "@/components/portal/SchoolImage";
 import { useParentFamily } from "@/components/portal/useParentFamily";
 import { api } from "@/lib/api";
-import type { Session } from "@/lib/types";
 
 type Homework = {
   id: string;
@@ -24,19 +22,15 @@ export default function ParentHomePage() {
   const { children } = useParentFamily();
   const [homework, setHomework] = useState<Homework[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
-  const [user, setUser] = useState<Session | null>(null);
   const [welcomeNote, setWelcomeNote] = useState<string | null>(null);
-  const [schoolImageUrl, setSchoolImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    api<{ user: Session }>("/api/auth/me").then((data) => setUser(data.user));
     Promise.all([
-      api<{ tenant: { welcomeNote: string | null; schoolImageUrl: string | null } }>("/api/settings"),
+      api<{ tenant: { welcomeNote: string | null } }>("/api/settings"),
       api<{ homework: Homework[] }>("/api/homework"),
       api<{ attendance: Attendance[] }>("/api/attendance"),
     ]).then(([settingData, homeworkData, attendanceData]) => {
       setWelcomeNote(settingData.tenant.welcomeNote);
-      setSchoolImageUrl(settingData.tenant.schoolImageUrl);
       setHomework(homeworkData.homework.slice(0, 3));
       setAttendance(attendanceData.attendance.slice(0, 3));
     }).catch(() => undefined);
@@ -91,24 +85,6 @@ export default function ParentHomePage() {
             </div>
           ))
         )}
-      </section>
-
-      <section className="card hero parent-hero">
-        <div className="hero-copy">
-          <p className="hero-kicker">Parent Portal</p>
-          <h1 className="hero-title">{user?.tenantName ?? "Your school"}</h1>
-          <p className="hero-text">
-            Assalamu alaikum{user?.name ? `, ${user.name}` : ""}. Use the menu for attendance, homework, progress, and tuition.
-          </p>
-        </div>
-        <div className="hero-art">
-          <SchoolImage
-            src={schoolImageUrl}
-            name={user?.tenantName}
-            alt={user?.tenantName ?? "School"}
-            message={user?.tenantName ?? "Your school"}
-          />
-        </div>
       </section>
     </div>
   );
