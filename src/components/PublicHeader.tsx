@@ -18,7 +18,7 @@ export function PublicHeader(props: PlatformProps | SchoolProps) {
   if (props.variant === "school") {
     const audience = props.audience ?? "public";
     return (
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+      <header className="school-top mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
         <Link href={`/s/${props.schoolCode}`}>
           <p className="text-xs uppercase tracking-[0.24em] text-gold">Dugsi</p>
           <p className="font-[family-name:var(--font-fraunces)] text-2xl text-green">{props.schoolName}</p>
@@ -26,18 +26,18 @@ export function PublicHeader(props: PlatformProps | SchoolProps) {
         {audience === "staff" ? null : (
           <nav className="flex flex-wrap gap-3">
             <Link href={`/enroll/${props.schoolCode}`} className="btn btn-primary">
-              Enroll your child
+              Enroll
             </Link>
             {audience === "public" ? (
               <>
                 <Link href={schoolLoginPath("parent", props.schoolCode)} className="btn btn-ghost">
-                  Parent sign in
+                  Parent
                 </Link>
                 <Link href={schoolLoginPath("staff", props.schoolCode)} className="btn btn-ghost">
-                  Teacher sign in
+                  Teacher
                 </Link>
                 <Link href={schoolLoginPath("staff", props.schoolCode)} className="btn btn-ghost">
-                  Admin sign in
+                  Admin
                 </Link>
               </>
             ) : null}

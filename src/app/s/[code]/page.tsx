@@ -21,27 +21,13 @@ export default async function SchoolLandingPage({ params }: { params: Promise<{ 
     <div className="min-h-screen">
       <PublicHeader variant="school" schoolName={school.name} schoolCode={school.code} />
       <main className="mx-auto max-w-6xl px-6 pb-20">
-        <section className="grid items-center gap-10 py-8 lg:grid-cols-2">
-          <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-gold">
-              {school.city || "Dugsi"}
-            </p>
-            <h1 className="mt-3 font-[family-name:var(--font-fraunces)] text-5xl leading-tight text-green md:text-6xl">
-              {school.name}
-            </h1>
-            <p className="mt-5 max-w-xl text-lg text-muted">
-              {school.welcomeNote || "Assalamu alaikum. Enroll your child here. You do not need an account to apply."}
-            </p>
-            {school.phone ? <p className="mt-3 text-sm text-muted">{school.phone}</p> : null}
-          </div>
-          <div className="card overflow-hidden p-0">
-            <SchoolImage
-              src={school.imageUrl}
-              name={school.name}
-              alt={`${school.name} photo`}
-              message={school.name}
-            />
-          </div>
+        <section className="card overflow-hidden p-0">
+          <SchoolImage
+            src={school.imageUrl}
+            name={school.name}
+            alt={`${school.name} photo`}
+            message={school.name}
+          />
         </section>
 
         <section className="card p-6">
