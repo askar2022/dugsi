@@ -114,10 +114,6 @@ export default function PublicEnrollPage() {
           <div>
             <p className="hero-kicker">Enroll your child</p>
             <h1 className="page-title">{school.name}</h1>
-            <p className="page-copy">
-              Two short pages. First the parent, then the child. You do not need to sign in.
-              {school.city ? ` ${school.city}.` : ""}
-            </p>
             <p className="metric-label" style={{ marginTop: "0.75rem" }}>
               {step === 1 ? "Page 1 of 2 · Parent" : "Page 2 of 2 · Child"}
             </p>
