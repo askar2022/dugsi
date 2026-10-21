@@ -21,6 +21,7 @@ export default function EnrollmentPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [addingSample, setAddingSample] = useState(false);
 
   async function load() {
@@ -40,12 +41,27 @@ export default function EnrollmentPage() {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError("");
     const form = event.currentTarget;
     const data = Object.fromEntries(new FormData(form).entries());
-    await api("/api/students", { method: "POST", body: JSON.stringify({ ...data, status: "enrolled" }) });
-    form.reset();
-    setMessage("Student registered.");
-    await load();
+    try {
+      await api("/api/students", {
+        method: "POST",
+        body: JSON.stringify({
+          ...data,
+          dateOfBirth: data.dateOfBirth || undefined,
+          classId: data.classId || undefined,
+          parentEmail: data.parentEmail || undefined,
+          parentName: data.parentName || undefined,
+          status: "enrolled",
+        }),
+      });
+      form.reset();
+      setMessage("Student registered. Open Students or the Parent Portal to see them.");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not register that student.");
+    }
   }
 
   async function enroll(id: string) {
@@ -56,28 +72,32 @@ export default function EnrollmentPage() {
   return (
     <div className="page-stack">
       <PageHeader title="Enrollment" description="Review new applications and register students." />
-      {students.length === 0 ? (
-        <div className="card p-5">
-          <p className="text-sm text-muted">No students yet. Register a child, or add the staging sample family.</p>
-          <button
-            type="button"
-            className="btn btn-ghost mt-3"
-            disabled={addingSample}
-            onClick={async () => {
-              setAddingSample(true);
-              try {
-                await api("/api/demo/sample-families", { method: "POST" });
-                setMessage("Sample parent and students added.");
-                await load();
-              } finally {
-                setAddingSample(false);
-              }
-            }}
-          >
-            {addingSample ? "Adding..." : "Add sample parent and students"}
-          </button>
-        </div>
-      ) : null}
+      <div className="card p-5">
+        <p className="text-sm text-muted">
+          To see names and numbers quickly, fill the demo classroom. Then type your own student below.
+          To show a child in the Parent Portal, use parent email <b>parent@noor.dugsi</b>.
+        </p>
+        <button
+          type="button"
+          className="btn btn-ghost mt-3"
+          disabled={addingSample}
+          onClick={async () => {
+            setAddingSample(true);
+            setError("");
+            try {
+              await api("/api/demo/fill", { method: "POST" });
+              setMessage("Demo classroom added: Aisha and Omar, attendance, Quran progress, and tuition.");
+              await load();
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Could not fill demo data.");
+            } finally {
+              setAddingSample(false);
+            }
+          }}
+        >
+          {addingSample ? "Adding demo data..." : "Fill demo classroom"}
+        </button>
+      </div>
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="First name"><input className="input" name="firstName" required /></FormField>
         <FormField label="Last name"><input className="input" name="lastName" required /></FormField>
@@ -94,6 +114,7 @@ export default function EnrollmentPage() {
         <FormField label="Parent email"><input className="input" name="parentEmail" type="email" /></FormField>
         <div className="md:col-span-2">
           <button className="btn btn-primary">Register student</button>
+          {error ? <p className="mt-3 text-sm text-late">{error}</p> : null}
           {message ? <p className="mt-3 text-sm text-paid">{message}</p> : null}
         </div>
       </form>

@@ -3,24 +3,51 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BookOpen, CalendarDays, ClipboardList, MessageSquare, Receipt, UserPlus } from "lucide-react";
+import { BookOpen, CalendarDays, ClipboardList, Receipt, UserPlus } from "lucide-react";
 import { SchoolImage } from "@/components/portal/SchoolImage";
 import { useParentFamily } from "@/components/portal/useParentFamily";
 import { api } from "@/lib/api";
-import { childName } from "@/lib/parent-family";
+import { childName, type ParentChild } from "@/lib/parent-family";
 import type { Session } from "@/lib/types";
 
-type Homework = { id: string; title: string; dueDate: string | null; class: { name: string } };
-type Attendance = { id: string; date: string; status: string; student: { firstName: string; lastName: string } };
+type Homework = { id: string; title: string; dueDate: string | null; class: { id?: string; name: string } | { id?: string; name: string }[] | null };
+type Attendance = {
+  id: string;
+  date: string;
+  status: string;
+  studentId?: string;
+  student: { id?: string; firstName: string; lastName: string };
+};
 
-const LINKS = [
+const ACTIONS = [
   { href: "/parent/enroll", label: "Online Enrollment", text: "Add another child to your family record.", icon: UserPlus },
-  { href: "/parent#welcome", label: "Welcome note", text: "A short message from your school.", icon: MessageSquare },
   { href: "/parent/attendance", label: "Attendance", text: "See who was present after each class.", icon: CalendarDays },
   { href: "/parent/homework", label: "Homework", text: "Work assigned to your child's class.", icon: ClipboardList },
   { href: "/parent/progress", label: "Child Progress", text: "Surah, Ayah, Juz, and level.", icon: BookOpen },
   { href: "/parent/billing", label: "Tuition", text: "Green is paid, yellow is due, red is late.", icon: Receipt },
 ];
+
+function classOf(item: Homework) {
+  const value = item.class;
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
+
+function childSummary(student: ParentChild, homework: Homework[], attendance: Attendance[]) {
+  const classLine = [
+    student.class?.name ?? "Class pending",
+    student.class?.level,
+    student.class?.dayOfWeek ? `Class this ${student.class.dayOfWeek}` : null,
+  ].filter(Boolean).join(" · ");
+
+  const mark = attendance.find((row) => row.studentId === student.id || row.student.id === student.id);
+  if (mark) return `${classLine} · ${mark.status} on ${mark.date}`;
+
+  const classId = student.classId ?? student.class?.id;
+  const work = homework.find((item) => !classId || classOf(item)?.id === classId);
+  if (work) return `${classLine} · ${work.title}${work.dueDate ? ` due ${work.dueDate}` : ""}`;
+
+  return classLine;
+}
 
 export default function ParentHomePage() {
   const router = useRouter();
@@ -40,13 +67,16 @@ export default function ParentHomePage() {
     ]).then(([settingData, homeworkData, attendanceData]) => {
       setWelcomeNote(settingData.tenant.welcomeNote);
       setSchoolImageUrl(settingData.tenant.schoolImageUrl);
-      setHomework(homeworkData.homework.slice(0, 2));
-      setAttendance(attendanceData.attendance.slice(0, 1));
+      setHomework(homeworkData.homework.slice(0, 3));
+      setAttendance(attendanceData.attendance.slice(0, 3));
     }).catch(() => undefined);
   }, []);
 
   const nextClass = children.find((student) => student.class?.dayOfWeek)?.class;
   const updates = [
+    welcomeNote
+      ? { title: "From your school", text: welcomeNote }
+      : null,
     nextClass
       ? {
           title: `Class this ${nextClass.dayOfWeek}`,
@@ -65,20 +95,19 @@ export default function ParentHomePage() {
 
   return (
     <div className="page-stack">
-      <section className="card hero">
+      <section className="card hero hero-compact">
         <div className="hero-copy">
           <p className="hero-kicker">Parent Portal</p>
           <h1 className="hero-title">{user?.tenantName ?? "Your school"}</h1>
           <p className="hero-text">
-            Assalamu alaikum{user?.name ? `, ${user.name}` : ""}. Here are your children,
-            class updates, and a simple way to enroll another child.
+            Assalamu alaikum{user?.name ? `, ${user.name}` : ""}. Here are your children and class updates.
           </p>
         </div>
         <div className="hero-art">
           <SchoolImage
             src={schoolImageUrl}
             name={user?.tenantName}
-            message="Your children's classes and homework will appear here."
+            message={user?.tenantName ?? "Your school"}
           />
         </div>
       </section>
@@ -113,13 +142,7 @@ export default function ParentHomePage() {
               <span className="child-mark">{student.firstName.charAt(0)}</span>
               <div>
                 <p className="menu-row-title">{childName(student)}</p>
-                <p className="menu-row-meta">
-                  {student.class?.name ?? "Class pending"}
-                  {student.class?.level ? ` · ${student.class.level}` : ""}
-                  {student.class?.dayOfWeek ? ` · ${student.class.dayOfWeek}` : ""}
-                  {" · "}
-                  {student.status}
-                </p>
+                <p className="menu-row-meta">{childSummary(student, homework, attendance)}</p>
               </div>
             </button>
           ))
@@ -127,7 +150,7 @@ export default function ParentHomePage() {
       </section>
 
       <section className="card menu-list">
-        {LINKS.map((item) => {
+        {ACTIONS.map((item) => {
           const Icon = item.icon;
           return (
             <Link key={item.href} href={item.href} className="menu-row">
@@ -143,22 +166,21 @@ export default function ParentHomePage() {
         })}
       </section>
 
-      <section id="welcome" className="card" style={{ padding: "1.35rem" }}>
-        <h2 className="page-title" style={{ fontSize: "1.4rem" }}>Welcome note</h2>
-        <p className="page-copy">{welcomeNote || "The school has not added a welcome note yet."}</p>
-      </section>
-
       <section className="card menu-list">
         <div className="child-card">
           <div>
-            <h2 className="page-title" style={{ fontSize: "1.4rem" }}>Recent updates</h2>
-            <p className="page-copy">What is happening in your child's class.</p>
+            <h2 className="page-title" style={{ fontSize: "1.4rem" }}>Updates</h2>
+            <p className="page-copy">Class news, homework, and attendance.</p>
           </div>
         </div>
         {updates.length === 0 ? (
           <div className="menu-row">
             <div className="menu-row-copy">
-              <p className="menu-row-meta">No updates yet. Attendance and homework will appear here.</p>
+              <p className="menu-row-meta">
+                {children.length === 0
+                  ? "Updates will appear after you add a child and they attend a class."
+                  : "Attendance and homework will appear here after the next class."}
+              </p>
             </div>
           </div>
         ) : (

@@ -138,8 +138,9 @@ function LoginForm() {
         New school? <Link className="text-green underline" href="/register">Register a dugsi</Link>
       </p>
       <p className="rounded-2xl bg-green-soft p-3 text-xs text-green">
-        You are opening a different portal when you change login. Imam Yusuf is Management.
-        Teacher: <b>teacher@noor.dugsi</b>. Parent: <b>parent@noor.dugsi</b>. Password <b>Dugsi123!</b>
+        First click <b>Create the noor demo school</b> if needed. Then <b>Open Parent Portal</b>
+        or <b>Open Teacher Portal</b> to load Aisha, Omar, attendance, Quran progress, and tuition.
+        Parent: <b>parent@noor.dugsi</b>. Teacher: <b>teacher@noor.dugsi</b>. Password <b>Dugsi123!</b>
       </p>
     </form>
   );

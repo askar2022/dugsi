@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
         tenantId: session.tenantId,
         firstName: parsed.data.firstName.trim(),
         lastName: parsed.data.lastName.trim(),
-        dateOfBirth: parsed.data.dateOfBirth,
+        dateOfBirth: parsed.data.dateOfBirth || null,
         gender: parsed.data.gender,
         parentId,
         classId: parsed.data.classId || null,

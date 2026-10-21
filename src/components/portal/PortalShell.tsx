@@ -151,6 +151,15 @@ export function PortalShell({
     setMenuOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
+
   const sections = NAV[role === "STAFF" ? "ADMIN" : role] ?? [];
   const schoolName = user?.tenantName ?? title;
   const greeting = user?.name ? `Assalamu alaikum, ${user.name}` : "Assalamu alaikum";
@@ -183,9 +192,8 @@ export function PortalShell({
       <aside className="portal-sidebar">{sidebarBody}</aside>
 
       {menuOpen ? (
-        <div className="portal-drawer">
-          <button className="portal-drawer-mask" onClick={() => setMenuOpen(false)} aria-label="Close menu" />
-          <aside className="portal-drawer-panel">
+        <div className="portal-drawer" onClick={() => setMenuOpen(false)}>
+          <aside className="portal-drawer-panel" onClick={(event) => event.stopPropagation()}>
             <div className="portal-brand portal-brand-row">
               <div>
                 <p className="portal-brand-kicker">OurDugsi</p>
@@ -205,6 +213,7 @@ export function PortalShell({
               </button>
             </div>
           </aside>
+          <button className="portal-drawer-mask" onClick={() => setMenuOpen(false)} aria-label="Close menu" />
         </div>
       ) : null}
 
