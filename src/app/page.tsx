@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PublicHeader } from "@/components/PublicHeader";
 
 export default function HomePage() {
@@ -16,6 +17,11 @@ export default function HomePage() {
             <li>2. Families enroll and sign in on that school page, not on Our Dugsi.</li>
             <li>3. Admin, teachers, and parents each use their own login on the school page.</li>
           </ol>
+          <div className="mt-6">
+            <Link href="/s/noor" className="btn btn-primary">
+              See a sample
+            </Link>
+          </div>
         </section>
       </main>
     </div>
