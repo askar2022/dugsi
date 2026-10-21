@@ -122,12 +122,14 @@ export const publicEnrollSchema = z.object({
   schoolCode: z.string().min(2),
   parentName: z.string().min(2),
   parentEmail: z.string().email(),
-  parentPhone: z.string().optional(),
+  parentPhone: z.string().min(7),
+  address: z.string().min(4),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
-  dateOfBirth: z.string().optional(),
+  age: z.coerce.number().int().min(3).max(25),
   gender: z.string().optional(),
   notes: z.string().optional(),
+  agreeFeeAndEnroll: z.literal(true),
 });
 
 export const settingsSchema = z.object({

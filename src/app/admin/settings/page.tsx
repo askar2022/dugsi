@@ -95,8 +95,8 @@ export default function SettingsPage() {
 
       {enrollUrl ? (
         <section className="card max-w-2xl space-y-2 p-6">
-          <h2 className="page-title" style={{ fontSize: "1.5rem" }}>Public enrollment</h2>
-          <p className="page-copy">Share this link with families. They submit without signing in. Other dugsis are not listed.</p>
+          <h2 className="page-title" style={{ fontSize: "1.5rem" }}>This school’s page</h2>
+          <p className="page-copy">Share this link with families. It is this dugsi’s landing page, not Our Dugsi. They enroll without signing in.</p>
           <p className="record-title" style={{ wordBreak: "break-all" }}>{enrollUrl}</p>
         </section>
       ) : null}

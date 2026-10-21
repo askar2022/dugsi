@@ -10,9 +10,11 @@ type ApplicationRow = {
   parentName: string;
   parentEmail: string;
   parentPhone: string | null;
+  address: string | null;
   firstName: string;
   lastName: string;
-  dateOfBirth: string | null;
+  age: number | null;
+  agreedFeeAndEnroll: boolean;
   notes: string | null;
   status: string;
 };
@@ -23,6 +25,9 @@ function guardianFromNotes(notes: string | null) {
       guardianName?: string;
       guardianEmail?: string;
       guardianPhone?: string;
+      address?: string;
+      age?: number;
+      agreedFeeAndEnroll?: boolean;
       notes?: string;
     } : {};
   } catch {
@@ -47,23 +52,26 @@ export async function GET(request: NextRequest) {
       .order("createdAt", { ascending: false });
 
     for (const item of rows ?? []) {
+      const extra = guardianFromNotes(item.notes);
       applications.push({
         id: item.id,
         source: "application",
         parentName: item.parentName,
         parentEmail: item.parentEmail,
         parentPhone: item.parentPhone,
+        address: item.address ?? extra.address ?? null,
         firstName: item.firstName,
         lastName: item.lastName,
-        dateOfBirth: item.dateOfBirth,
-        notes: item.notes,
+        age: item.age ?? extra.age ?? null,
+        agreedFeeAndEnroll: extra.agreedFeeAndEnroll === true,
+        notes: extra.notes ?? (extra.address || extra.age ? null : item.notes),
         status: item.status,
       });
     }
 
     const { data: pending } = await admin
       .from("Student")
-      .select("id, firstName, lastName, dateOfBirth, notes, status, parent:User!parentId(name, email, phone)")
+      .select("id, firstName, lastName, notes, status, parent:User!parentId(name, email, phone)")
       .eq("tenantId", session.tenantId)
       .eq("status", "pending")
       .order("createdAt", { ascending: false });
@@ -79,9 +87,11 @@ export async function GET(request: NextRequest) {
         parentName: extra.guardianName ?? parent?.name ?? "—",
         parentEmail: extra.guardianEmail ?? parent?.email ?? "",
         parentPhone: extra.guardianPhone ?? parent?.phone ?? null,
+        address: extra.address ?? null,
         firstName: item.firstName,
         lastName: item.lastName,
-        dateOfBirth: item.dateOfBirth,
+        age: extra.age ?? null,
+        agreedFeeAndEnroll: extra.agreedFeeAndEnroll === true,
         notes: extra.notes ?? (extra.guardianName ? null : item.notes),
         status: item.status,
       });
@@ -89,7 +99,7 @@ export async function GET(request: NextRequest) {
 
     return json({
       applications,
-      enrollUrl: `/enroll/${session.tenantSlug}`,
+      enrollUrl: `/s/${session.tenantSlug}`,
       schoolCode: session.tenantSlug,
     });
   } catch (err) {

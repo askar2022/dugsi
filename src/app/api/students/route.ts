@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const reader = createAdminClient();
     let query = reader
       .from("Student")
-      .select("*, class:Class(*), parent:User!parentId(id, name, email, phone)")
+      .select("*, class:Class(*, teacher:User!teacherId(id, name)), parent:User!parentId(id, name, email, phone)")
       .eq("tenantId", session.tenantId)
       .order("lastName")
       .order("firstName");

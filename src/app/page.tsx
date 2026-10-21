@@ -1,21 +1,21 @@
 import Link from "next/link";
 import { BookOpen, ClipboardList, Receipt, Users } from "lucide-react";
-import { isProduction } from "@/lib/env";
+import { PublicHeader } from "@/components/PublicHeader";
 
 const sections = [
   {
-    title: "Dugsi Management",
-    text: "Enrollment, teachers, classes, tuition records, expenses, and reports for each school.",
+    title: "Your own school page",
+    text: "Each dugsi gets a private landing page for its families. Enrollment and logins stay on that school’s page, not on Our Dugsi.",
     icon: Users,
   },
   {
-    title: "Teacher Portal",
-    text: "Class roster, attendance, Quran progress, and homework for the teacher's own class.",
+    title: "Office, teachers, and parents",
+    text: "Admin and staff review enrollment and records. Teachers open their class. Parents open their children after the school invites them.",
     icon: BookOpen,
   },
   {
-    title: "Parent Portal",
-    text: "Attendance, homework, child progress, and tuition status after the school invites you.",
+    title: "Records stay in that school",
+    text: "Students, attendance, Quran progress, and tuition colors belong to one dugsi. Other schools cannot see them.",
     icon: Receipt,
   },
 ];
@@ -23,38 +23,24 @@ const sections = [
 export default function HomePage() {
   return (
     <div className="min-h-screen">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-gold">Multi-tenant</p>
-          <p className="font-[family-name:var(--font-fraunces)] text-2xl text-green">Dugsi</p>
-        </div>
-        <div className="flex gap-3">
-          <Link href="/login" className="btn btn-ghost">
-            Sign in
-          </Link>
-          <Link href="/register" className="btn btn-primary">
-            Register a dugsi
-          </Link>
-        </div>
-      </header>
-
+      <PublicHeader />
       <main className="mx-auto max-w-6xl px-6 pb-20">
         <section className="grid items-center gap-10 py-10 lg:grid-cols-2">
           <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-gold">Each school keeps its own records</p>
+            <p className="text-sm uppercase tracking-[0.2em] text-gold">For dugsis</p>
             <h1 className="mt-3 font-[family-name:var(--font-fraunces)] text-5xl leading-tight text-green md:text-6xl">
-              One platform. Many dugsis. Three portals.
+              Welcome your school to Our Dugsi
             </h1>
             <p className="mt-5 max-w-xl text-lg text-muted">
-              Every dugsi registers with its own name and school code. Students, attendance,
-              billing records, and reports stay inside that school. Web and mobile use the same backend.
+              Our Dugsi is the home for opening a new school or signing in to run one you already have.
+              Families do not enroll here. They use your school’s own page.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/register" className="btn btn-primary">
-                Create your school
+                Create a new dugsi
               </Link>
               <Link href="/login" className="btn btn-ghost">
-                {isProduction() ? "Sign in to your school" : "Use a staging demo"}
+                Sign in to your school
               </Link>
             </div>
           </div>
@@ -78,18 +64,18 @@ export default function HomePage() {
 
         <section className="grid gap-4 md:grid-cols-4">
           {[
-            { label: "Enrollment", Icon: Users },
-            { label: "Teachers & Classes", Icon: BookOpen },
-            { label: "Tuition & Expenses", Icon: Receipt },
-            { label: "Reports", Icon: ClipboardList },
+            { label: "New school", Icon: Users },
+            { label: "School page", Icon: BookOpen },
+            { label: "Office tools", Icon: ClipboardList },
+            { label: "Tuition records", Icon: Receipt },
           ].map(({ label, Icon }) => (
-              <div key={label} className="card p-5 text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green text-white">
-                  <Icon size={20} />
-                </div>
-                <p className="mt-3 font-medium text-green">{label}</p>
+            <div key={label} className="card p-5 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green text-white">
+                <Icon size={20} />
               </div>
-            ))}
+              <p className="mt-3 font-medium text-green">{label}</p>
+            </div>
+          ))}
         </section>
       </main>
     </div>

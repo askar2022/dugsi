@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, Suspense, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import { api, ApiRequestError } from "@/lib/api";
 import { portalForRole, type Session } from "@/lib/types";
 import { FormField } from "@/components/forms/FormField";
+import { PublicHeader } from "@/components/PublicHeader";
 
 const showDemo = process.env.NEXT_PUBLIC_APP_ENV !== "production";
 
@@ -17,11 +18,26 @@ const NOOR = {
   parent: "parent@noor.dugsi",
 };
 
+type School = { name: string; code: string };
+
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
+  const schoolCode = (params.get("school") ?? "").trim().toLowerCase();
+  const portal = params.get("portal");
+  const [school, setSchool] = useState<School | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    if (!schoolCode) {
+      setSchool(null);
+      return;
+    }
+    api<{ school: School }>(`/api/public/school/${schoolCode}`)
+      .then((data) => setSchool(data.school))
+      .catch(() => setSchool(null));
+  }, [schoolCode]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -87,54 +103,82 @@ function LoginForm() {
     }
   }
 
+  const heading =
+    portal === "teacher"
+      ? "Teacher sign in"
+      : portal === "parent"
+        ? "Parent sign in"
+        : portal === "admin"
+          ? "Admin & staff sign in"
+          : "Sign in";
+
   return (
-    <form onSubmit={onSubmit} className="card mx-auto w-full max-w-md space-y-4 p-6">
-      <div>
-        <p className="text-xs uppercase tracking-[0.2em] text-gold">School login</p>
-        <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">Sign in to Dugsi</h1>
-        <p className="mt-2 text-sm text-muted">
-          Use the email invitation from your school. Create your own password, then sign in here.
-        </p>
+    <div className="min-h-screen">
+      {school ? (
+        <PublicHeader variant="school" schoolName={school.name} schoolCode={school.code} />
+      ) : (
+        <PublicHeader />
+      )}
+      <div className="flex justify-center px-4 pb-16">
+        <form onSubmit={onSubmit} className="card mx-auto w-full max-w-md space-y-4 p-6">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-gold">{school?.name ?? "Our Dugsi"}</p>
+            <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">{heading}</h1>
+            <p className="mt-2 text-sm text-muted">
+              {school
+                ? "Use your own email and password for this school."
+                : "Sign in to the school you already run. Families enroll on that school’s own page."}
+            </p>
+          </div>
+          {school ? (
+            <input type="hidden" name="schoolCode" value={school.code} />
+          ) : (
+            <FormField label="School code">
+              <input className="input" name="schoolCode" required autoComplete="organization" />
+            </FormField>
+          )}
+          <FormField label="Email">
+            <input className="input" name="email" type="email" required autoComplete="username" />
+          </FormField>
+          <FormField label="Password">
+            <input className="input" name="password" type="password" required autoComplete="current-password" />
+          </FormField>
+          {error ? <p className="text-sm text-late">{error}</p> : null}
+          <button className="btn btn-primary w-full" disabled={pending}>
+            {pending ? "Signing in..." : "Sign in"}
+          </button>
+          {showDemo && !school ? (
+            <>
+              <button type="button" className="btn btn-ghost w-full" disabled={pending} onClick={() => openNoor("ADMIN")}>
+                Staging: open noor Management
+              </button>
+              <button type="button" className="btn btn-ghost w-full" disabled={pending} onClick={() => openNoor("TEACHER")}>
+                Staging: open Teacher Portal
+              </button>
+              <button type="button" className="btn btn-ghost w-full" disabled={pending} onClick={() => openNoor("PARENT")}>
+                Staging: open Parent Portal
+              </button>
+            </>
+          ) : null}
+          {school ? (
+            <p className="text-sm text-muted">
+              Enrolling a child? <Link className="text-green underline" href={`/enroll/${school.code}`}>Enroll without signing in</Link>
+            </p>
+          ) : (
+            <p className="text-sm text-muted">
+              New school? <Link className="text-green underline" href="/register">Create a dugsi</Link>
+            </p>
+          )}
+        </form>
       </div>
-      <FormField label="School code">
-        <input className="input" name="schoolCode" required autoComplete="organization" />
-      </FormField>
-      <FormField label="Email">
-        <input className="input" name="email" type="email" required autoComplete="username" />
-      </FormField>
-      <FormField label="Password">
-        <input className="input" name="password" type="password" required autoComplete="current-password" />
-      </FormField>
-      {error ? <p className="text-sm text-late">{error}</p> : null}
-      <button className="btn btn-primary w-full" disabled={pending}>
-        {pending ? "Signing in..." : "Sign in"}
-      </button>
-      {showDemo ? (
-        <>
-          <button type="button" className="btn btn-ghost w-full" disabled={pending} onClick={() => openNoor("ADMIN")}>
-            Staging: open noor Management
-          </button>
-          <button type="button" className="btn btn-ghost w-full" disabled={pending} onClick={() => openNoor("TEACHER")}>
-            Staging: open Teacher Portal
-          </button>
-          <button type="button" className="btn btn-ghost w-full" disabled={pending} onClick={() => openNoor("PARENT")}>
-            Staging: open Parent Portal
-          </button>
-        </>
-      ) : null}
-      <p className="text-sm text-muted">
-        New school? <Link className="text-green underline" href="/register">Register a dugsi</Link>
-      </p>
-    </form>
+    </div>
   );
 }
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center px-4 py-10">
-      <Suspense>
-        <LoginForm />
-      </Suspense>
-    </div>
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

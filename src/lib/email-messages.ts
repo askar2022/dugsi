@@ -32,7 +32,7 @@ export function enrollmentConfirmedEmail(input: {
       greeting(input.parentName),
       "",
       `Good news. ${input.childName} is now enrolled at ${input.schoolName}.`,
-      "Teachers and the office will use this record. Your child does not need a login.",
+      "Teachers and the office will use this record. You do not need a portal login for enrollment.",
     ].join("\n"),
   };
 }

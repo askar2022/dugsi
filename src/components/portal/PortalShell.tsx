@@ -76,7 +76,6 @@ const NAV: Record<string, NavSection[]> = {
       label: "Family",
       items: [
         { href: "/parent", label: "Home", icon: Home },
-        { href: "/parent/enroll", label: "Add a child", icon: UserPlus },
         { href: "/parent/attendance", label: "Attendance", icon: CalendarDays },
         { href: "/parent/homework", label: "Homework", icon: ClipboardList },
         { href: "/parent/progress", label: "Child Progress", icon: BookOpen },

@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = publicEnrollSchema.safeParse(body);
   if (!parsed.success) {
-    return error("Enter the parent name, parent email, and the child's first and last name.");
+    return error("Enter the parent details, the child's age, and check that you agree to the fee and enrollment.");
   }
 
   const slug = normalizeSchoolCode(parsed.data.schoolCode);
@@ -22,37 +22,53 @@ export async function POST(request: Request) {
     .maybeSingle();
   if (!tenant) return error("School not found.", 404);
 
+  const extras = {
+    guardianName: parsed.data.parentName.trim(),
+    guardianEmail: parsed.data.parentEmail.trim().toLowerCase(),
+    guardianPhone: parsed.data.parentPhone.trim(),
+    address: parsed.data.address.trim(),
+    age: parsed.data.age,
+    agreedFeeAndEnroll: true,
+    notes: parsed.data.notes?.trim() || undefined,
+  };
+
   const row = {
     tenantId: tenant.id,
-    parentName: parsed.data.parentName.trim(),
-    parentEmail: parsed.data.parentEmail.trim().toLowerCase(),
-    parentPhone: parsed.data.parentPhone || null,
+    parentName: extras.guardianName,
+    parentEmail: extras.guardianEmail,
+    parentPhone: extras.guardianPhone,
+    address: extras.address,
     firstName: parsed.data.firstName.trim(),
     lastName: parsed.data.lastName.trim(),
-    dateOfBirth: parsed.data.dateOfBirth || null,
+    age: extras.age,
     gender: parsed.data.gender || null,
-    notes: parsed.data.notes || null,
+    notes: JSON.stringify(extras),
     status: "pending",
   };
 
   const { error: applicationError } = await admin.from("EnrollmentApplication").insert(row);
   if (applicationError) {
-    const { error: studentError } = await admin.from("Student").insert({
-      tenantId: tenant.id,
+    const { error: withoutColumns } = await admin.from("EnrollmentApplication").insert({
+      tenantId: row.tenantId,
+      parentName: row.parentName,
+      parentEmail: row.parentEmail,
+      parentPhone: row.parentPhone,
       firstName: row.firstName,
       lastName: row.lastName,
-      dateOfBirth: row.dateOfBirth,
-      gender: row.gender,
-      notes: JSON.stringify({
-        guardianName: row.parentName,
-        guardianEmail: row.parentEmail,
-        guardianPhone: row.parentPhone,
-        notes: row.notes,
-      }),
+      notes: JSON.stringify(extras),
       status: "pending",
     });
-    if (studentError) {
-      return error(studentError.message || "Could not send that application.");
+    if (withoutColumns) {
+      const { error: studentError } = await admin.from("Student").insert({
+        tenantId: tenant.id,
+        firstName: row.firstName,
+        lastName: row.lastName,
+        notes: JSON.stringify(extras),
+        status: "pending",
+      });
+      if (studentError) {
+        return error(studentError.message || "Could not send that application.");
+      }
     }
   }
 

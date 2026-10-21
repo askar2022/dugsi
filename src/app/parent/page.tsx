@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BookOpen, CalendarDays, ClipboardList, Receipt, UserPlus } from "lucide-react";
+import { BookOpen, CalendarDays, ClipboardList, Receipt } from "lucide-react";
 import { SchoolImage } from "@/components/portal/SchoolImage";
 import { useParentFamily } from "@/components/portal/useParentFamily";
 import { api } from "@/lib/api";
@@ -20,7 +20,6 @@ type Attendance = {
 };
 
 const ACTIONS = [
-  { href: "/parent/enroll", label: "Online Enrollment", text: "Add another child to your family record.", icon: UserPlus },
   { href: "/parent/attendance", label: "Attendance", text: "See who was present after each class.", icon: CalendarDays },
   { href: "/parent/homework", label: "Homework", text: "Work assigned to your child's class.", icon: ClipboardList },
   { href: "/parent/progress", label: "Child Progress", text: "Surah, Ayah, Juz, and level.", icon: BookOpen },

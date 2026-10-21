@@ -20,7 +20,7 @@ const TASKS = [
   {
     href: "/admin/enrollment",
     label: "Enrollment",
-    text: "Review applications from your public enrollment link.",
+    text: "Share the family link, then enroll or decline a child.",
     icon: Users,
   },
   {

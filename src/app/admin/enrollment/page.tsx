@@ -10,9 +10,11 @@ type Application = {
   parentName: string;
   parentEmail: string;
   parentPhone: string | null;
+  address: string | null;
   firstName: string;
   lastName: string;
-  dateOfBirth: string | null;
+  age: number | null;
+  agreedFeeAndEnroll?: boolean;
   notes: string | null;
   status: string;
 };
@@ -21,7 +23,6 @@ type SchoolClass = { id: string; name: string };
 
 const showDemo = process.env.NEXT_PUBLIC_APP_ENV !== "production";
 
-
 export default function EnrollmentPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
@@ -29,6 +30,7 @@ export default function EnrollmentPage() {
   const [classId, setClassId] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState("");
 
   async function load() {
@@ -46,6 +48,13 @@ export default function EnrollmentPage() {
     load().catch((err) => setError(err instanceof Error ? err.message : "Could not load applications."));
   }, []);
 
+  async function copyLink() {
+    if (!enrollUrl) return;
+    await navigator.clipboard.writeText(enrollUrl);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  }
+
   async function decide(id: string, action: "enroll" | "decline") {
     setBusy(id + action);
     setError("");
@@ -55,7 +64,7 @@ export default function EnrollmentPage() {
         body: JSON.stringify({ action, classId: classId || undefined }),
       });
       setMessage(action === "enroll"
-        ? "Child enrolled. The parent was invited to create their own password."
+        ? "Child enrolled. The parent does not get a login from this page. Invite them later from Parents if they need the portal."
         : "Application declined.");
       await load();
     } catch (err) {
@@ -72,12 +81,32 @@ export default function EnrollmentPage() {
     <div className="page-stack">
       <PageHeader
         title="Enrollment"
-        description="Review applications from your public enrollment link. Attendance and Quran progress stay on Students and Classes."
+        description="Families apply from a public link. They do not sign in. You only enroll or decline the child here."
       />
+
+      <section className="card" style={{ padding: "1.2rem", display: "grid", gap: "0.85rem" }}>
+        <p className="metric-label">How this page works</p>
+        <ol className="page-copy" style={{ margin: 0, paddingLeft: "1.2rem", display: "grid", gap: "0.45rem" }}>
+          <li>Copy this school’s page and send it to families. It is only for this dugsi, not Our Dugsi.</li>
+          <li>Families tap Enroll your child on that page. They do not sign in.</li>
+          <li>Choose a class, then Enroll or Decline. Enroll adds the child to Students. It does not create a parent password.</li>
+          <li>If a parent later needs the Parent Portal, invite them from Parents.</li>
+        </ol>
+      </section>
+
       <section className="card" style={{ padding: "1.2rem 1.2rem 1.3rem" }}>
-        <p className="metric-label">Share this link with families</p>
+        <p className="metric-label">This school’s page</p>
         <p className="record-title" style={{ marginTop: "0.35rem", wordBreak: "break-all" }}>{enrollUrl || "Loading link…"}</p>
-        <p className="page-copy">Parents submit without signing in. Other dugsis are not listed.</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.85rem" }}>
+          <button type="button" className="btn btn-primary" disabled={!enrollUrl} onClick={copyLink}>
+            {copied ? "Link copied" : "Copy school page"}
+          </button>
+          {enrollUrl ? (
+            <a className="btn btn-ghost" href={enrollUrl} target="_blank" rel="noreferrer">
+              Open this school’s page
+            </a>
+          ) : null}
+        </div>
         {showDemo ? (
           <button
             type="button"
@@ -97,17 +126,28 @@ export default function EnrollmentPage() {
           </button>
         ) : null}
       </section>
+
       {error ? <p className="text-sm text-late">{error}</p> : null}
       {message ? <p className="text-sm text-paid">{message}</p> : null}
+
       <section className="card" style={{ padding: "1.1rem" }}>
-        <FormClass classes={classes} classId={classId} onChange={setClassId} />
+        <label className="block space-y-2">
+          <span className="text-sm font-medium text-green">If you enroll, place the child in</span>
+          <select className="select" value={classId} onChange={(event) => setClassId(event.target.value)}>
+            <option value="">No class yet</option>
+            {classes.map((item) => (
+              <option key={item.id} value={item.id}>{item.name}</option>
+            ))}
+          </select>
+        </label>
       </section>
+
       <section>
-        <h2 className="page-title" style={{ fontSize: "1.4rem", marginBottom: "0.8rem" }}>New applications</h2>
+        <h2 className="page-title" style={{ fontSize: "1.4rem", marginBottom: "0.8rem" }}>Applications to review</h2>
         {pending.length === 0 ? (
           <div className="card empty-state">
             <p className="empty-state-title">No applications yet</p>
-            <p className="empty-state-text">Share the enrollment link. New families will appear here for review.</p>
+            <p className="empty-state-text">Send families the enrollment link. When they submit, the child will appear here for Enroll or Decline.</p>
           </div>
         ) : (
           <div className="record-list">
@@ -115,14 +155,19 @@ export default function EnrollmentPage() {
               <article key={item.id} className="card record-card-stack" style={{ padding: "1.1rem" }}>
                 <p className="record-title">{item.firstName} {item.lastName}</p>
                 <p className="record-meta">
-                  {item.parentName} · {item.parentEmail}
+                  Guardian: {item.parentName}
+                  {item.parentEmail ? ` · ${item.parentEmail}` : ""}
                   {item.parentPhone ? ` · ${item.parentPhone}` : ""}
-                  {item.dateOfBirth ? ` · born ${item.dateOfBirth}` : ""}
+                  {item.age ? ` · age ${item.age}` : ""}
                 </p>
+                {item.address ? <p className="record-body">{item.address}</p> : null}
+                {item.agreedFeeAndEnroll ? (
+                  <p className="record-body">Parent checked: agrees to the dugsi fee and to enroll this child.</p>
+                ) : null}
                 {item.notes ? <p className="record-body">{item.notes}</p> : null}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.75rem" }}>
                   <button className="btn btn-primary" disabled={Boolean(busy)} onClick={() => decide(item.id, "enroll")}>
-                    {busy === `${item.id}enroll` ? "Enrolling..." : "Enroll and invite parent"}
+                    {busy === `${item.id}enroll` ? "Enrolling..." : "Enroll child"}
                   </button>
                   <button className="btn btn-ghost" disabled={Boolean(busy)} onClick={() => decide(item.id, "decline")}>
                     Decline
@@ -133,13 +178,14 @@ export default function EnrollmentPage() {
           </div>
         )}
       </section>
+
       {reviewed.length ? (
         <section className="card table-wrap p-2">
           <table>
             <thead>
               <tr>
                 <th>Child</th>
-                <th>Parent</th>
+                <th>Guardian</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -156,27 +202,5 @@ export default function EnrollmentPage() {
         </section>
       ) : null}
     </div>
-  );
-}
-
-function FormClass({
-  classes,
-  classId,
-  onChange,
-}: {
-  classes: SchoolClass[];
-  classId: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="block space-y-2">
-      <span className="text-sm font-medium text-green">Place enrolled children in</span>
-      <select className="select" value={classId} onChange={(event) => onChange(event.target.value)}>
-        <option value="">No class yet</option>
-        {classes.map((item) => (
-          <option key={item.id} value={item.id}>{item.name}</option>
-        ))}
-      </select>
-    </label>
   );
 }

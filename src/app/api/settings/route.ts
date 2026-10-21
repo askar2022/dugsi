@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const schoolImageUrl = await signedSchoolImageUrl(supabase, session.tenantId);
     return json({
       tenant: { ...tenant, schoolImageUrl },
-      enrollUrl: session.tenantSlug ? `/enroll/${session.tenantSlug}` : null,
+      enrollUrl: session.tenantSlug ? `/s/${session.tenantSlug}` : null,
     });
   } catch (err) {
     return handleApiError(err);

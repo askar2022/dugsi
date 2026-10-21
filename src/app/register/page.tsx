@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
+import { PublicHeader } from "@/components/PublicHeader";
 import { api } from "@/lib/api";
 
 export default function RegisterPage() {
@@ -38,13 +39,15 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center px-4 py-10">
+    <div className="min-h-screen">
+      <PublicHeader />
+      <div className="flex justify-center px-4 pb-16">
       <form onSubmit={onSubmit} className="card mx-auto w-full max-w-xl space-y-4 p-6">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-gold">New school</p>
           <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">Register a dugsi</h1>
           <p className="mt-2 text-sm text-muted">
-            Your school gets its own name, school code, staff, students, and records.
+            Create the school on Our Dugsi. Families will use your school’s own page, not this site.
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -78,6 +81,7 @@ export default function RegisterPage() {
           Already registered? <Link className="text-green underline" href="/login">Sign in</Link>
         </p>
       </form>
+      </div>
     </div>
   );
 }
