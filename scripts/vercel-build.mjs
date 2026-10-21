@@ -13,6 +13,10 @@ if (!process.env.APP_ENV && process.env.VERCEL_ENV === "production") {
   process.env.APP_ENV = "staging";
 }
 
+if (!process.env.NEXT_PUBLIC_APP_ENV) {
+  process.env.NEXT_PUBLIC_APP_ENV = process.env.APP_ENV;
+}
+
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
   console.error(
     "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY for this Vercel environment.",

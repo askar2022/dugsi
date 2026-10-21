@@ -3,6 +3,7 @@ import { sendTenantEmail } from "@/lib/email";
 import { teacherWelcomeEmail } from "@/lib/email-messages";
 import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
+import { inviteSchoolUser } from "@/lib/invite";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 import { staffSchema } from "@/lib/validators";
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, session } = await requireAuthedTenant(request, ["ADMIN"]);
+    const { session } = await requireAuthedTenant(request, ["ADMIN"]);
     const parsed = staffSchema.safeParse(await request.json());
     if (!parsed.success) {
       throw new ApiError("Enter the staff member's name and title.");
@@ -36,51 +37,22 @@ export async function POST(request: NextRequest) {
 
     const email = parsed.data.email?.trim().toLowerCase() || null;
     let userId: string | undefined;
-    if (parsed.data.createLogin && email && parsed.data.password) {
-      const admin = createAdminClient();
-      const { data: existing } = await admin
-        .from("User")
-        .select("id, name, role, email")
-        .eq("tenantId", session.tenantId)
-        .eq("email", email)
-        .maybeSingle();
-      if (existing) {
-        throw new ApiError(
-          `${email} already belongs to ${existing.name} (${existing.role}). Use a new email for this teacher, such as farah@${session.tenantSlug}.dugsi.`,
-        );
+    let inviteLink: string | null = null;
+    if (parsed.data.createLogin) {
+      if (!email) {
+        throw new ApiError("Add an email so this person can create their own login.");
       }
-      const { data: created, error: authError } = await admin.auth.admin.createUser({
+      const invited = await inviteSchoolUser({
+        tenantId: session.tenantId,
+        tenantSlug: session.tenantSlug,
+        tenantName: session.tenantName,
         email,
-        password: parsed.data.password,
-        email_confirm: true,
-        user_metadata: { name: parsed.data.name },
-        app_metadata: {
-          role: parsed.data.role ?? "TEACHER",
-          tenant_id: session.tenantId,
-          tenant_slug: session.tenantSlug,
-          tenant_name: session.tenantName,
-        },
+        name: parsed.data.name,
+        role: parsed.data.role ?? "TEACHER",
+        phone: parsed.data.phone,
       });
-      if (authError) {
-        const taken = /already|registered|exists/i.test(authError.message);
-        throw new ApiError(
-          taken
-            ? `${email} is already used. Give Farah her own email, for example farah@${session.tenantSlug}.dugsi.`
-            : authError.message || "Could not create that login.",
-        );
-      }
-      if (created.user) {
-        await admin.from("User").insert({
-          id: created.user.id,
-          tenantId: session.tenantId,
-          email,
-          name: parsed.data.name,
-          phone: parsed.data.phone || null,
-          role: parsed.data.role ?? "TEACHER",
-          status: "active",
-        });
-        userId = created.user.id;
-      }
+      userId = invited.userId;
+      inviteLink = invited.inviteLink;
     }
 
     const writer = createAdminClient();
@@ -106,6 +78,7 @@ export async function POST(request: NextRequest) {
         schoolName: session.tenantName ?? "your school",
         teacherName: parsed.data.name,
         title: parsed.data.title,
+        inviteLink,
       });
       await sendTenantEmail({
         tenantId: session.tenantId,

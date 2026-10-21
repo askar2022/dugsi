@@ -3,7 +3,7 @@ import { sendTenantEmail } from "@/lib/email";
 import { parentWelcomeEmail } from "@/lib/email-messages";
 import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { inviteSchoolUser } from "@/lib/invite";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 import { parentSchema } from "@/lib/validators";
 
@@ -31,55 +31,40 @@ export async function POST(request: NextRequest) {
       throw new ApiError("Enter the parent's name and email.");
     }
 
-    const email = parsed.data.email.trim().toLowerCase();
-    const password = parsed.data.password || "Dugsi123!";
-    const admin = createAdminClient();
-    const { data: created, error: authError } = await admin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { name: parsed.data.name },
-      app_metadata: {
-        role: "PARENT",
-        tenant_id: session.tenantId,
-        tenant_slug: session.tenantSlug,
-        tenant_name: session.tenantName,
-      },
+    const invited = await inviteSchoolUser({
+      tenantId: session.tenantId,
+      tenantSlug: session.tenantSlug,
+      tenantName: session.tenantName,
+      email: parsed.data.email,
+      name: parsed.data.name,
+      role: "PARENT",
+      phone: parsed.data.phone,
     });
-    throwIfError(authError, "Could not create the parent login.");
-    if (!created.user) {
-      throw new ApiError("Could not create the parent login.");
-    }
-
-    const { data: parent, error } = await admin
-      .from("User")
-      .insert({
-        id: created.user.id,
-        tenantId: session.tenantId,
-        email,
-        name: parsed.data.name,
-        phone: parsed.data.phone,
-        role: "PARENT",
-        status: "active",
-      })
-      .select("id, name, email, phone, status")
-      .single();
-    throwIfError(error, "Could not save the parent.");
 
     const copy = parentWelcomeEmail({
       schoolName: session.tenantName ?? "your school",
       parentName: parsed.data.name,
-      email,
+      email: parsed.data.email.trim().toLowerCase(),
+      inviteLink: invited.inviteLink,
+      schoolCode: session.tenantSlug,
     });
     await sendTenantEmail({
       tenantId: session.tenantId,
-      toEmail: email,
+      toEmail: parsed.data.email.trim().toLowerCase(),
       subject: copy.subject,
       body: copy.body,
       event: "parent_welcome",
     });
 
-    return json({ parent }, 201);
+    return json({
+      parent: {
+        id: invited.userId,
+        name: parsed.data.name,
+        email: parsed.data.email.trim().toLowerCase(),
+        phone: parsed.data.phone ?? null,
+        status: invited.created ? "invited" : "active",
+      },
+    }, 201);
   } catch (err) {
     return handleApiError(err);
   }

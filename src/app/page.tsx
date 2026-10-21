@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BookOpen, ClipboardList, Receipt, Users } from "lucide-react";
+import { isProduction } from "@/lib/env";
 
 const sections = [
   {
@@ -14,7 +15,7 @@ const sections = [
   },
   {
     title: "Parent Portal",
-    text: "Online enrollment, attendance, homework, child progress, and tuition status colors.",
+    text: "Attendance, homework, child progress, and tuition status after the school invites you.",
     icon: Receipt,
   },
 ];
@@ -53,7 +54,7 @@ export default function HomePage() {
                 Create your school
               </Link>
               <Link href="/login" className="btn btn-ghost">
-                Use a demo school
+                {isProduction() ? "Sign in to your school" : "Use a staging demo"}
               </Link>
             </div>
           </div>

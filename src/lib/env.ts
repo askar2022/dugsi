@@ -15,3 +15,7 @@ export function getAppUrl() {
 export function isProduction() {
   return getAppEnv() === "production";
 }
+
+export function isPublicDemoEnabled() {
+  return process.env.NEXT_PUBLIC_APP_ENV !== "production";
+}

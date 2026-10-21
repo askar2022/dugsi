@@ -39,7 +39,6 @@ export const parentSchema = z.object({
   name: z.string().min(2),
   email: z.string().min(3),
   phone: z.string().optional(),
-  password: z.string().min(8).optional(),
 });
 
 export const staffSchema = z.object({
@@ -112,6 +111,18 @@ export const expenseSchema = z.object({
 });
 
 export const enrollSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  dateOfBirth: z.string().optional(),
+  gender: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export const publicEnrollSchema = z.object({
+  schoolCode: z.string().min(2),
+  parentName: z.string().min(2),
+  parentEmail: z.string().email(),
+  parentPhone: z.string().optional(),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   dateOfBirth: z.string().optional(),

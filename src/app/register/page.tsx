@@ -49,10 +49,10 @@ export default function RegisterPage() {
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <FormField label="Dugsi name">
-            <input className="input" name="dugsiName" placeholder="Masjid Al-Noor Weekend Dugsi" required />
+            <input className="input" name="dugsiName" placeholder="Your dugsi name" required />
           </FormField>
           <FormField label="School code">
-            <input className="input" name="schoolCode" placeholder="noor" required />
+            <input className="input" name="schoolCode" placeholder="your-school" required />
           </FormField>
           <FormField label="Admin name">
             <input className="input" name="adminName" required />

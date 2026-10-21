@@ -17,6 +17,7 @@ type Tenant = {
 
 export default function SettingsPage() {
   const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [enrollUrl, setEnrollUrl] = useState("");
   const [message, setMessage] = useState("");
   const [imageError, setImageError] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
@@ -24,8 +25,9 @@ export default function SettingsPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function load() {
-    const data = await api<{ tenant: Tenant }>("/api/settings");
+    const data = await api<{ tenant: Tenant; enrollUrl: string | null }>("/api/settings");
     setTenant(data.tenant);
+    setEnrollUrl(data.enrollUrl ? `${window.location.origin}${data.enrollUrl}` : "");
     setPreview(null);
   }
 
@@ -89,7 +91,15 @@ export default function SettingsPage() {
 
   return (
     <div className="page-stack">
-      <PageHeader title="Settings" description="Your school name, photo, contact details, and welcome note." />
+      <PageHeader title="Settings" description="Your school name, photo, contact details, welcome note, and public enrollment link." />
+
+      {enrollUrl ? (
+        <section className="card max-w-2xl space-y-2 p-6">
+          <h2 className="page-title" style={{ fontSize: "1.5rem" }}>Public enrollment</h2>
+          <p className="page-copy">Share this link with families. They submit without signing in. Other dugsis are not listed.</p>
+          <p className="record-title" style={{ wordBreak: "break-all" }}>{enrollUrl}</p>
+        </section>
+      ) : null}
 
       <section className="card max-w-2xl space-y-4 p-6">
         <div>

@@ -15,7 +15,10 @@ export async function GET(request: NextRequest) {
       .single();
     throwIfError(error, "School not found.");
     const schoolImageUrl = await signedSchoolImageUrl(supabase, session.tenantId);
-    return json({ tenant: { ...tenant, schoolImageUrl } });
+    return json({
+      tenant: { ...tenant, schoolImageUrl },
+      enrollUrl: session.tenantSlug ? `/enroll/${session.tenantSlug}` : null,
+    });
   } catch (err) {
     return handleApiError(err);
   }

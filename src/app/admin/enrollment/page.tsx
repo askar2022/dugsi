@@ -1,158 +1,182 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { FormField } from "@/components/forms/FormField";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api";
 
-type Student = {
+type Application = {
   id: string;
+  parentName: string;
+  parentEmail: string;
+  parentPhone: string | null;
   firstName: string;
   lastName: string;
+  dateOfBirth: string | null;
+  notes: string | null;
   status: string;
-  class?: { name: string } | null;
-  parent?: { name: string; email: string } | null;
 };
 
 type SchoolClass = { id: string; name: string };
 
+const showDemo = process.env.NEXT_PUBLIC_APP_ENV !== "production";
+
+
 export default function EnrollmentPage() {
-  const [students, setStudents] = useState<Student[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
+  const [enrollUrl, setEnrollUrl] = useState("");
+  const [classId, setClassId] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [addingSample, setAddingSample] = useState(false);
+  const [busy, setBusy] = useState("");
 
   async function load() {
-    const [studentData, classData] = await Promise.all([
-      api<{ students: Student[] }>("/api/students"),
+    const [appData, classData] = await Promise.all([
+      api<{ applications: Application[]; enrollUrl: string }>("/api/applications"),
       api<{ classes: SchoolClass[] }>("/api/classes"),
     ]);
-    setStudents(studentData.students);
+    setApplications(appData.applications);
+    setEnrollUrl(`${window.location.origin}${appData.enrollUrl}`);
     setClasses(classData.classes);
+    setClassId((current) => current || classData.classes[0]?.id || "");
   }
 
   useEffect(() => {
-    load();
+    load().catch((err) => setError(err instanceof Error ? err.message : "Could not load applications."));
   }, []);
 
-  const applications = students.filter((student) => student.status === "pending");
-
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function decide(id: string, action: "enroll" | "decline") {
+    setBusy(id + action);
     setError("");
-    const form = event.currentTarget;
-    const data = Object.fromEntries(new FormData(form).entries());
     try {
-      await api("/api/students", {
-        method: "POST",
-        body: JSON.stringify({
-          ...data,
-          dateOfBirth: data.dateOfBirth || undefined,
-          classId: data.classId || undefined,
-          parentEmail: data.parentEmail || undefined,
-          parentName: data.parentName || undefined,
-          status: "enrolled",
-        }),
+      await api(`/api/applications/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ action, classId: classId || undefined }),
       });
-      form.reset();
-      setMessage("Student registered and linked to the parent. Open the Parent Portal to see them.");
+      setMessage(action === "enroll"
+        ? "Child enrolled. The parent was invited to create their own password."
+        : "Application declined.");
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not register that student.");
+      setError(err instanceof Error ? err.message : "Could not update that application.");
+    } finally {
+      setBusy("");
     }
   }
 
-  async function enroll(id: string) {
-    await api(`/api/students/${id}`, { method: "PATCH", body: JSON.stringify({ status: "enrolled" }) });
-    await load();
-  }
+  const pending = applications.filter((item) => item.status === "pending");
+  const reviewed = applications.filter((item) => item.status !== "pending");
 
   return (
     <div className="page-stack">
-      <PageHeader title="Enrollment" description="Review new applications and register students." />
-      <div className="card p-5">
-        <p className="text-sm text-muted">
-          To see names and numbers quickly, fill the demo classroom. Then type your own student below.
-          To show a child in the Parent Portal, use parent email <b>parent@noor.dugsi</b>.
-        </p>
-        <button
-          type="button"
-          className="btn btn-ghost mt-3"
-          disabled={addingSample}
-          onClick={async () => {
-            setAddingSample(true);
-            setError("");
-            try {
-              await api("/api/demo/fill", { method: "POST" });
-              setMessage("Demo classroom added: Aisha and Omar, attendance, Quran progress, and tuition.");
-              await load();
-            } catch (err) {
-              setError(err instanceof Error ? err.message : "Could not fill demo data.");
-            } finally {
-              setAddingSample(false);
-            }
-          }}
-        >
-          {addingSample ? "Adding demo data..." : "Fill demo classroom"}
-        </button>
-      </div>
-      <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
-        <FormField label="First name"><input className="input" name="firstName" required /></FormField>
-        <FormField label="Last name"><input className="input" name="lastName" required /></FormField>
-        <FormField label="Date of birth"><input className="input" name="dateOfBirth" type="date" /></FormField>
-        <FormField label="Class">
-          <select className="select" name="classId">
-            <option value="">Unassigned</option>
-            {classes.map((item) => (
-              <option key={item.id} value={item.id}>{item.name}</option>
+      <PageHeader
+        title="Enrollment"
+        description="Review applications from your public enrollment link. Attendance and Quran progress stay on Students and Classes."
+      />
+      <section className="card" style={{ padding: "1.2rem 1.2rem 1.3rem" }}>
+        <p className="metric-label">Share this link with families</p>
+        <p className="record-title" style={{ marginTop: "0.35rem", wordBreak: "break-all" }}>{enrollUrl || "Loading link…"}</p>
+        <p className="page-copy">Parents submit without signing in. Other dugsis are not listed.</p>
+        {showDemo ? (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            style={{ marginTop: "0.85rem" }}
+            onClick={async () => {
+              try {
+                await api("/api/demo/fill", { method: "POST" });
+                setMessage("Staging sample classroom added.");
+                await load();
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Could not add sample data.");
+              }
+            }}
+          >
+            Staging only: fill sample classroom
+          </button>
+        ) : null}
+      </section>
+      {error ? <p className="text-sm text-late">{error}</p> : null}
+      {message ? <p className="text-sm text-paid">{message}</p> : null}
+      <section className="card" style={{ padding: "1.1rem" }}>
+        <FormClass classes={classes} classId={classId} onChange={setClassId} />
+      </section>
+      <section>
+        <h2 className="page-title" style={{ fontSize: "1.4rem", marginBottom: "0.8rem" }}>New applications</h2>
+        {pending.length === 0 ? (
+          <div className="card empty-state">
+            <p className="empty-state-title">No applications yet</p>
+            <p className="empty-state-text">Share the enrollment link. New families will appear here for review.</p>
+          </div>
+        ) : (
+          <div className="record-list">
+            {pending.map((item) => (
+              <article key={item.id} className="card record-card-stack" style={{ padding: "1.1rem" }}>
+                <p className="record-title">{item.firstName} {item.lastName}</p>
+                <p className="record-meta">
+                  {item.parentName} · {item.parentEmail}
+                  {item.parentPhone ? ` · ${item.parentPhone}` : ""}
+                  {item.dateOfBirth ? ` · born ${item.dateOfBirth}` : ""}
+                </p>
+                {item.notes ? <p className="record-body">{item.notes}</p> : null}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.75rem" }}>
+                  <button className="btn btn-primary" disabled={Boolean(busy)} onClick={() => decide(item.id, "enroll")}>
+                    {busy === `${item.id}enroll` ? "Enrolling..." : "Enroll and invite parent"}
+                  </button>
+                  <button className="btn btn-ghost" disabled={Boolean(busy)} onClick={() => decide(item.id, "decline")}>
+                    Decline
+                  </button>
+                </div>
+              </article>
             ))}
-          </select>
-        </FormField>
-        <FormField label="Parent name"><input className="input" name="parentName" defaultValue="Amina Hassan" /></FormField>
-        <FormField label="Parent email"><input className="input" name="parentEmail" type="email" defaultValue="parent@noor.dugsi" /></FormField>
-        <div className="md:col-span-2">
-          <button className="btn btn-primary">Register student</button>
-          {error ? <p className="mt-3 text-sm text-late">{error}</p> : null}
-          {message ? <p className="mt-3 text-sm text-paid">{message}</p> : null}
-        </div>
-      </form>
-      <div>
-        <h4 className="mb-3 text-lg font-semibold text-green">New applications</h4>
-        <div className="card table-wrap p-2">
+          </div>
+        )}
+      </section>
+      {reviewed.length ? (
+        <section className="card table-wrap p-2">
           <table>
             <thead>
               <tr>
-                <th>Student</th>
+                <th>Child</th>
                 <th>Parent</th>
                 <th>Status</th>
-                <th></th>
               </tr>
             </thead>
             <tbody>
-              {applications.length === 0 ? (
-                <tr>
-                  <td colSpan={4}>No pending applications. Parent enrollments will appear here.</td>
+              {reviewed.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.firstName} {item.lastName}</td>
+                  <td>{item.parentName}</td>
+                  <td><StatusBadge status={item.status} /></td>
                 </tr>
-              ) : (
-                applications.map((student) => (
-                  <tr key={student.id}>
-                    <td>{student.firstName} {student.lastName}</td>
-                    <td>{student.parent?.name ?? "—"}</td>
-                    <td><StatusBadge status={student.status} /></td>
-                    <td>
-                      <button className="btn btn-primary px-3 py-2 text-sm" onClick={() => enroll(student.id)}>
-                        Enroll
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
-        </div>
-      </div>
+        </section>
+      ) : null}
     </div>
+  );
+}
+
+function FormClass({
+  classes,
+  classId,
+  onChange,
+}: {
+  classes: SchoolClass[];
+  classId: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block space-y-2">
+      <span className="text-sm font-medium text-green">Place enrolled children in</span>
+      <select className="select" value={classId} onChange={(event) => onChange(event.target.value)}>
+        <option value="">No class yet</option>
+        {classes.map((item) => (
+          <option key={item.id} value={item.id}>{item.name}</option>
+        ))}
+      </select>
+    </label>
   );
 }

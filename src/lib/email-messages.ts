@@ -10,14 +10,13 @@ export function enrollmentReceivedEmail(input: {
   childName: string;
 }) {
   return {
-    subject: `${input.childName} is enrolled at ${input.schoolName}`,
+    subject: `${input.schoolName} received an enrollment application`,
     body: [
       greeting(input.parentName),
       "",
-      `${input.schoolName} received the enrollment for ${input.childName}.`,
-      "The school will review it and add them to the class list.",
-      "",
-      "You can follow updates in the parent portal.",
+      `${input.schoolName} received your application for ${input.childName}.`,
+      "The school will review it. You do not need a portal account yet.",
+      "If the child is enrolled, you will receive an email to create your own login.",
     ].join("\n"),
   };
 }
@@ -42,6 +41,7 @@ export function teacherWelcomeEmail(input: {
   schoolName: string;
   teacherName: string;
   title: string;
+  inviteLink?: string | null;
 }) {
   return {
     subject: `Welcome to ${input.schoolName}`,
@@ -49,7 +49,9 @@ export function teacherWelcomeEmail(input: {
       greeting(input.teacherName),
       "",
       `Welcome to our dugsi. You have been added as ${input.title} at ${input.schoolName}.`,
-      `Sign in at ${getAppUrl()}/login with this email. The office can help you with the school code if you need it.`,
+      input.inviteLink
+        ? `Create your own password here: ${input.inviteLink}`
+        : `Sign in at ${getAppUrl()}/login with this email and the school code your office gave you.`,
       "",
       "We are glad you are with us.",
     ].join("\n"),
@@ -60,6 +62,8 @@ export function parentWelcomeEmail(input: {
   schoolName: string;
   parentName: string;
   email: string;
+  inviteLink?: string | null;
+  schoolCode?: string | null;
 }) {
   return {
     subject: `Your parent portal for ${input.schoolName}`,
@@ -67,8 +71,11 @@ export function parentWelcomeEmail(input: {
       greeting(input.parentName),
       "",
       `You can now open the parent portal for ${input.schoolName}.`,
-      `Sign in at ${getAppUrl()}/login with your school code and ${input.email}.`,
-    ].join("\n"),
+      input.inviteLink
+        ? `Create your own password here: ${input.inviteLink}`
+        : `Sign in at ${getAppUrl()}/login with your school code and ${input.email}.`,
+      input.schoolCode ? `School code: ${input.schoolCode}` : "",
+    ].filter(Boolean).join("\n"),
   };
 }
 

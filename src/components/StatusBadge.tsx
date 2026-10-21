@@ -5,6 +5,8 @@ const TONES: Record<string, string> = {
   active: "bg-green-soft text-paid",
   due: "bg-gold-soft text-due",
   pending: "bg-gold-soft text-due",
+  invited: "bg-gold-soft text-due",
+  declined: "bg-red-50 text-late",
   late: "bg-red-50 text-late",
   absent: "bg-red-50 text-late",
 };

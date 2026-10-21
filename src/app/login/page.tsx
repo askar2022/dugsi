@@ -7,6 +7,8 @@ import { api, ApiRequestError } from "@/lib/api";
 import { portalForRole, type Session } from "@/lib/types";
 import { FormField } from "@/components/forms/FormField";
 
+const showDemo = process.env.NEXT_PUBLIC_APP_ENV !== "production";
+
 const NOOR = {
   schoolCode: "noor",
   password: "Dugsi123!",
@@ -37,11 +39,7 @@ function LoginForm() {
       });
       router.replace(params.get("next") || portalForRole(data.user.role));
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? `${err.message} For the noor demo, use password Dugsi123! or tap a button below. Do not create another school.`
-          : "Could not sign in.",
-      );
+      setError(err instanceof Error ? err.message : "Could not sign in.");
     } finally {
       setPending(false);
     }
@@ -83,11 +81,7 @@ function LoginForm() {
       });
       router.replace(portalForRole(data.user.role));
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Could not open noor. Use school code noor and password Dugsi123!.",
-      );
+      setError(err instanceof Error ? err.message : "Could not open the staging demo.");
     } finally {
       setPending(false);
     }
@@ -98,36 +92,38 @@ function LoginForm() {
       <div>
         <p className="text-xs uppercase tracking-[0.2em] text-gold">School login</p>
         <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">Sign in to Dugsi</h1>
-        <p className="mt-2 text-sm text-muted">The noor school is already created. Open it below. Do not register a second school.</p>
+        <p className="mt-2 text-sm text-muted">
+          Use the email invitation from your school. Create your own password, then sign in here.
+        </p>
       </div>
       <FormField label="School code">
-        <input className="input" name="schoolCode" defaultValue="noor" required />
+        <input className="input" name="schoolCode" required autoComplete="organization" />
       </FormField>
       <FormField label="Email">
-        <input className="input" name="email" type="email" defaultValue="admin@noor.dugsi" required />
+        <input className="input" name="email" type="email" required autoComplete="username" />
       </FormField>
       <FormField label="Password">
-        <input className="input" name="password" type="password" defaultValue="Dugsi123!" required />
+        <input className="input" name="password" type="password" required autoComplete="current-password" />
       </FormField>
       {error ? <p className="text-sm text-late">{error}</p> : null}
       <button className="btn btn-primary w-full" disabled={pending}>
         {pending ? "Signing in..." : "Sign in"}
       </button>
-      <button type="button" className="btn btn-ghost w-full" disabled={pending} onClick={() => openNoor("ADMIN")}>
-        Open noor Management
-      </button>
-      <button type="button" className="btn btn-ghost w-full" disabled={pending} onClick={() => openNoor("TEACHER")}>
-        Open Teacher Portal
-      </button>
-      <button type="button" className="btn btn-ghost w-full" disabled={pending} onClick={() => openNoor("PARENT")}>
-        Open Parent Portal
-      </button>
+      {showDemo ? (
+        <>
+          <button type="button" className="btn btn-ghost w-full" disabled={pending} onClick={() => openNoor("ADMIN")}>
+            Staging: open noor Management
+          </button>
+          <button type="button" className="btn btn-ghost w-full" disabled={pending} onClick={() => openNoor("TEACHER")}>
+            Staging: open Teacher Portal
+          </button>
+          <button type="button" className="btn btn-ghost w-full" disabled={pending} onClick={() => openNoor("PARENT")}>
+            Staging: open Parent Portal
+          </button>
+        </>
+      ) : null}
       <p className="text-sm text-muted">
         New school? <Link className="text-green underline" href="/register">Register a dugsi</Link>
-      </p>
-      <p className="rounded-2xl bg-green-soft p-3 text-xs text-green">
-        noor already exists. Tap a button. Password is <b>Dugsi123!</b>
-        Management: <b>admin@noor.dugsi</b>. Teacher: <b>teacher@noor.dugsi</b>. Parent: <b>parent@noor.dugsi</b>.
       </p>
     </form>
   );

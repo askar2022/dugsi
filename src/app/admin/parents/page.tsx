@@ -19,6 +19,7 @@ export default function ParentsPage() {
   const [parents, setParents] = useState<Parent[]>([]);
   const [query, setQuery] = useState("");
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   async function load() {
     const data = await api<{ parents: Parent[] }>("/api/parents");
@@ -39,29 +40,32 @@ export default function ParentsPage() {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError("");
     const form = event.currentTarget;
     const data = Object.fromEntries(new FormData(form).entries());
-    await api("/api/parents", { method: "POST", body: JSON.stringify(data) });
-    form.reset();
-    setMessage("Parent portal access created.");
-    await load();
+    try {
+      await api("/api/parents", { method: "POST", body: JSON.stringify(data) });
+      form.reset();
+      setMessage("Invitation sent. The parent will create their own password.");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send that invitation.");
+    }
   }
 
   return (
     <div className="page-stack">
       <PageHeader
         title="Parents"
-        description="Guardian contact and portal access. One parent can be linked to more than one student."
+        description="Invite a guardian after a child is enrolled. They create their own password. One parent can be linked to more than one student."
       />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Parent name"><input className="input" name="name" required /></FormField>
         <FormField label="Email"><input className="input" name="email" type="email" required /></FormField>
         <FormField label="Phone"><input className="input" name="phone" /></FormField>
-        <FormField label="Portal password">
-          <input className="input" name="password" type="password" minLength={8} placeholder="Dugsi123!" />
-        </FormField>
         <div className="md:col-span-2">
-          <button className="btn btn-primary">Give parent portal access</button>
+          <button className="btn btn-primary">Send parent portal invitation</button>
+          {error ? <p className="mt-3 text-sm text-late">{error}</p> : null}
           {message ? <p className="mt-3 text-sm text-paid">{message}</p> : null}
         </div>
       </form>
@@ -85,7 +89,7 @@ export default function ParentsPage() {
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={5}>No parents yet. Add portal access, or register a student with a parent email.</td>
+                <td colSpan={5}>No parents yet. Approve an application, or send an invitation here.</td>
               </tr>
             ) : (
               rows.map((parent) => (

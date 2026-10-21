@@ -1,8 +1,9 @@
 import { NextRequest } from "next/server";
 import { sendTenantEmail } from "@/lib/email";
-import { enrollmentConfirmedEmail } from "@/lib/email-messages";
+import { enrollmentConfirmedEmail, parentWelcomeEmail } from "@/lib/email-messages";
 import { ApiError, handleApiError, teacherAssignedClassIds } from "@/lib/guard";
 import { json } from "@/lib/http";
+import { inviteSchoolUser } from "@/lib/invite";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 import { studentSchema } from "@/lib/validators";
@@ -15,21 +16,6 @@ export async function GET(request: NextRequest) {
       return json({ students: [] });
     }
     const reader = createAdminClient();
-    if (session.role === "PARENT") {
-      const { data: orphans } = await reader
-        .from("Student")
-        .select("id")
-        .eq("tenantId", session.tenantId)
-        .is("parentId", null)
-        .limit(1);
-      if (orphans?.length) {
-        await reader
-          .from("Student")
-          .update({ parentId: session.userId })
-          .eq("tenantId", session.tenantId)
-          .is("parentId", null);
-      }
-    }
     let query = reader
       .from("Student")
       .select("*, class:Class(*), parent:User!parentId(id, name, email, phone)")
@@ -48,66 +34,27 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, session } = await requireAuthedTenant(request, ["ADMIN", "STAFF"]);
+    const { session } = await requireAuthedTenant(request, ["ADMIN", "STAFF"]);
     const parsed = studentSchema.safeParse(await request.json());
     if (!parsed.success) {
       throw new ApiError("Enter the student's first and last name.");
     }
 
     let parentId: string | undefined;
-    if (parsed.data.parentEmail) {
-      const email = parsed.data.parentEmail.trim().toLowerCase();
-      const { data: existing } = await supabase.from("User").select("id").eq("email", email).eq("tenantId", session.tenantId).maybeSingle();
-      if (existing) {
-        parentId = existing.id;
-      } else if (parsed.data.parentName && parsed.data.parentEmail) {
-        const admin = createAdminClient();
-        const { data: created, error: authError } = await admin.auth.admin.createUser({
-          email,
-          password: "Dugsi123!",
-          email_confirm: true,
-          user_metadata: { name: parsed.data.parentName },
-          app_metadata: {
-            role: "PARENT",
-            tenant_id: session.tenantId,
-            tenant_slug: session.tenantSlug,
-            tenant_name: session.tenantName,
-          },
-        });
-        throwIfError(authError, "Could not create the parent login.");
-        if (created.user) {
-          await admin.from("User").insert({
-            id: created.user.id,
-            tenantId: session.tenantId,
-            email,
-            name: parsed.data.parentName,
-            phone: parsed.data.parentPhone,
-            role: "PARENT",
-            status: "active",
-          });
-          parentId = created.user.id;
-        }
-      }
-    }
-    if (!parentId) {
-      const parentEmail = `parent@${session.tenantSlug}.dugsi`;
-      const { data: demoParent } = await supabase
-        .from("User")
-        .select("id")
-        .eq("tenantId", session.tenantId)
-        .eq("role", "PARENT")
-        .eq("email", parentEmail)
-        .maybeSingle();
-      const { data: anyParent } = demoParent
-        ? { data: demoParent }
-        : await supabase
-            .from("User")
-            .select("id")
-            .eq("tenantId", session.tenantId)
-            .eq("role", "PARENT")
-            .limit(1)
-            .maybeSingle();
-      parentId = (demoParent ?? anyParent)?.id;
+    let inviteLink: string | null = null;
+    const parentEmail = parsed.data.parentEmail?.trim().toLowerCase();
+    if (parentEmail) {
+      const invited = await inviteSchoolUser({
+        tenantId: session.tenantId,
+        tenantSlug: session.tenantSlug,
+        tenantName: session.tenantName,
+        email: parentEmail,
+        name: parsed.data.parentName || "Parent",
+        role: "PARENT",
+        phone: parsed.data.parentPhone,
+      });
+      parentId = invited.userId;
+      inviteLink = invited.inviteLink;
     }
 
     const writer = createAdminClient();
@@ -128,19 +75,36 @@ export async function POST(request: NextRequest) {
       .single();
     throwIfError(error, "Could not register the student.");
 
-    if (student?.parent?.email) {
-      const copy = enrollmentConfirmedEmail({
+    if (parentEmail) {
+      const childName = `${student.firstName} ${student.lastName}`;
+      const confirmed = enrollmentConfirmedEmail({
         schoolName: session.tenantName ?? "your school",
-        parentName: student.parent.name,
-        childName: `${student.firstName} ${student.lastName}`,
+        parentName: parsed.data.parentName,
+        childName,
       });
       await sendTenantEmail({
         tenantId: session.tenantId,
-        toEmail: student.parent.email,
-        subject: copy.subject,
-        body: copy.body,
+        toEmail: parentEmail,
+        subject: confirmed.subject,
+        body: confirmed.body,
         event: "student_enrolled",
       });
+      if (inviteLink) {
+        const welcome = parentWelcomeEmail({
+          schoolName: session.tenantName ?? "your school",
+          parentName: parsed.data.parentName || "Parent",
+          email: parentEmail,
+          inviteLink,
+          schoolCode: session.tenantSlug,
+        });
+        await sendTenantEmail({
+          tenantId: session.tenantId,
+          toEmail: parentEmail,
+          subject: welcome.subject,
+          body: welcome.body,
+          event: "parent_welcome",
+        });
+      }
     }
 
     return json({ student }, 201);

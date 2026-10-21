@@ -30,7 +30,7 @@ export default function EnrollPage() {
         }),
       });
       form.reset();
-      setMessage("Child saved. Opening your family home…");
+      setMessage("Application sent. The school will review it.");
       router.push("/parent");
       router.refresh();
     } catch (err) {
@@ -43,8 +43,8 @@ export default function EnrollPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        title="Online Enrollment"
-        description="Type your child's name and save. They will appear on Home right away."
+        title="Add another child"
+        description="If you already have a parent login, you can request another child for this school. The office reviews it on Enrollment."
       />
       <form onSubmit={onSubmit} className="card parent-form">
         <FormField label="First name"><input className="input" name="firstName" autoComplete="given-name" required /></FormField>
@@ -52,7 +52,7 @@ export default function EnrollPage() {
         <FormField label="Date of birth"><input className="input" name="dateOfBirth" type="date" /></FormField>
         <FormField label="Notes"><textarea className="input parent-notes" name="notes" rows={3} placeholder="Allergies, pickup notes, or anything the school should know." /></FormField>
         <button className="btn btn-primary parent-form-submit" disabled={pending}>
-          {pending ? "Saving..." : "Save child"}
+          {pending ? "Sending..." : "Submit for review"}
         </button>
         {error ? <p className="text-sm text-late">{error}</p> : null}
         {message ? <p className="text-sm text-paid">{message}</p> : null}

@@ -12,14 +12,14 @@ type Staff = {
   email: string | null;
   salary: number | null;
   userId: string | null;
-  user?: { role: string } | null;
+  user?: { role: string; status: string } | null;
 };
 
 export default function StaffPage() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [passwords, setPasswords] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState("");
 
   async function load() {
     const data = await api<{ staff: Staff[] }>("/api/staff");
@@ -36,8 +36,8 @@ export default function StaffPage() {
     const form = event.currentTarget;
     const raw = Object.fromEntries(new FormData(form).entries());
     const createLogin = raw.createLogin === "on";
-    if (createLogin && (!raw.email || String(raw.password).length < 8)) {
-      setError("To open the Teacher Portal, add an email and a password of at least 8 characters.");
+    if (createLogin && !raw.email) {
+      setError("Add an email so this person can create their own password.");
       return;
     }
     try {
@@ -54,8 +54,8 @@ export default function StaffPage() {
       form.reset();
       setMessage(
         createLogin
-          ? "Teacher saved. They can sign in with that new email and password."
-          : "Staff record saved. Use Give Teacher login if they should open the Teacher Portal.",
+          ? "Invitation sent. They will create their own password from the email."
+          : "Staff record saved. Send a login invitation when they should open the portal.",
       );
       await load();
     } catch (err) {
@@ -63,22 +63,20 @@ export default function StaffPage() {
     }
   }
 
-  async function giveLogin(person: Staff) {
-    const password = passwords[person.id] || "Dugsi123!";
-    if (password.length < 8) {
-      setError("Type a password with at least 8 characters next to their name.");
-      return;
-    }
+  async function inviteLogin(person: Staff) {
+    setBusy(person.id);
     setError("");
     try {
       await api(`/api/staff/${person.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ password, role: "TEACHER" }),
+        body: JSON.stringify({ role: "TEACHER" }),
       });
-      setMessage(`${person.name} can now sign in with ${person.email} and that password.`);
+      setMessage(`Invitation sent to ${person.email}. They will create their own password.`);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create that login.");
+      setError(err instanceof Error ? err.message : "Could not send that invitation.");
+    } finally {
+      setBusy("");
     }
   }
 
@@ -86,12 +84,12 @@ export default function StaffPage() {
     <div className="page-stack">
       <PageHeader
         title="Staff"
-        description="Each teacher needs their own email. Do not use admin@noor.dugsi. Example: farah@noor.dugsi and password Dugsi123!."
+        description="Each teacher uses their own email and sets their own password. Do not reuse another staff member's email."
       />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Name"><input className="input" name="name" required /></FormField>
         <FormField label="Title"><input className="input" name="title" placeholder="Teacher" required /></FormField>
-        <FormField label="Email"><input className="input" name="email" type="email" placeholder="farah@noor.dugsi" /></FormField>
+        <FormField label="Email"><input className="input" name="email" type="email" /></FormField>
         <FormField label="Phone"><input className="input" name="phone" /></FormField>
         <FormField label="Start date"><input className="input" name="startDate" type="date" /></FormField>
         <FormField label="Salary record"><input className="input" name="salary" type="number" step="0.01" /></FormField>
@@ -102,12 +100,9 @@ export default function StaffPage() {
             <option value="ADMIN">Admin</option>
           </select>
         </FormField>
-        <FormField label="Temporary password">
-          <input className="input" name="password" type="password" placeholder="Dugsi123!" />
-        </FormField>
         <label className="flex items-center gap-2 text-sm text-green md:col-span-2">
           <input type="checkbox" name="createLogin" defaultChecked />
-          Create a Teacher Portal login
+          Send a login invitation
         </label>
         <div className="md:col-span-2">
           <button className="btn btn-primary">Save staff member</button>
@@ -122,8 +117,7 @@ export default function StaffPage() {
               <th>Name</th>
               <th>Title</th>
               <th>Email</th>
-              <th>Can sign in?</th>
-              <th>Password</th>
+              <th>Login</th>
             </tr>
           </thead>
           <tbody>
@@ -132,23 +126,18 @@ export default function StaffPage() {
                 <td>{person.name}</td>
                 <td>{person.title}</td>
                 <td>{person.email ?? "—"}</td>
-                <td>{person.userId ? "Yes" : "Not yet"}</td>
                 <td>
                   {person.userId ? (
-                    "Ready"
+                    person.user?.status === "invited" ? "Invitation sent" : "Ready"
                   ) : person.email ? (
-                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                      <input
-                        className="input"
-                        type="password"
-                        placeholder="Dugsi123!"
-                        value={passwords[person.id] ?? ""}
-                        onChange={(event) => setPasswords((current) => ({ ...current, [person.id]: event.target.value }))}
-                      />
-                      <button className="btn btn-primary py-2 text-sm" type="button" onClick={() => giveLogin(person)}>
-                        Give Teacher login
-                      </button>
-                    </div>
+                    <button
+                      className="btn btn-primary py-2 text-sm"
+                      type="button"
+                      disabled={Boolean(busy)}
+                      onClick={() => inviteLogin(person)}
+                    >
+                      {busy === person.id ? "Sending..." : "Send login invitation"}
+                    </button>
                   ) : (
                     "Add an email first"
                   )}
