@@ -7,8 +7,8 @@ export function PageHeader({
 }) {
   return (
     <div>
-      <h1 className="font-display text-3xl text-green md:text-4xl">{title}</h1>
-      {description ? <p className="mt-2 max-w-2xl text-base leading-relaxed text-muted">{description}</p> : null}
+      <h1 className="page-title">{title}</h1>
+      {description ? <p className="page-copy">{description}</p> : null}
     </div>
   );
 }

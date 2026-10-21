@@ -7,7 +7,6 @@ import {
   BookOpen,
   CalendarDays,
   ClipboardList,
-  Contact,
   FileBarChart,
   GraduationCap,
   Home,
@@ -15,27 +14,52 @@ import {
   Menu,
   Receipt,
   Settings,
-  UserPlus,
   Users,
-  Wallet,
   X,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import type { Role, Session } from "@/lib/types";
 
-type NavItem = { href: string; label: string; icon: typeof Home };
+type NavLink = { href: string; label: string };
+type NavGroup = {
+  href: string;
+  label: string;
+  icon: typeof Home;
+  links?: NavLink[];
+};
 
-const NAV: Record<string, NavItem[]> = {
+const NAV: Record<string, NavGroup[]> = {
   ADMIN: [
     { href: "/admin", label: "Overview", icon: Home },
-    { href: "/admin/enrollment", label: "Enrollment", icon: UserPlus },
-    { href: "/admin/students", label: "Students", icon: Users },
-    { href: "/admin/parents", label: "Parents", icon: Contact },
-    { href: "/admin/teachers", label: "Teachers", icon: GraduationCap },
-    { href: "/admin/classes", label: "Classes", icon: BookOpen },
-    { href: "/admin/staff", label: "Staff", icon: ClipboardList },
-    { href: "/admin/billing", label: "Tuition", icon: Receipt },
-    { href: "/admin/expenses", label: "Expenses", icon: Wallet },
+    {
+      href: "/admin/enrollment",
+      label: "Enrollment",
+      icon: Users,
+      links: [
+        { href: "/admin/enrollment", label: "New students" },
+        { href: "/admin/students", label: "Students" },
+        { href: "/admin/parents", label: "Parents" },
+      ],
+    },
+    {
+      href: "/admin/teachers",
+      label: "Teachers & Classes",
+      icon: GraduationCap,
+      links: [
+        { href: "/admin/teachers", label: "Teachers" },
+        { href: "/admin/classes", label: "Classes" },
+        { href: "/admin/staff", label: "Staff" },
+      ],
+    },
+    {
+      href: "/admin/billing",
+      label: "Tuition & Expenses",
+      icon: Receipt,
+      links: [
+        { href: "/admin/billing", label: "Tuition" },
+        { href: "/admin/expenses", label: "Expenses" },
+      ],
+    },
     { href: "/admin/reports", label: "Reports", icon: FileBarChart },
     { href: "/admin/settings", label: "Settings", icon: Settings },
   ],
@@ -56,35 +80,61 @@ const NAV: Record<string, NavItem[]> = {
   PLATFORM: [{ href: "/platform", label: "Schools", icon: Home }],
 };
 
+function isActive(href: string, pathname: string, exact: boolean) {
+  return exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function groupActive(group: NavGroup, pathname: string) {
+  if (group.links?.length) {
+    return group.links.some((link) => isActive(link.href, pathname, true));
+  }
+  return isActive(group.href, pathname, true);
+}
+
 function NavLinks({
-  items,
+  groups,
   pathname,
   onNavigate,
 }: {
-  items: NavItem[];
+  groups: NavGroup[];
   pathname: string;
   onNavigate?: () => void;
 }) {
   return (
-    <nav className="flex flex-col gap-1">
-      {items.map((item) => {
-        const root = item.href === "/admin" || item.href === "/teacher" || item.href === "/parent" || item.href === "/platform";
-        const current = pathname === item.href || (!root && pathname.startsWith(`${item.href}/`));
-        const Icon = item.icon;
+    <nav className="portal-nav">
+      {groups.map((group) => {
+        const current = groupActive(group, pathname);
+        const Icon = group.icon;
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium no-underline ${
-              current
-                ? "bg-gold-soft text-green shadow-sm"
-                : "text-white/80 hover:bg-white/10 hover:text-white"
-            }`}
-          >
-            <Icon size={18} />
-            {item.label}
-          </Link>
+          <div key={group.href}>
+            <Link
+              href={group.href}
+              onClick={onNavigate}
+              className={`portal-nav-link${current ? " is-active" : ""}`}
+            >
+              <Icon size={18} />
+              {group.label}
+            </Link>
+            {current && group.links ? (
+              <div style={{ display: "grid", gap: 4, padding: "0.25rem 0 0.4rem 2.4rem" }}>
+                {group.links.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={onNavigate}
+                    className="subnav-link"
+                    style={{
+                      background: pathname === link.href ? "white" : "transparent",
+                      color: pathname === link.href ? "var(--green)" : "rgba(255,255,255,0.78)",
+                      borderColor: pathname === link.href ? "white" : "transparent",
+                    }}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+          </div>
         );
       })}
     </nav>
@@ -115,57 +165,56 @@ export function PortalShell({
     setMenuOpen(false);
   }, [pathname]);
 
-  const items = NAV[role === "STAFF" ? "ADMIN" : role] ?? [];
+  const groups = NAV[role === "STAFF" ? "ADMIN" : role] ?? [];
   const schoolName = user?.tenantName ?? title;
   const greeting = user?.name ? `Assalamu alaikum, ${user.name}` : "Assalamu alaikum";
+  const currentGroup = groups.find((group) => groupActive(group, pathname));
 
   async function logout() {
     await api("/api/auth/logout", { method: "POST" });
     router.replace("/login");
   }
 
+  const sidebar = (
+    <>
+      <div className="portal-brand">
+        <p className="portal-brand-kicker">Dugsi Management</p>
+        <p className="portal-brand-name">{schoolName}</p>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto" }}>
+        <NavLinks groups={groups} pathname={pathname} onNavigate={() => setMenuOpen(false)} />
+      </div>
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", padding: "1rem" }}>
+        <button onClick={logout} className="portal-nav-link portal-signout">
+          <LogOut size={18} />
+          Sign out
+        </button>
+      </div>
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-cream lg:grid lg:grid-cols-[272px_1fr]">
-      <aside className="hidden bg-green text-white lg:flex lg:flex-col">
-        <div className="border-b border-white/10 px-6 py-7">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gold">Your school</p>
-          <p className="mt-3 font-display text-2xl leading-snug">{schoolName}</p>
-        </div>
-        <div className="flex-1 overflow-y-auto px-3 py-5">
-          <NavLinks items={items} pathname={pathname} />
-        </div>
-        <div className="border-t border-white/10 p-4">
-          <button
-            onClick={logout}
-            className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm text-white/80 hover:bg-white/10"
-          >
-            <LogOut size={18} />
-            Sign out
-          </button>
-        </div>
-      </aside>
+    <div className="portal">
+      <aside className="portal-sidebar">{sidebar}</aside>
 
       {menuOpen ? (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <button className="absolute inset-0 bg-green-deep/40" onClick={() => setMenuOpen(false)} aria-label="Close menu" />
-          <aside className="relative z-50 flex h-full w-[min(86vw,20rem)] flex-col bg-green text-white shadow-2xl">
-            <div className="flex items-start justify-between border-b border-white/10 px-5 py-5">
+        <div className="portal-drawer">
+          <button className="portal-drawer-mask" onClick={() => setMenuOpen(false)} aria-label="Close menu" />
+          <aside className="portal-drawer-panel">
+            <div className="portal-brand" style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gold">Your school</p>
-                <p className="mt-2 font-display text-xl leading-snug">{schoolName}</p>
+                <p className="portal-brand-kicker">Dugsi Management</p>
+                <p className="portal-brand-name">{schoolName}</p>
               </div>
-              <button className="rounded-full p-2 hover:bg-white/10" onClick={() => setMenuOpen(false)} aria-label="Close">
+              <button className="portal-menu-btn" onClick={() => setMenuOpen(false)} aria-label="Close" style={{ background: "transparent", color: "white", borderColor: "rgba(255,255,255,0.2)" }}>
                 <X size={20} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto px-3 py-4">
-              <NavLinks items={items} pathname={pathname} onNavigate={() => setMenuOpen(false)} />
+            <div style={{ flex: 1, overflowY: "auto" }}>
+              <NavLinks groups={groups} pathname={pathname} onNavigate={() => setMenuOpen(false)} />
             </div>
-            <div className="border-t border-white/10 p-4">
-              <button
-                onClick={logout}
-                className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm text-white/80 hover:bg-white/10"
-              >
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", padding: "1rem" }}>
+              <button onClick={logout} className="portal-nav-link portal-signout">
                 <LogOut size={18} />
                 Sign out
               </button>
@@ -174,23 +223,30 @@ export function PortalShell({
         </div>
       ) : null}
 
-      <div className="flex min-h-screen flex-col">
-        <header className="sticky top-0 z-20 border-b border-line bg-cream/95 px-4 py-4 backdrop-blur md:px-8">
-          <div className="flex items-center gap-3">
-            <button
-              className="rounded-2xl border border-line bg-white p-2 text-green lg:hidden"
-              onClick={() => setMenuOpen(true)}
-              aria-label="Open menu"
-            >
-              <Menu size={20} />
-            </button>
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-display text-xl text-green md:text-2xl">{greeting}</p>
-              <p className="truncate text-sm text-muted">{schoolName}</p>
-            </div>
+      <div className="portal-main">
+        <header className="portal-header">
+          <button className="portal-menu-btn" onClick={() => setMenuOpen(true)} aria-label="Open menu">
+            <Menu size={20} />
+          </button>
+          <div className="portal-hello">
+            <p className="portal-hello-title">{greeting}</p>
+            <p className="portal-hello-school">{schoolName}</p>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
+        {currentGroup?.links ? (
+          <div className="portal-subnav">
+            {currentGroup.links.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`subnav-link${pathname === link.href ? " is-active" : ""}`}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        ) : null}
+        <main className="portal-content">{children}</main>
       </div>
     </div>
   );
