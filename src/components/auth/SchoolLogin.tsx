@@ -18,11 +18,11 @@ const COPY = {
     text: "Assalamu alaikum. Sign in to see your children.",
   },
   staff: {
-    art: "/login/staff-portal.jpg",
-    artAlt: "Teacher and staff portal",
-    kicker: "Admin & teachers",
-    heading: "Staff sign in",
-    text: "This page is for the office and teachers.",
+    art: "/teacher_image.png",
+    artAlt: "Welcome back, Teacher",
+    kicker: "Welcome",
+    heading: "Teacher",
+    text: "Assalamu alaikum. Sign in to your class.",
   },
 };
 
