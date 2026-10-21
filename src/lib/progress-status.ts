@@ -14,10 +14,10 @@ export function normalizeProgressStatus(value?: string | null): ProgressStatus {
 }
 
 export function classSupportTone(counts: { on_track: number; needs_practice: number; contact_parent: number; none: number }) {
-  if (counts.contact_parent > 0) return "contact_parent";
-  if (counts.needs_practice > 0) return "needs_practice";
-  if (counts.on_track > 0) return "on_track";
-  return "no_record";
+  if (counts.contact_parent > 0) return "contact_parent" as const;
+  if (counts.needs_practice > 0) return "needs_practice" as const;
+  if (counts.on_track > 0) return "on_track" as const;
+  return "no_record" as const;
 }
 
 export const SUPPORT_LABELS: Record<string, string> = {

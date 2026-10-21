@@ -5,3 +5,9 @@ export class ApiError extends Error {
     this.status = status;
   }
 }
+
+export function throwIfError(error: { message: string } | null, fallback: string) {
+  if (error) {
+    throw new ApiError(error.message || fallback, 400);
+  }
+}

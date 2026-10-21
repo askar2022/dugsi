@@ -1,4 +1,4 @@
-import { throwIfError } from "@/lib/supabase/request";
+import { ApiError, throwIfError } from "@/lib/errors";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const ASSESSMENT_CLASS_NAME = "Waiting for assessment";
@@ -132,5 +132,6 @@ export async function ensureAssessmentClass(
     .select("id, name, level")
     .single();
   throwIfError(error, "Could not create the waiting-for-assessment class.");
+  if (!created) throw new ApiError("Could not create the waiting-for-assessment class.");
   return created;
 }

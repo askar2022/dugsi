@@ -5,6 +5,8 @@ import { NextRequest } from "next/server";
 import { getAppEnv } from "@/lib/env";
 import type { Role, Session } from "@/lib/types";
 import { ApiError } from "@/lib/errors";
+
+export { throwIfError } from "@/lib/errors";
 import { getSupabaseAnonKey, getSupabaseUrl } from "./config";
 
 export type AuthedClient = {
@@ -109,8 +111,3 @@ export function publicUser(session: Session) {
   };
 }
 
-export function throwIfError(error: { message: string } | null, fallback: string) {
-  if (error) {
-    throw new ApiError(error.message || fallback, 400);
-  }
-}

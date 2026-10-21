@@ -130,7 +130,10 @@ export default function AdminProgressPage() {
       for (const student of kids) {
         const record = latest.get(student.id);
         if (!record) counts.none += 1;
-        else counts[normalizeProgressStatus(record.status)] += 1;
+        else {
+          const status = normalizeProgressStatus(record.status);
+          counts[status] += 1;
+        }
       }
       return {
         ...klass,
@@ -139,7 +142,7 @@ export default function AdminProgressPage() {
         tone: classSupportTone(counts),
       };
     }).sort((a, b) => {
-      const rank = { contact_parent: 0, needs_practice: 1, no_record: 2, on_track: 3 };
+      const rank: Record<string, number> = { contact_parent: 0, needs_practice: 1, no_record: 2, on_track: 3 };
       return (rank[a.tone] ?? 4) - (rank[b.tone] ?? 4);
     });
   }, [classes, latest, students]);

@@ -73,6 +73,7 @@ export async function PATCH(
         .select("id, firstName, lastName, status, parent:User!parentId(name, email)")
         .single();
       throwIfError(error, "Could not place that child in a class.");
+      if (!student) throw new ApiError("Could not place that child in a class.");
       const { data: application } = await admin
         .from("EnrollmentApplication")
         .select("parentEmail, parentName")
