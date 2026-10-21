@@ -4,18 +4,37 @@ import { sendTenantEmail } from "@/lib/email";
 import { tuitionDueEmail } from "@/lib/email-messages";
 import { ApiError, getTenantStudent, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
+import { attachChildrenToParent } from "@/lib/parent-link";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 import { invoiceSchema } from "@/lib/validators";
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "PARENT"]);
+    const { supabase, session } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "PARENT"]);
     const studentId = new URL(request.url).searchParams.get("studentId");
-    let query = supabase
+    const reader = session.role === "PARENT" || session.role === "ADMIN" || session.role === "STAFF"
+      ? createAdminClient()
+      : supabase;
+    let childIds: string[] | null = null;
+    if (session.role === "PARENT") {
+      await attachChildrenToParent(reader, session.tenantId, session.userId, session.email);
+      const { data: kids } = await reader
+        .from("Student")
+        .select("id")
+        .eq("tenantId", session.tenantId)
+        .eq("parentId", session.userId);
+      childIds = (kids ?? []).map((item) => item.id);
+      if (childIds.length === 0) return json({ invoices: [] });
+      if (studentId && !childIds.includes(studentId)) return json({ invoices: [] });
+    }
+    let query = reader
       .from("Invoice")
       .select("*, student:Student(id, firstName, lastName, parent:User!parentId(name, email))")
+      .eq("tenantId", session.tenantId)
       .order("dueDate", { ascending: false });
     if (studentId) query = query.eq("studentId", studentId);
+    else if (childIds) query = query.in("studentId", childIds);
     const { data: invoices, error } = await query;
     throwIfError(error, "Could not load invoices.");
     return json({ invoices: invoices ?? [] });
