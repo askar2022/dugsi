@@ -27,10 +27,16 @@ const COPY = {
   },
 };
 
-function SchoolLoginForm({ portal }: { portal: "parent" | "staff" }) {
+function SchoolLoginForm({
+  portal,
+  schoolCode: schoolCodeProp,
+}: {
+  portal: "parent" | "staff";
+  schoolCode?: string;
+}) {
   const router = useRouter();
   const params = useSearchParams();
-  const schoolCode = (params.get("school") ?? "").trim().toLowerCase();
+  const schoolCode = (schoolCodeProp ?? params.get("school") ?? "").trim().toLowerCase();
   const copy = COPY[portal];
   const [school, setSchool] = useState<School | null>(null);
   const [error, setError] = useState("");
@@ -137,10 +143,16 @@ function SchoolLoginForm({ portal }: { portal: "parent" | "staff" }) {
   );
 }
 
-export function SchoolLogin({ portal }: { portal: "parent" | "staff" }) {
+export function SchoolLogin({
+  portal,
+  schoolCode,
+}: {
+  portal: "parent" | "staff";
+  schoolCode?: string;
+}) {
   return (
     <Suspense>
-      <SchoolLoginForm portal={portal} />
+      <SchoolLoginForm portal={portal} schoolCode={schoolCode} />
     </Suspense>
   );
 }
