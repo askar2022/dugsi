@@ -13,6 +13,7 @@ type Report = {
   pending: number;
   classes: number;
   staff: number;
+  progress?: { on_track: number; needs_practice: number; contact_parent: number; none: number };
   tuition: { paid: number; due: number; late: number };
 };
 
@@ -38,7 +39,7 @@ const TASKS = [
   {
     href: "/admin/reports",
     label: "Reports",
-    text: "A simple view of students, tuition, and expenses.",
+    text: "Enrollment numbers and Quran progress cards.",
     icon: ClipboardList,
   },
   {
@@ -64,10 +65,10 @@ export default function AdminHomePage() {
 
   const cards = report
     ? [
-        ["Students", report.students],
         ["Enrolled", report.enrolled],
         ["Pending", report.pending],
-        ["Classes", report.classes],
+        ["On track", report.progress?.on_track ?? 0],
+        ["Needs support", report.progress?.contact_parent ?? 0],
         ["Paid tuition", `$${report.tuition.paid.toFixed(0)}`],
         ["Late tuition", `$${report.tuition.late.toFixed(0)}`],
       ]

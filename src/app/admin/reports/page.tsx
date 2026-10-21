@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { BookOpen, Mail, Receipt, Users, Wallet } from "lucide-react";
+import { BookOpen, Receipt, Users, Wallet } from "lucide-react";
 import { SchoolImage } from "@/components/portal/SchoolImage";
 import { api } from "@/lib/api";
 import type { Session } from "@/lib/types";
@@ -12,11 +12,10 @@ type Report = {
   enrolled: number;
   pending: number;
   classes: number;
-  staff: number;
+  progress: { on_track: number; needs_practice: number; contact_parent: number; none: number };
   tuition: { paid: number; due: number; late: number };
   expenses: { salary: number; rent: number; equipment: number; other: number };
   expenseTotal: number;
-  emails: Array<{ id: string; toEmail: string; subject: string; event: string; createdAt: string }>;
 };
 
 function money(value: number) {
@@ -36,10 +35,24 @@ export default function ReportsPage() {
       .catch(() => setSchoolImageUrl(null));
   }, []);
 
-  const metrics = report
+  const enrollment = report
     ? [
-        { label: "Students", value: String(report.students), detail: `${report.enrolled} enrolled · ${report.pending} pending`, icon: Users, tone: "green" },
-        { label: "Classes", value: String(report.classes), detail: `${report.staff} staff on record`, icon: BookOpen, tone: "green" },
+        { label: "Enrolled", value: String(report.enrolled), detail: `${report.enrolled} student${report.enrolled === 1 ? "" : "s"} enrolled now`, icon: Users, tone: "paid" },
+        { label: "Pending", value: String(report.pending), detail: "Waiting for the office to enroll", icon: Users, tone: "due" },
+      ]
+    : [];
+
+  const progress = report
+    ? [
+        { label: "On track", value: String(report.progress.on_track), detail: "Green — teachers say these children are doing well", icon: BookOpen, tone: "paid" },
+        { label: "Needs practice", value: String(report.progress.needs_practice), detail: "Yellow — watch these classes", icon: BookOpen, tone: "due" },
+        { label: "Needs support", value: String(report.progress.contact_parent), detail: "Red — the class needs more help", icon: BookOpen, tone: "late" },
+        { label: "No Quran record", value: String(report.progress.none), detail: "Teacher has not saved progress yet", icon: BookOpen, tone: "due" },
+      ]
+    : [];
+
+  const moneyCards = report
+    ? [
         { label: "Paid tuition", value: money(report.tuition.paid), detail: "Green means families are current", icon: Receipt, tone: "paid" },
         { label: "Due tuition", value: money(report.tuition.due), detail: "Yellow — pay at the dugsi", icon: Receipt, tone: "due" },
         { label: "Late tuition", value: money(report.tuition.late), detail: "Red — follow up with the family", icon: Receipt, tone: "late" },
@@ -54,8 +67,8 @@ export default function ReportsPage() {
           <p className="hero-kicker">Reports</p>
           <h1 className="hero-title">{user?.tenantName ?? "Your school"}</h1>
           <p className="hero-text">
-            Assalamu alaikum{user?.name ? `, ${user.name}` : ""}. These cards show students, tuition,
-            and Quran progress so you can see which classes need support.
+            Assalamu alaikum{user?.name ? `, ${user.name}` : ""}. Cards only: how many children
+            are enrolled, and how Quran progress looks. Student names stay on Students.
           </p>
         </div>
         <div className="hero-art">
@@ -75,60 +88,58 @@ export default function ReportsPage() {
         </div>
       ) : (
         <>
-          <section className="metric-grid">
-            {metrics.map((item) => {
-              const Icon = item.icon;
-              return (
-                <article key={item.label} className={`card metric-card is-${item.tone}`}>
-                  <span className="metric-icon">
-                    <Icon size={20} />
-                  </span>
-                  <p className="metric-label">{item.label}</p>
-                  <p className="metric-value">{item.value}</p>
-                  <p className="metric-detail">{item.detail}</p>
-                </article>
-              );
-            })}
-          </section>
-
-          <section className="card" style={{ padding: "1.2rem 1.15rem 1.3rem" }}>
-            <div className="child-card" style={{ padding: "0 0 0.85rem" }}>
-              <span className="menu-icon">
-                <BookOpen size={18} />
-              </span>
-              <div>
-                <h2 className="page-title" style={{ fontSize: "1.4rem" }}>Quran progress</h2>
-                <p className="page-copy">Monitor teacher records, poor attendance, and children who finished a Juz.</p>
-              </div>
-            </div>
-            <Link href="/admin/progress" className="btn btn-primary">Open Quran progress</Link>
-          </section>
-
-          <section className="card" style={{ padding: "1.2rem 1.15rem 1.3rem" }}>
-            <div className="child-card" style={{ padding: "0 0 0.85rem" }}>
-              <span className="menu-icon">
-                <Mail size={18} />
-              </span>
-              <div>
-                <h2 className="page-title" style={{ fontSize: "1.4rem" }}>Recent emails</h2>
-                <p className="page-copy">Enrollment, teacher welcome, and tuition notes sent from this school.</p>
-              </div>
-            </div>
-            {report.emails.length === 0 ? (
-              <p className="page-copy">No emails yet. They will appear after you enroll a child or add a teacher.</p>
-            ) : (
-              <div className="record-list">
-                {report.emails.map((email) => (
-                  <article key={email.id} className="record-card">
-                    <div>
-                      <p className="record-title">{email.subject}</p>
-                      <p className="record-meta">{email.toEmail}</p>
-                    </div>
-                    <span className="tone-chip">{email.event.replaceAll("_", " ")}</span>
+          <section>
+            <h2 className="page-title" style={{ fontSize: "1.45rem" }}>Enrollment</h2>
+            <div className="metric-grid" style={{ marginTop: "0.85rem" }}>
+              {enrollment.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <article key={item.label} className={`card metric-card is-${item.tone}`}>
+                    <span className="metric-icon"><Icon size={20} /></span>
+                    <p className="metric-label">{item.label}</p>
+                    <p className="metric-value">{item.value}</p>
+                    <p className="metric-detail">{item.detail}</p>
                   </article>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
+          </section>
+
+          <section>
+            <div className="homework-card-top" style={{ marginBottom: "0.85rem" }}>
+              <h2 className="page-title" style={{ fontSize: "1.45rem", margin: 0 }}>Quran progress</h2>
+              <Link href="/admin/progress" className="btn btn-ghost">Open details</Link>
+            </div>
+            <div className="metric-grid">
+              {progress.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <article key={item.label} className={`card metric-card is-${item.tone}`}>
+                    <span className="metric-icon"><Icon size={20} /></span>
+                    <p className="metric-label">{item.label}</p>
+                    <p className="metric-value">{item.value}</p>
+                    <p className="metric-detail">{item.detail}</p>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+
+          <section>
+            <h2 className="page-title" style={{ fontSize: "1.45rem" }}>Tuition</h2>
+            <div className="metric-grid" style={{ marginTop: "0.85rem" }}>
+              {moneyCards.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <article key={item.label} className={`card metric-card is-${item.tone}`}>
+                    <span className="metric-icon"><Icon size={20} /></span>
+                    <p className="metric-label">{item.label}</p>
+                    <p className="metric-value">{item.value}</p>
+                    <p className="metric-detail">{item.detail}</p>
+                  </article>
+                );
+              })}
+            </div>
           </section>
         </>
       )}
