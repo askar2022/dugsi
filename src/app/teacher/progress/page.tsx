@@ -48,7 +48,7 @@ export default function ProgressPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-stack">
       <PageHeader title="Quran progress" description="Record the verses a student has reached." />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Student">

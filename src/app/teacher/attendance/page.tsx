@@ -44,7 +44,7 @@ export default function AttendancePage() {
   const classId = classes[0]?.id ?? "";
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form onSubmit={onSubmit} className="page-stack">
       <PageHeader title="Attendance" description="Mark who is present today." />
       <div className="grid gap-4 md:grid-cols-2">
         <FormField label="Class">
