@@ -38,7 +38,7 @@ export default function StaffPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-stack">
       <PageHeader title="Staff" description="Add staff and, if needed, create a login." />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Name"><input className="input" name="name" required /></FormField>

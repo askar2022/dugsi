@@ -39,7 +39,7 @@ export default function ExpensesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-stack">
       <PageHeader title="Expenses" description="Salaries, rent, equipment, and other school costs." />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Category">

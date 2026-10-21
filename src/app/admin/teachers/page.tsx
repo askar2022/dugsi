@@ -14,7 +14,7 @@ export default function TeachersPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="page-stack">
       <PageHeader title="Teachers" description="Teachers at your school." />
       <div className="card table-wrap p-2">
         <table>

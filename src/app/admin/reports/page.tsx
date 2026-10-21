@@ -25,7 +25,7 @@ export default function ReportsPage() {
   if (!report) return <p>Loading this school's report...</p>;
 
   return (
-    <div className="space-y-6">
+    <div className="page-stack">
       <PageHeader title="Reports" description="A simple summary of students, tuition, and expenses." />
       <div className="grid gap-4 md:grid-cols-3">
         <div className="card p-5">

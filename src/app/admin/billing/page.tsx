@@ -59,7 +59,7 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-stack">
       <PageHeader title="Tuition" description="Green is paid, yellow is due, red is late. This is a record, not a payment page." />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Student">

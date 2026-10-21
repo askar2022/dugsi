@@ -54,7 +54,7 @@ export default function EnrollmentPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-stack">
       <PageHeader title="Enrollment" description="Review new applications and register students." />
       {students.length === 0 ? (
         <div className="card p-5">

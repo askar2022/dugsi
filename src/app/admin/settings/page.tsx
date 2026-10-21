@@ -7,7 +7,6 @@ import { api } from "@/lib/api";
 
 type Tenant = {
   name: string;
-  slug: string;
   phone: string | null;
   address: string | null;
   city: string | null;
@@ -32,7 +31,7 @@ export default function SettingsPage() {
   if (!tenant) return <p>Loading settings...</p>;
 
   return (
-    <div className="space-y-6">
+    <div className="page-stack">
       <PageHeader title="Settings" description="Your school name, contact details, and welcome note." />
     <form onSubmit={onSubmit} className="card max-w-2xl space-y-4 p-6">
       <FormField label="Dugsi name"><input className="input" name="name" defaultValue={tenant.name} /></FormField>

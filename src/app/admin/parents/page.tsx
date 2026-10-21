@@ -48,7 +48,7 @@ export default function ParentsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-stack">
       <PageHeader
         title="Parents"
         description="Guardian contact and portal access. One parent can be linked to more than one student."

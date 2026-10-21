@@ -64,7 +64,7 @@ export default function StudentsRosterPage() {
   }, [attendance, progress, query, students]);
 
   return (
-    <div className="space-y-6">
+    <div className="page-stack">
       <PageHeader
         title="Students"
         description="Student roster. Students do not have their own login. Parents and teachers use this record."
