@@ -8,7 +8,7 @@ import { api } from "@/lib/api";
 
 type School = { name: string; city: string | null; code: string };
 
-const emptyParent = { parentName: "", parentEmail: "", parentPhone: "", address: "" };
+const emptyParent = { firstName: "", lastName: "", parentEmail: "", parentPhone: "", address: "" };
 const emptyChild = { firstName: "", lastName: "", age: "", notes: "" };
 
 export default function PublicEnrollPage() {
@@ -48,7 +48,10 @@ export default function PublicEnrollPage() {
         method: "POST",
         body: JSON.stringify({
           schoolCode: school.code,
-          ...parent,
+          parentName: `${parent.firstName} ${parent.lastName}`.trim(),
+          parentEmail: parent.parentEmail,
+          parentPhone: parent.parentPhone,
+          address: parent.address,
           firstName: child.firstName,
           lastName: child.lastName,
           age: child.age ? Number(child.age) : undefined,
@@ -111,8 +114,11 @@ export default function PublicEnrollPage() {
           {step === 1 ? (
             <form onSubmit={goToChild} className="grid gap-4">
               <h2 className="page-title" style={{ fontSize: "1.3rem" }}>Parent / guardian</h2>
-              <FormField label="Your name">
-                <input className="input" required value={parent.parentName} onChange={(event) => setParent({ ...parent, parentName: event.target.value })} />
+              <FormField label="First name">
+                <input className="input" required value={parent.firstName} onChange={(event) => setParent({ ...parent, firstName: event.target.value })} />
+              </FormField>
+              <FormField label="Last name">
+                <input className="input" required value={parent.lastName} onChange={(event) => setParent({ ...parent, lastName: event.target.value })} />
               </FormField>
               <FormField label="Your email">
                 <input className="input" type="email" required value={parent.parentEmail} onChange={(event) => setParent({ ...parent, parentEmail: event.target.value })} />
