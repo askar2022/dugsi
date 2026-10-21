@@ -144,6 +144,58 @@ export function juzFor(surahNumber: number, ayah: number) {
   return juz;
 }
 
+export function juzEnd(juz: number) {
+  if (juz < 1) return null;
+  if (juz >= 30) return { surah: 114, ayah: 6 };
+  const next = JUZ_STARTS[juz];
+  if (!next) return null;
+  const [nextSurah, nextAyah] = next;
+  if (nextAyah > 1) return { surah: nextSurah, ayah: nextAyah - 1 };
+  const previous = SURAHS.find((item) => item.number === nextSurah - 1);
+  return previous ? { surah: previous.number, ayah: previous.ayahs } : null;
+}
+
+export function finishesJuz(input: {
+  surah?: string | null;
+  ayahFrom?: number | null;
+  ayahTo?: number | null;
+  juz?: number | null;
+}) {
+  if (!input.juz) return false;
+  const surah = surahByName(input.surah);
+  const end = juzEnd(input.juz);
+  if (!surah || !end) return false;
+  const ayah = input.ayahTo ?? input.ayahFrom ?? 0;
+  return surah.number > end.surah || (surah.number === end.surah && ayah >= end.ayah);
+}
+
+export function completedJuzes(
+  records: Array<{
+    juz?: number | null;
+    surah?: string | null;
+    ayahFrom?: number | null;
+    ayahTo?: number | null;
+    date: string;
+  }>,
+) {
+  const finished = new Map<number, string>();
+  const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date));
+  let previous: number | null = null;
+  for (const record of sorted) {
+    const juz = record.juz ?? null;
+    if (previous && juz && juz > previous) {
+      for (let item = previous; item < juz; item += 1) {
+        if (!finished.has(item)) finished.set(item, record.date);
+      }
+    }
+    if (juz && finishesJuz(record) && !finished.has(juz)) finished.set(juz, record.date);
+    if (juz) previous = Math.max(previous ?? 0, juz);
+  }
+  return [...finished.entries()]
+    .map(([juz, date]) => ({ juz, date }))
+    .sort((a, b) => b.juz - a.juz || b.date.localeCompare(a.date));
+}
+
 export function quranPortion(input: {
   surah?: string | null;
   ayahFrom?: number | null;

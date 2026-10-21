@@ -98,7 +98,7 @@ export default function ReportsPage() {
               </span>
               <div>
                 <h2 className="page-title" style={{ fontSize: "1.4rem" }}>Quran progress</h2>
-                <p className="page-copy">Monitor what teachers recorded. Green is on track, yellow needs practice, red needs support.</p>
+                <p className="page-copy">Monitor teacher records, poor attendance, and children who finished a Juz.</p>
               </div>
             </div>
             <Link href="/admin/progress" className="btn btn-primary">Open Quran progress</Link>

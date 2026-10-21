@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/portal/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api";
 import { classSupportTone, normalizeProgressStatus, PROGRESS_LABELS } from "@/lib/progress-status";
-import { quranPortion } from "@/lib/quran";
+import { completedJuzes, quranPortion } from "@/lib/quran";
 import { downloadTablePdf } from "@/lib/table-pdf";
 import type { Session } from "@/lib/types";
 
@@ -31,6 +31,7 @@ type Progress = {
   status?: string | null;
 };
 
+type Attendance = { studentId: string; status: string };
 type SchoolClass = { id: string; name: string; teacher?: { id: string; name: string } | null };
 type Teacher = { id: string; name: string };
 type StatusFilter = "all" | "on_track" | "needs_practice" | "contact_parent" | "none";
@@ -48,6 +49,7 @@ function latestByStudent(progress: Progress[]) {
 export default function AdminProgressPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [progress, setProgress] = useState<Progress[]>([]);
+  const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [schoolName, setSchoolName] = useState("Quran progress");
@@ -61,10 +63,11 @@ export default function AdminProgressPage() {
     Promise.all([
       api<{ students: Student[] }>("/api/students"),
       api<{ progress: Progress[] }>("/api/progress"),
+      api<{ attendance: Attendance[] }>("/api/attendance"),
       api<{ classes: SchoolClass[] }>("/api/classes"),
       api<{ teachers: Teacher[] }>("/api/staff"),
       api<{ user: Session }>("/api/auth/me"),
-    ]).then(([studentData, progressData, classData, staffData, sessionData]) => {
+    ]).then(([studentData, progressData, attendanceData, classData, staffData, sessionData]) => {
       setStudents(
         studentData.students
           .filter((student) => student.status !== "unenrolled" && student.status !== "declined")
@@ -79,6 +82,7 @@ export default function AdminProgressPage() {
           })),
       );
       setProgress(progressData.progress);
+      setAttendance(attendanceData.attendance);
       setClasses(
         classData.classes.map((item) => ({
           ...item,
@@ -91,6 +95,24 @@ export default function AdminProgressPage() {
   }, []);
 
   const latest = useMemo(() => latestByStudent(progress), [progress]);
+
+  const poorAttendance = useMemo(() => {
+    return students.map((student) => {
+      const marks = attendance.filter((row) => row.studentId === student.id);
+      const absent = marks.filter((row) => row.status === "absent").length;
+      const late = marks.filter((row) => row.status === "late").length;
+      const rate = marks.length ? absent / marks.length : 0;
+      const poor = absent >= 3 || (marks.length >= 4 && rate >= 0.25);
+      return { student, marks: marks.length, absent, late, poor };
+    }).filter((row) => row.poor).sort((a, b) => b.absent - a.absent);
+  }, [attendance, students]);
+
+  const juzAccomplishments = useMemo(() => {
+    return students.flatMap((student) => {
+      const records = progress.filter((item) => item.studentId === student.id);
+      return completedJuzes(records).map((item) => ({ student, ...item }));
+    }).sort((a, b) => b.date.localeCompare(a.date) || b.juz - a.juz);
+  }, [progress, students]);
 
   const classCards = useMemo(() => {
     return classes.map((klass) => {
@@ -171,7 +193,7 @@ export default function AdminProgressPage() {
     <div className="page-stack">
       <PageHeader
         title="Quran progress"
-        description="See what teachers recorded. Green is on track, yellow needs practice, red means the class needs support."
+        description="Monitor teacher records, poor attendance, and children who finished a Juz."
       />
       <section className="metric-grid">
         <article className="card metric-card is-paid">
@@ -193,6 +215,59 @@ export default function AdminProgressPage() {
           <p className="metric-label">No record yet</p>
           <p className="metric-value">{totals.none}</p>
           <p className="metric-detail">Teacher has not saved Quran progress</p>
+        </article>
+      </section>
+
+      <section className="record-list">
+        <article className="card record-card-stack">
+          <h2 className="page-title" style={{ fontSize: "1.35rem" }}>Poor attendance</h2>
+          <p className="page-copy">Children who missed class often. Follow up with the teacher and family.</p>
+          {poorAttendance.length === 0 ? (
+            <p className="record-meta">No poor attendance yet. This list appears after several absences.</p>
+          ) : (
+            <div className="homework-status-list">
+              {poorAttendance.map((row) => (
+                <div key={row.student.id} className="homework-status-row">
+                  <div>
+                    <p className="record-title">{row.student.firstName} {row.student.lastName}</p>
+                    <p className="record-meta">
+                      {row.student.class?.name ?? "No class"}
+                      {row.student.class?.teacher?.name ? ` · ${row.student.class.teacher.name}` : ""}
+                      {` · ${row.absent} absent`}
+                      {row.late ? ` · ${row.late} late` : ""}
+                      {` · ${row.marks} days marked`}
+                    </p>
+                  </div>
+                  <StatusBadge status="absent" />
+                </div>
+              ))}
+            </div>
+          )}
+        </article>
+        <article className="card record-card-stack progress-row is-on_track">
+          <h2 className="page-title" style={{ fontSize: "1.35rem" }}>Juz finished</h2>
+          <p className="page-copy">A child who completes a Juz is an accomplishment for the class.</p>
+          {juzAccomplishments.length === 0 ? (
+            <p className="record-meta">No finished Juz yet. This appears when a child moves to the next Juz.</p>
+          ) : (
+            <div className="homework-status-list">
+              {juzAccomplishments.map((row) => (
+                <div key={`${row.student.id}-${row.juz}`} className="homework-status-row">
+                  <div>
+                    <p className="record-title">{row.student.firstName} {row.student.lastName}</p>
+                    <p className="record-meta">
+                      {row.student.class?.name ?? "No class"}
+                      {row.student.class?.teacher?.name ? ` · ${row.student.class.teacher.name}` : ""}
+                      {` · ${row.date}`}
+                    </p>
+                  </div>
+                  <span className="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold bg-green-soft text-paid">
+                    Juz {row.juz} finished
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </article>
       </section>
 
