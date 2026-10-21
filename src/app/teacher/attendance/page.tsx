@@ -11,11 +11,11 @@ type SchoolClass = { id: string; name: string };
 type Attendance = { studentId: string; status: string };
 type Mark = "present" | "absent" | "late" | "excused";
 
-const MARKS: Array<{ value: Mark; label: string }> = [
-  { value: "present", label: "Present" },
-  { value: "absent", label: "Absent" },
-  { value: "late", label: "Late" },
-  { value: "excused", label: "Excused" },
+const MARKS: Array<{ value: Mark; label: string; short: string }> = [
+  { value: "present", label: "Present", short: "Here" },
+  { value: "absent", label: "Absent", short: "Out" },
+  { value: "late", label: "Late", short: "Late" },
+  { value: "excused", label: "Excused", short: "Exc." },
 ];
 
 export default function AttendancePage() {
@@ -24,6 +24,7 @@ export default function AttendancePage() {
   const [classId, setClassId] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [marks, setMarks] = useState<Record<string, Mark>>({});
+  const [query, setQuery] = useState("");
   const [message, setMessage] = useState("");
   const [ready, setReady] = useState(false);
 
@@ -44,6 +45,13 @@ export default function AttendancePage() {
     () => students.filter((student) => student.classId === classId),
     [classId, students],
   );
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return roster.filter((student) => {
+      if (!needle) return true;
+      return `${student.firstName} ${student.lastName}`.toLowerCase().includes(needle);
+    });
+  }, [query, roster]);
 
   useEffect(() => {
     if (!classId || !date) return;
@@ -77,7 +85,7 @@ export default function AttendancePage() {
 
   return (
     <form onSubmit={onSubmit} className="page-stack">
-      <PageHeader title="Attendance" description="Choose your assigned class and date, then mark each student." />
+      <PageHeader title="Attendance" description="Tap each child. Green is here, red is out." />
       <div className="card parent-form">
         <div className="teacher-filters">
           <FormField label="Class">
@@ -92,6 +100,28 @@ export default function AttendancePage() {
             <input className="input" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
           </FormField>
         </div>
+        {roster.length > 0 ? (
+          <>
+            <input
+              className="input"
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search a student"
+            />
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                const next: Record<string, Mark> = {};
+                for (const student of roster) next[student.id] = "present";
+                setMarks(next);
+              }}
+            >
+              Mark all present
+            </button>
+          </>
+        ) : null}
       </div>
       {!ready ? (
         <EmptyState title="Loading" text="Loading your assigned class." />
@@ -107,9 +137,11 @@ export default function AttendancePage() {
           title="No students in this class"
           text="The office still needs to place students in this class."
         />
+      ) : visible.length === 0 ? (
+        <EmptyState title="No match" text="No student matches that name." />
       ) : (
         <div className="record-list">
-          {roster.map((student) => {
+          {visible.map((student) => {
             const value = marks[student.id] ?? "present";
             return (
               <article key={student.id} className="card record-card-stack attendance-row">
@@ -122,7 +154,8 @@ export default function AttendancePage() {
                       className={`mark-btn is-${mark.value}${value === mark.value ? " is-active" : ""}`}
                       onClick={() => setMarks((current) => ({ ...current, [student.id]: mark.value }))}
                     >
-                      {mark.label}
+                      <span className="mark-label-full">{mark.label}</span>
+                      <span className="mark-label-short">{mark.short}</span>
                     </button>
                   ))}
                 </div>
@@ -131,9 +164,11 @@ export default function AttendancePage() {
           })}
         </div>
       )}
-      <button className="btn btn-primary parent-form-submit" disabled={!classId || roster.length === 0}>
-        Save attendance
-      </button>
+      <div className="teacher-sticky-save">
+        <button className="btn btn-primary" disabled={!classId || roster.length === 0}>
+          Save attendance
+        </button>
+      </div>
       {message ? <p className="text-sm text-paid">{message}</p> : null}
     </form>
   );

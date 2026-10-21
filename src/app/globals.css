@@ -341,6 +341,107 @@ tbody tr:hover td {
   padding: 1.15rem 1rem calc(2.4rem + env(safe-area-inset-bottom));
 }
 
+.portal.is-teacher .portal-content {
+  padding-bottom: calc(6.4rem + env(safe-area-inset-bottom));
+}
+
+.teacher-dock {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.2rem;
+  padding: 0.45rem 0.45rem calc(0.45rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: rgba(247, 243, 235, 0.96);
+}
+
+.teacher-dock-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  min-height: 3.4rem;
+  padding: 0.35rem 0.2rem;
+  border-radius: 0.9rem;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.teacher-dock-link.is-active {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.student-picker {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.student-picker-list {
+  display: grid;
+  gap: 0.45rem;
+  max-height: 16rem;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.student-pick {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  min-height: 3.1rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: white;
+  color: var(--green);
+  font-weight: 700;
+  text-align: left;
+}
+
+.student-pick.is-active {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+
+.student-pick-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: var(--cream);
+  color: var(--green);
+  font-size: 0.85rem;
+}
+
+.student-pick.is-active .student-pick-mark {
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
+}
+
+.teacher-sticky-save {
+  position: sticky;
+  bottom: calc(4.6rem + env(safe-area-inset-bottom));
+  z-index: 15;
+  padding-top: 0.4rem;
+}
+
+.teacher-sticky-save .btn {
+  width: 100%;
+  min-height: 3.2rem;
+}
+
 .portal-drawer {
   position: fixed;
   inset: 0;
@@ -928,13 +1029,18 @@ tbody tr:hover td {
 }
 
 .mark-btn {
-  min-height: 2.7rem;
+  min-height: 3.1rem;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: white;
   color: var(--green);
   font-weight: 700;
+  font-size: 0.95rem;
   cursor: pointer;
+}
+
+.mark-label-short {
+  display: none;
 }
 
 .mark-btn.is-present.is-active {
@@ -1190,6 +1296,41 @@ tbody tr:hover td {
   .portal-header {
     padding-left: 2rem;
     padding-right: 2rem;
+  }
+
+  .teacher-dock {
+    display: none;
+  }
+
+  .portal.is-teacher .portal-content {
+    padding-bottom: 2.8rem;
+  }
+
+  .teacher-sticky-save {
+    position: static;
+    padding-top: 0;
+  }
+
+  .teacher-sticky-save .btn {
+    width: auto;
+  }
+
+  .mark-label-short {
+    display: none;
+  }
+
+  .mark-label-full {
+    display: inline;
+  }
+}
+
+@media (max-width: 430px) {
+  .mark-label-full {
+    display: none;
+  }
+
+  .mark-label-short {
+    display: inline;
   }
 }
 

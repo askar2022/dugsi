@@ -168,6 +168,13 @@ export function PortalShell({
     router.replace("/login");
   }
 
+  const teacherDock = [
+    { href: "/teacher", label: "Class", icon: Users },
+    { href: "/teacher/attendance", label: "Attend", icon: CalendarDays },
+    { href: "/teacher/progress", label: "Quran", icon: BookOpen },
+    { href: "/teacher/homework", label: "Homework", icon: ClipboardList },
+  ];
+
   const sidebarBody = (
     <>
       <div className="portal-brand">
@@ -187,7 +194,7 @@ export function PortalShell({
   );
 
   return (
-    <div className="portal">
+    <div className={`portal${role === "TEACHER" ? " is-teacher" : ""}`}>
       <aside className="portal-sidebar">{sidebarBody}</aside>
 
       {menuOpen ? (
@@ -227,6 +234,24 @@ export function PortalShell({
           </div>
         </header>
         <main className="portal-content">{children}</main>
+        {role === "TEACHER" ? (
+          <nav className="teacher-dock" aria-label="Teacher pages">
+            {teacherDock.map((item) => {
+              const Icon = item.icon;
+              const current = itemActive(item.href, pathname);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`teacher-dock-link${current ? " is-active" : ""}`}
+                >
+                  <Icon size={18} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        ) : null}
       </div>
     </div>
   );

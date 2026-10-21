@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/portal/EmptyState";
 import { FormField } from "@/components/forms/FormField";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
+import { StudentPicker } from "@/components/portal/StudentPicker";
 import { api } from "@/lib/api";
 import { HOMEWORK_KIND_LABELS, HOMEWORK_KINDS, homeworkCompletionCounts, type HomeworkKind } from "@/lib/homework";
 import { SURAHS, juzFor, quranPortion, surahByName, surahByNumber } from "@/lib/quran";
@@ -205,7 +206,7 @@ export default function HomeworkPage() {
     <div className="page-stack">
       <PageHeader
         title="Homework"
-        description="Assign Quran work, then edit the same card. Search and filter when the class is large."
+        description="Tap a child or whole class, then save. Use Edit on a card to change it."
       />
       {classes.length === 0 ? (
         <EmptyState
@@ -232,17 +233,15 @@ export default function HomeworkPage() {
               ))}
             </select>
           </FormField>
-          <FormField label="Assign to">
-            <select className="select" required value={studentId} onChange={(event) => setStudentId(event.target.value)}>
-              <option value="">Choose who receives it</option>
-              <option value="all">Whole class</option>
-              {classStudents.map((student) => (
-                <option key={student.id} value={student.id}>
-                  {student.firstName} {student.lastName}
-                </option>
-              ))}
-            </select>
-          </FormField>
+          <div className="progress-tone block space-y-2">
+            <span className="text-sm font-medium text-green">Assign to</span>
+            <StudentPicker
+              students={classStudents}
+              value={studentId}
+              onChange={setStudentId}
+              allowAll
+            />
+          </div>
           <div className="progress-tone">
             <FormField label="Homework type">
               <div className="mark-group">
@@ -313,11 +312,11 @@ export default function HomeworkPage() {
               placeholder="How to practice this at home."
             />
           </FormField>
-          <div className="homework-form-actions">
+          <div className="homework-form-actions teacher-sticky-save">
             {editingId ? (
               <button type="button" className="btn btn-ghost" onClick={resetForm}>Cancel</button>
             ) : null}
-            <button className="btn btn-primary parent-form-submit">
+            <button className="btn btn-primary parent-form-submit" disabled={!studentId}>
               {editingId ? "Save changes" : "Assign homework"}
             </button>
           </div>

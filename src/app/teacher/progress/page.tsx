@@ -1,12 +1,14 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/portal/EmptyState";
 import { FormField } from "@/components/forms/FormField";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
+import { StudentPicker } from "@/components/portal/StudentPicker";
 import { api } from "@/lib/api";
 import { PROGRESS_LABELS, PROGRESS_STATUSES, normalizeProgressStatus, type ProgressStatus } from "@/lib/progress-status";
+import { SURAHS, juzFor, surahByNumber } from "@/lib/quran";
 
 type Student = { id: string; firstName: string; lastName: string };
 type Progress = {
@@ -28,8 +30,16 @@ function studentOf(item: Progress) {
 export default function ProgressPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [progress, setProgress] = useState<Progress[]>([]);
+  const [studentId, setStudentId] = useState("");
+  const [surahNumber, setSurahNumber] = useState(1);
+  const [ayahFrom, setAyahFrom] = useState(1);
+  const [ayahTo, setAyahTo] = useState(7);
   const [status, setStatus] = useState<ProgressStatus>("on_track");
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [query, setQuery] = useState("");
   const [busyId, setBusyId] = useState("");
+  const surah = surahByNumber(surahNumber);
+  const juz = surah ? juzFor(surah.number, ayahFrom) : 1;
 
   async function load() {
     const [studentData, progressData] = await Promise.all([
@@ -44,21 +54,31 @@ export default function ProgressPage() {
     load();
   }, []);
 
+  const rows = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return progress.filter((item) => {
+      if (!needle) return true;
+      const student = studentOf(item);
+      return `${student?.firstName ?? ""} ${student?.lastName ?? ""} ${item.surah}`.toLowerCase().includes(needle);
+    });
+  }, [progress, query]);
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const raw = Object.fromEntries(new FormData(form).entries());
+    if (!studentId) return;
     await api("/api/progress", {
       method: "POST",
       body: JSON.stringify({
-        ...raw,
-        ayahFrom: Number(raw.ayahFrom),
-        ayahTo: Number(raw.ayahTo),
-        juz: raw.juz ? Number(raw.juz) : undefined,
+        studentId,
+        surah: surah?.name,
+        ayahFrom,
+        ayahTo,
+        juz,
+        date,
         status,
       }),
     });
-    form.reset();
+    setStudentId("");
     setStatus("on_track");
     await load();
   }
@@ -80,7 +100,7 @@ export default function ProgressPage() {
     <div className="page-stack">
       <PageHeader
         title="Quran progress"
-        description="Green is on track, yellow needs practice, red means contact the parent. Red sends an email."
+        description="Tap a child, then Juz, Surah, and ayah. Green, yellow, or red."
       />
       {students.length === 0 ? (
         <EmptyState
@@ -89,21 +109,41 @@ export default function ProgressPage() {
         />
       ) : (
         <form onSubmit={onSubmit} className="card parent-form teacher-form">
-          <FormField label="Student">
-            <select className="select" name="studentId" required>
-              <option value="">Choose a student</option>
-              {students.map((student) => (
-                <option key={student.id} value={student.id}>
-                  {student.firstName} {student.lastName}
+          <div className="progress-tone block space-y-2">
+            <span className="text-sm font-medium text-green">Student</span>
+            <StudentPicker students={students} value={studentId} onChange={setStudentId} />
+          </div>
+          <FormField label="Juz">
+            <input className="input" value={`Juz ${juz}`} readOnly />
+          </FormField>
+          <FormField label="Surah">
+            <select
+              className="select"
+              value={surahNumber}
+              onChange={(event) => {
+                const next = Number(event.target.value);
+                const item = surahByNumber(next);
+                setSurahNumber(next);
+                setAyahFrom(1);
+                setAyahTo(item?.ayahs ?? 1);
+              }}
+            >
+              {SURAHS.map((item) => (
+                <option key={item.number} value={item.number}>
+                  {item.number}. {item.name}
                 </option>
               ))}
             </select>
           </FormField>
-          <FormField label="Juz"><input className="input" name="juz" type="number" min={1} max={30} /></FormField>
-          <FormField label="Surah"><input className="input" name="surah" required /></FormField>
-          <FormField label="Ayah from"><input className="input" name="ayahFrom" type="number" required /></FormField>
-          <FormField label="Ayah to"><input className="input" name="ayahTo" type="number" required /></FormField>
-          <FormField label="Date"><input className="input" name="date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} /></FormField>
+          <FormField label="Ayah from">
+            <input className="input" type="number" min={1} max={surah?.ayahs ?? 1} value={ayahFrom} onChange={(event) => setAyahFrom(Number(event.target.value))} required />
+          </FormField>
+          <FormField label="Ayah to">
+            <input className="input" type="number" min={ayahFrom} max={surah?.ayahs ?? 1} value={ayahTo} onChange={(event) => setAyahTo(Number(event.target.value))} required />
+          </FormField>
+          <FormField label="Date">
+            <input className="input" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+          </FormField>
           <div className="progress-tone">
           <FormField label="Progress">
             <div className="mark-group">
@@ -120,7 +160,9 @@ export default function ProgressPage() {
             </div>
           </FormField>
           </div>
-          <button className="btn btn-primary parent-form-submit">Save progress</button>
+          <div className="teacher-sticky-save">
+            <button className="btn btn-primary parent-form-submit" disabled={!studentId}>Save progress</button>
+          </div>
         </form>
       )}
       {progress.length === 0 ? (
@@ -130,8 +172,17 @@ export default function ProgressPage() {
         />
       ) : (
         <>
+          {progress.length > 6 ? (
+            <input
+              className="input"
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search a student or Surah"
+            />
+          ) : null}
           <div className="record-list progress-mobile">
-            {progress.map((item) => {
+            {rows.map((item) => {
               const student = studentOf(item);
               const tone = normalizeProgressStatus(item.status);
               return (
@@ -174,7 +225,7 @@ export default function ProgressPage() {
                 </tr>
               </thead>
               <tbody>
-                {progress.map((item) => {
+                {rows.map((item) => {
                   const student = studentOf(item);
                   const tone = normalizeProgressStatus(item.status);
                   return (
