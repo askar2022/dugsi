@@ -644,6 +644,120 @@ tbody tr:hover td {
   line-height: 1.65;
 }
 
+.hope-strip {
+  margin-top: 1.1rem;
+  padding: 1.2rem 1.15rem 1.25rem;
+}
+
+.hope-title {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.35rem;
+  color: var(--green);
+}
+
+.hope-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.hope-card {
+  padding: 0.95rem 0.9rem 1rem;
+  border-radius: 1.1rem;
+  background: var(--green-soft);
+}
+
+.hope-card:nth-child(2),
+.hope-card:nth-child(3) {
+  background: var(--gold-soft);
+}
+
+.hope-value {
+  margin: 0;
+  font-family: var(--font-fraunces), serif;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--green);
+}
+
+.hope-label,
+.hope-note,
+.hope-caption,
+.hope-col-label,
+.hope-col-count {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.hope-label {
+  margin-top: 0.5rem;
+  color: var(--green);
+  font-weight: 700;
+}
+
+.hope-chart {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.45rem;
+  align-items: end;
+  min-height: 11rem;
+  margin-top: 1.2rem;
+  padding: 0.9rem 0.4rem 0.3rem;
+  border-radius: 1.1rem;
+  background:
+    linear-gradient(180deg, rgba(11, 61, 46, 0.05), transparent 42%),
+    var(--cream);
+}
+
+.hope-col {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+}
+
+.hope-track {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 7.5rem;
+}
+
+.hope-bar {
+  width: 70%;
+  margin: 0 auto;
+  border-radius: 999px 999px 0.4rem 0.4rem;
+  background: linear-gradient(180deg, var(--gold), var(--green));
+}
+
+.hope-col-count {
+  margin: 0;
+  color: var(--green);
+  font-weight: 700;
+}
+
+.hope-col-label {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.hope-caption {
+  margin-top: 0.75rem;
+}
+
+@media (min-width: 800px) {
+  .hope-cards {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .hope-title {
+    font-size: 1.7rem;
+  }
+}
+
 .school-top {
   gap: 0.75rem;
 }

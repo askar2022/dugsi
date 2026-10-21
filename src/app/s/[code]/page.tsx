@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { PublicHeader } from "@/components/PublicHeader";
+import { SchoolHopeStrip } from "@/components/public/SchoolHope";
 import { SchoolImage } from "@/components/portal/SchoolImage";
+import { getPublicSchoolHope } from "@/lib/public-hope";
 import { getPublicSchool } from "@/lib/public-school";
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
@@ -14,7 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
 
 export default async function SchoolLandingPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
-  const school = await getPublicSchool(code);
+  const [school, hope] = await Promise.all([getPublicSchool(code), getPublicSchoolHope(code)]);
   if (!school) notFound();
 
   return (
@@ -29,6 +31,8 @@ export default async function SchoolLandingPage({ params }: { params: Promise<{ 
             message={school.name}
           />
         </section>
+
+        {hope ? <SchoolHopeStrip hope={hope} /> : null}
 
         <section className="card p-6">
           <p className="hero-kicker">How to enroll</p>
