@@ -13,6 +13,7 @@ export type ParentChild = {
   lastName: string;
   status: string;
   classId: string | null;
+  createdAt: string | null;
   class: ParentChildClass | null;
 };
 
@@ -31,6 +32,7 @@ export function normalizeParentChild(raw: {
   lastName: string;
   status: string;
   classId?: string | null;
+  createdAt?: string | null;
   class?: ParentChildClass | ParentChildClass[] | null;
 }): ParentChild {
   const klass = one(raw.class);
@@ -40,6 +42,7 @@ export function normalizeParentChild(raw: {
     lastName: raw.lastName,
     status: raw.status,
     classId: raw.classId ?? klass?.id ?? null,
+    createdAt: raw.createdAt ?? null,
     class: klass
       ? {
           id: klass.id,
