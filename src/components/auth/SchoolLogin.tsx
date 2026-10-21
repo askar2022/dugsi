@@ -26,8 +26,8 @@ const COPY = {
     text: "Assalamu alaikum. Sign in to your class.",
   },
   admin: {
-    art: "/ourdugsi-landing.jpg",
-    artAlt: "Admin",
+    art: "/admin_image.png",
+    artAlt: "Welcome back, Admin",
     kicker: "Office",
     heading: "Admin",
     text: "Assalamu alaikum. Sign in to run this school.",
@@ -117,7 +117,7 @@ function SchoolLoginForm({
         <section className="card login-welcome">
           <img
             className="login-welcome-image"
-            src={portal === "admin" && school?.imageUrl ? school.imageUrl : copy.art}
+            src={copy.art}
             alt={copy.artAlt}
           />
         </section>
