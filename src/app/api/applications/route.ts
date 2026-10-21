@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { ensureAssessmentClass, ensureWaitingStudent, needsClassPlacement } from "@/lib/assessment-class";
+import { findParentIdByEmail } from "@/lib/parent-link";
 import { handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -98,6 +99,7 @@ export async function GET(request: NextRequest) {
       if (item.status !== "pending" && item.status !== "accepted") continue;
       if (item.status === "accepted" && item.studentId) continue;
       const extra = guardianFromNotes(item.notes);
+      const parentId = await findParentIdByEmail(admin, session.tenantId, item.parentEmail ?? extra.guardianEmail);
       const placed = await ensureWaitingStudent(admin, session.tenantId, {
         studentId: item.studentId,
         firstName: item.firstName,
@@ -105,6 +107,7 @@ export async function GET(request: NextRequest) {
         age: item.age ?? extra.age ?? null,
         address: item.address ?? extra.address ?? null,
         gender: item.gender || null,
+        parentId,
         notes: item.notes,
       });
       await admin

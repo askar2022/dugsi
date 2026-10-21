@@ -867,22 +867,22 @@ tbody tr:hover td {
   border-top: 1px solid var(--line);
 }
 
-.child-switcher {
-  display: flex;
-  gap: 0.65rem;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 0.1rem 0.1rem 0.2rem;
-  scrollbar-width: none;
+.child-switcher-wrap {
+  display: grid;
+  gap: 0.75rem;
 }
 
-.child-switcher::-webkit-scrollbar {
-  display: none;
+.child-switcher {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: 0.65rem;
+  padding: 0;
 }
 
 .child-chip {
   display: flex;
-  min-width: 11.5rem;
+  min-width: 0;
+  width: 100%;
   align-items: center;
   gap: 0.7rem;
   padding: 0.7rem 0.85rem;

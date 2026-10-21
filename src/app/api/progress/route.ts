@@ -1,8 +1,10 @@
 import { NextRequest } from "next/server";
 import { ApiError, getTenantStudent, handleApiError, teacherAssignedClassIds } from "@/lib/guard";
 import { json } from "@/lib/http";
+import { attachChildrenToParent } from "@/lib/parent-link";
 import { emailParentIfContactNeeded } from "@/lib/progress-email";
 import { normalizeProgressStatus } from "@/lib/progress-status";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 import { progressSchema } from "@/lib/validators";
 
@@ -14,11 +16,30 @@ export async function GET(request: NextRequest) {
       return json({ progress: [] });
     }
     const studentId = new URL(request.url).searchParams.get("studentId");
-    let query = supabase
+    const reader = session.role === "PARENT" || session.role === "ADMIN" || session.role === "STAFF"
+      ? createAdminClient()
+      : supabase;
+    if (session.role === "PARENT") {
+      await attachChildrenToParent(reader, session.tenantId, session.userId, session.email);
+    }
+    let query = reader
       .from("QuranProgress")
       .select("*, student:Student(id, firstName, lastName, class:Class(id, name, level))")
+      .eq("tenantId", session.tenantId)
       .order("date", { ascending: false });
-    if (studentId) query = query.eq("studentId", studentId);
+    if (session.role === "PARENT") {
+      const { data: kids } = await reader
+        .from("Student")
+        .select("id")
+        .eq("tenantId", session.tenantId)
+        .eq("parentId", session.userId);
+      const ids = (kids ?? []).map((item) => item.id);
+      if (ids.length === 0) return json({ progress: [] });
+      if (studentId && !ids.includes(studentId)) return json({ progress: [] });
+      query = query.in("studentId", studentId ? [studentId] : ids);
+    } else if (studentId) {
+      query = query.eq("studentId", studentId);
+    }
     if (assignedClassIds) {
       const { data: assignedStudents } = await supabase.from("Student").select("id").in("classId", assignedClassIds);
       const ids = (assignedStudents ?? []).map((item) => item.id);

@@ -6,6 +6,7 @@ import { json } from "@/lib/http";
 import { inviteSchoolUser } from "@/lib/invite";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
+import { attachChildrenToParent } from "@/lib/parent-link";
 import { studentSchema } from "@/lib/validators";
 
 export async function GET(request: NextRequest) {
@@ -16,6 +17,9 @@ export async function GET(request: NextRequest) {
       return json({ students: [] });
     }
     const reader = createAdminClient();
+    if (session.role === "PARENT") {
+      await attachChildrenToParent(reader, session.tenantId, session.userId, session.email);
+    }
     let query = reader
       .from("Student")
       .select("*, class:Class(*, teacher:User!teacherId(id, name)), parent:User!parentId(id, name, email, phone)")

@@ -1,4 +1,5 @@
 import { ensureWaitingStudent } from "@/lib/assessment-class";
+import { findParentIdByEmail } from "@/lib/parent-link";
 import { sendTenantEmail } from "@/lib/email";
 import { enrollmentReceivedEmail } from "@/lib/email-messages";
 import { error, json } from "@/lib/http";
@@ -38,12 +39,14 @@ export async function POST(request: Request) {
   const address = [extras.address, extras.city, extras.state, extras.zip].filter(Boolean).join(", ");
   const notes = JSON.stringify(extras);
 
+  const parentId = await findParentIdByEmail(admin, tenant.id, extras.guardianEmail);
   const { studentId } = await ensureWaitingStudent(admin, tenant.id, {
     firstName: parsed.data.firstName.trim(),
     lastName: parsed.data.lastName.trim(),
     age: extras.age,
     address,
     gender: parsed.data.gender || null,
+    parentId,
     notes,
   });
 

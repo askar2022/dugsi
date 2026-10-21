@@ -63,8 +63,12 @@ export default function ParentProgressPage() {
         />
       ) : progress.length === 0 ? (
         <EmptyState
-          title="No Quran progress yet"
-          text={`Quran progress will appear after the teacher records ${child ? child.firstName + "'s" : "your child's"} Surah and Ayah.`}
+          title={child ? `No Quran progress for ${child.firstName} yet` : "No Quran progress yet"}
+          text={
+            child?.status === "waiting_assessment" || child?.status === "pending"
+              ? `${child.firstName} is waiting for assessment. Progress will appear after they are placed in a class and the teacher records it.`
+              : `Quran progress will appear after the teacher records ${child ? child.firstName + "'s" : "your child's"} Surah and Ayah.`
+          }
         />
       ) : (
         <>
