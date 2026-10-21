@@ -97,17 +97,31 @@ export default function ParentProgressPage() {
               </div>
             </div>
           </section>
-          <div className="record-list">
+          <div className="record-list progress-history-list">
             {progress.map((item) => (
-              <article key={item.id} className={`card record-card record-card-stack progress-row is-${normalizeProgressStatus(item.status)}`}>
-                <p className="record-title">{item.juz ? `Juz ${item.juz}` : item.surah}</p>
-                <p className="record-meta">
-                  Surah {item.surah}
-                  {` · Ayah ${item.ayahFrom}–${item.ayahTo}`}
-                  {level ? ` · ${level}` : ""}
-                  {` · ${item.date}`}
-                </p>
-                <StatusBadge status={normalizeProgressStatus(item.status)} />
+              <article key={item.id} className={`card progress-history is-${normalizeProgressStatus(item.status)}`}>
+                <div className="progress-history-top">
+                  <p className="progress-history-title">{item.juz ? `Juz ${item.juz}` : item.surah}</p>
+                  <StatusBadge status={normalizeProgressStatus(item.status)} />
+                </div>
+                <div className="progress-stats">
+                  <div className="stat">
+                    <p className="stat-label">Surah</p>
+                    <p className="stat-value">{item.surah}</p>
+                  </div>
+                  <div className="stat">
+                    <p className="stat-label">Ayah</p>
+                    <p className="stat-value">{item.ayahFrom}–{item.ayahTo}</p>
+                  </div>
+                  <div className="stat">
+                    <p className="stat-label">Level</p>
+                    <p className="stat-value">{level ?? "—"}</p>
+                  </div>
+                  <div className="stat">
+                    <p className="stat-label">Date</p>
+                    <p className="stat-value">{item.date}</p>
+                  </div>
+                </div>
               </article>
             ))}
           </div>

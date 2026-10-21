@@ -1009,6 +1009,50 @@ tbody tr:hover td {
   color: var(--green);
 }
 
+.progress-history-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.progress-history {
+  display: grid;
+  gap: 1rem;
+  padding: 1.35rem 1.2rem 1.3rem;
+}
+
+.progress-history-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.progress-history-title {
+  margin: 0;
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.85rem;
+  line-height: 1.15;
+  color: var(--green);
+}
+
+.progress-history .stat-value {
+  font-size: 1.35rem;
+}
+
+@media (min-width: 720px) {
+  .progress-history-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .progress-history-title {
+    font-size: 2.1rem;
+  }
+
+  .progress-history .stat-value {
+    font-size: 1.5rem;
+  }
+}
+
 .progress-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1104,17 +1148,20 @@ tbody tr:hover td {
 }
 
 .progress-row.is-on_track,
-.progress-latest.is-on_track {
+.progress-latest.is-on_track,
+.progress-history.is-on_track {
   background: var(--green-soft);
 }
 
 .progress-row.is-needs_practice,
-.progress-latest.is-needs_practice {
+.progress-latest.is-needs_practice,
+.progress-history.is-needs_practice {
   background: var(--gold-soft);
 }
 
 .progress-row.is-contact_parent,
-.progress-latest.is-contact_parent {
+.progress-latest.is-contact_parent,
+.progress-history.is-contact_parent {
   background: #fdecec;
 }
 
