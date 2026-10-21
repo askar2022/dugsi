@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
+import { isAssessmentClass, needsClassPlacement } from "@/lib/assessment-class";
 import { api } from "@/lib/api";
 import { downloadTablePdf } from "@/lib/table-pdf";
 import type { Session } from "@/lib/types";
@@ -12,6 +13,7 @@ type Student = {
   firstName: string;
   lastName: string;
   status: string;
+  classId?: string | null;
   createdAt?: string | null;
   class?: {
     id: string;
@@ -34,6 +36,7 @@ type Progress = {
 type SchoolClass = {
   id: string;
   name: string;
+  level?: string | null;
   teacher?: { id: string; name: string } | null;
 };
 
@@ -63,6 +66,11 @@ export default function StudentsRosterPage() {
   const [teacherId, setTeacherId] = useState("");
   const [quranLevel, setQuranLevel] = useState("");
   const [year, setYear] = useState("");
+  const [status, setStatus] = useState("");
+  const [placeClass, setPlaceClass] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -137,9 +145,12 @@ export default function StudentsRosterPage() {
       if (teacherId && teacher?.id !== teacherId) return false;
       if (quranLevel && quran !== quranLevel) return false;
       if (year && enrolledYear !== year) return false;
+      if (status === "waiting_assessment" && !needsClassPlacement(student)) return false;
+      if (status === "enrolled" && needsClassPlacement(student)) return false;
+      if (status && status !== "waiting_assessment" && status !== "enrolled" && student.status !== status) return false;
       return true;
     });
-  }, [classId, latestProgress, quranLevel, query, students, teacherId, year]);
+  }, [classId, latestProgress, quranLevel, query, status, students, teacherId, year]);
 
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -149,6 +160,7 @@ export default function StudentsRosterPage() {
     teacherId ? teachers.find((item) => item.id === teacherId)?.name : null,
     quranLevel || null,
     year ? `Enrolled ${year}` : null,
+    status === "waiting_assessment" ? "Waiting for assessment" : status || null,
     query.trim() || null,
   ].filter(Boolean);
 
@@ -158,7 +170,44 @@ export default function StudentsRosterPage() {
     setTeacherId("");
     setQuranLevel("");
     setYear("");
+    setStatus("");
     setPage(1);
+  }
+
+  const realClasses = classes.filter((item) => !isAssessmentClass(item));
+
+  async function place(studentId: string) {
+    const nextClassId = placeClass[studentId];
+    if (!nextClassId) {
+      setError("Choose a class first.");
+      return;
+    }
+    setBusy(studentId);
+    setError("");
+    try {
+      await api(`/api/students/${studentId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ action: "place", classId: nextClassId }),
+      });
+      const className = realClasses.find((item) => item.id === nextClassId)?.name ?? "class";
+      setMessage(`Child placed in ${className}.`);
+      const studentData = await api<{ students: Student[] }>("/api/students");
+      setStudents(
+        studentData.students.map((student) => ({
+          ...student,
+          class: student.class
+            ? {
+                ...student.class,
+                teacher: Array.isArray(student.class.teacher) ? student.class.teacher[0] : student.class.teacher,
+              }
+            : null,
+        })),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not place that child.");
+    } finally {
+      setBusy("");
+    }
   }
 
   function exportPdf() {
@@ -207,7 +256,7 @@ export default function StudentsRosterPage() {
             <span className="text-sm font-medium text-green">Class</span>
             <select className="select" value={classId} onChange={(event) => { setClassId(event.target.value); setPage(1); }}>
               <option value="">All classes</option>
-              {classes.map((item) => (
+              {classes.filter((item) => !isAssessmentClass(item)).map((item) => (
                 <option key={item.id} value={item.id}>{item.name}</option>
               ))}
             </select>
@@ -239,7 +288,17 @@ export default function StudentsRosterPage() {
               ))}
             </select>
           </label>
+          <label className="block space-y-2">
+            <span className="text-sm font-medium text-green">Status</span>
+            <select className="select" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }}>
+              <option value="">All statuses</option>
+              <option value="waiting_assessment">Waiting for assessment</option>
+              <option value="enrolled">Placed in a class</option>
+            </select>
+          </label>
         </div>
+        {error ? <p className="text-sm text-late" style={{ margin: 0 }}>{error}</p> : null}
+        {message ? <p className="text-sm text-paid" style={{ margin: 0 }}>{message}</p> : null}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
           <button type="button" className="btn btn-ghost" onClick={resetFilters}>Clear filters</button>
           <button type="button" className="btn btn-primary" onClick={exportPdf} disabled={rows.length === 0}>
@@ -273,7 +332,33 @@ export default function StudentsRosterPage() {
               visible.map((student) => (
                 <tr key={student.id}>
                   <td>{student.firstName} {student.lastName}</td>
-                  <td>{student.class?.name ?? "—"}</td>
+                  <td>
+                    {needsClassPlacement(student) ? (
+                      <div style={{ display: "grid", gap: "0.4rem", minWidth: "11rem" }}>
+                        <span>Waiting for assessment</span>
+                        <select
+                          className="select"
+                          value={placeClass[student.id] ?? ""}
+                          onChange={(event) => setPlaceClass((current) => ({ ...current, [student.id]: event.target.value }))}
+                        >
+                          <option value="">{realClasses.length ? "Choose a class" : "Add a class first"}</option>
+                          {realClasses.map((item) => (
+                            <option key={item.id} value={item.id}>{item.name}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          disabled={Boolean(busy) || !placeClass[student.id]}
+                          onClick={() => place(student.id)}
+                        >
+                          {busy === student.id ? "Placing..." : "Place in class"}
+                        </button>
+                      </div>
+                    ) : (
+                      student.class?.name ?? "—"
+                    )}
+                  </td>
                   <td>{student.class?.teacher?.name ?? "—"}</td>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", flexWrap: "wrap" }}>

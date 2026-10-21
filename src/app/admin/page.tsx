@@ -11,6 +11,7 @@ type Report = {
   students: number;
   enrolled: number;
   pending: number;
+  waiting?: number;
   classes: number;
   staff: number;
   progress?: { on_track: number; needs_practice: number; contact_parent: number; none: number };
@@ -21,7 +22,7 @@ const TASKS = [
   {
     href: "/admin/enrollment",
     label: "Enrollment",
-    text: "Share the family link, then enroll or decline a child.",
+    text: "Accept a child for assessment, then place them in a class.",
     icon: Users,
   },
   {
@@ -66,7 +67,7 @@ export default function AdminHomePage() {
   const cards = report
     ? [
         ["Enrolled", report.enrolled],
-        ["Pending", report.pending],
+        ["Waiting", report.waiting ?? report.pending],
         ["On track", report.progress?.on_track ?? 0],
         ["Needs support", report.progress?.contact_parent ?? 0],
         ["Paid tuition", `$${report.tuition.paid.toFixed(0)}`],

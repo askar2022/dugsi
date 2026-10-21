@@ -40,7 +40,9 @@ function classOf(item: Homework) {
 
 function childSummary(student: ParentChild, homework: Homework[], attendance: Attendance[]) {
   const classLine = [
-    student.class?.name ?? "Class pending",
+    student.status === "waiting_assessment" || student.status === "pending"
+      ? "Waiting for assessment"
+      : student.class?.name ?? "Waiting for assessment",
     student.class?.level,
     student.class?.dayOfWeek ? `Class this ${student.class.dayOfWeek}` : null,
   ].filter(Boolean).join(" · ");

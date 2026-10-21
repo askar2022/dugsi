@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { isAssessmentClass } from "@/lib/assessment-class";
 import { sendTenantEmail } from "@/lib/email";
 import { enrollmentConfirmedEmail } from "@/lib/email-messages";
 import { ApiError, getTenantStudent, handleApiError } from "@/lib/guard";
@@ -48,6 +49,59 @@ export async function PATCH(
         .single();
       throwIfError(error, "Could not unenroll that child.");
       return json({ student: updated });
+    }
+
+    if (body.action === "place") {
+      const { session } = await requireAuthedTenant(request, ["ADMIN", "STAFF"]);
+      const classId = typeof body.classId === "string" ? body.classId : "";
+      if (!classId) throw new ApiError("Choose a class for this child.");
+      const admin = createAdminClient();
+      const { data: schoolClass } = await admin
+        .from("Class")
+        .select("id, name, level")
+        .eq("id", classId)
+        .eq("tenantId", session.tenantId)
+        .maybeSingle();
+      if (!schoolClass || isAssessmentClass(schoolClass)) {
+        throw new ApiError("Choose a real class after the assessment.");
+      }
+      const { data: student, error } = await admin
+        .from("Student")
+        .update({ classId, status: "enrolled" })
+        .eq("id", id)
+        .eq("tenantId", session.tenantId)
+        .select("id, firstName, lastName, status, parent:User!parentId(name, email)")
+        .single();
+      throwIfError(error, "Could not place that child in a class.");
+      const { data: application } = await admin
+        .from("EnrollmentApplication")
+        .select("parentEmail, parentName")
+        .eq("tenantId", session.tenantId)
+        .eq("studentId", id)
+        .maybeSingle();
+      await admin
+        .from("EnrollmentApplication")
+        .update({ status: "enrolled" })
+        .eq("tenantId", session.tenantId)
+        .eq("studentId", id);
+      const parent = Array.isArray(student?.parent) ? student.parent[0] : student?.parent;
+      const parentEmail = (parent?.email ?? application?.parentEmail ?? "").trim().toLowerCase();
+      if (parentEmail) {
+        const copy = enrollmentConfirmedEmail({
+          schoolName: session.tenantName ?? "your school",
+          parentName: parent?.name ?? application?.parentName,
+          childName: `${student.firstName} ${student.lastName}`,
+          className: schoolClass.name,
+        });
+        await sendTenantEmail({
+          tenantId: session.tenantId,
+          toEmail: parentEmail,
+          subject: copy.subject,
+          body: copy.body,
+          event: "student_enrolled",
+        });
+      }
+      return json({ student });
     }
 
     const { supabase, session } = await requireAuthedTenant(request, ["ADMIN", "STAFF"]);

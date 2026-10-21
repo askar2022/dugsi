@@ -11,6 +11,8 @@ const TONES: Record<string, string> = {
   written: "bg-gold-soft text-due",
   due: "bg-gold-soft text-due",
   pending: "bg-gold-soft text-due",
+  accepted: "bg-gold-soft text-due",
+  waiting_assessment: "bg-gold-soft text-due",
   invited: "bg-gold-soft text-due",
   needs_practice: "bg-gold-soft text-due",
   declined: "bg-red-50 text-late",
@@ -37,6 +39,8 @@ const LABELS: Record<string, string> = {
   written: "Written work",
   no_record: "No record yet",
   needs_support: "Needs support",
+  waiting_assessment: "Waiting for assessment",
+  accepted: "Waiting for assessment",
 };
 
 export function StatusBadge({ status }: { status: string }) {

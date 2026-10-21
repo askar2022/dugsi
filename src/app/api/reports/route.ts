@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { ASSESSMENT_CLASS_LEVEL, ASSESSMENT_CLASS_NAME, needsClassPlacement } from "@/lib/assessment-class";
 import { handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { normalizeProgressStatus } from "@/lib/progress-status";
@@ -10,8 +11,8 @@ export async function GET(request: NextRequest) {
     const { session } = await requireAuthedTenant(request, ["ADMIN", "STAFF"]);
     const admin = createAdminClient();
     const [students, classes, invoices, expenses, staff, progress] = await Promise.all([
-      admin.from("Student").select("id, status").eq("tenantId", session.tenantId),
-      admin.from("Class").select("id").eq("tenantId", session.tenantId),
+      admin.from("Student").select("id, status, classId").eq("tenantId", session.tenantId),
+      admin.from("Class").select("id, name, level").eq("tenantId", session.tenantId),
       admin.from("Invoice").select("amount, status").eq("tenantId", session.tenantId),
       admin.from("Expense").select("amount, category").eq("tenantId", session.tenantId),
       admin.from("Staff").select("id").eq("tenantId", session.tenantId),
@@ -22,7 +23,15 @@ export async function GET(request: NextRequest) {
     }
 
     const studentRows = students.data ?? [];
-    const enrolledIds = new Set(studentRows.filter((item) => item.status === "enrolled").map((item) => item.id));
+    const holdingId = (classes.data ?? []).find((item) =>
+      item.level === ASSESSMENT_CLASS_LEVEL || item.name === ASSESSMENT_CLASS_NAME,
+    )?.id ?? null;
+    const waitingCount = studentRows.filter((item) =>
+      needsClassPlacement({ status: item.status, classId: item.classId }, holdingId),
+    ).length;
+    const enrolledIds = new Set(
+      studentRows.filter((item) => item.status === "enrolled" && item.classId && item.classId !== holdingId).map((item) => item.id),
+    );
     const latest = new Map<string, string>();
     for (const item of progress.data ?? []) {
       if (!latest.has(item.studentId)) latest.set(item.studentId, item.status);
@@ -30,6 +39,7 @@ export async function GET(request: NextRequest) {
     const progressCounts = { on_track: 0, needs_practice: 0, contact_parent: 0, none: 0 };
     for (const student of studentRows) {
       if (student.status === "unenrolled" || student.status === "declined") continue;
+      if (needsClassPlacement({ status: student.status, classId: student.classId }, holdingId)) continue;
       const status = latest.get(student.id);
       if (!status) progressCounts.none += 1;
       else progressCounts[normalizeProgressStatus(status)] += 1;
@@ -48,8 +58,11 @@ export async function GET(request: NextRequest) {
       report: {
         students: studentRows.length,
         enrolled: enrolledIds.size,
-        pending: studentRows.filter((item) => item.status === "pending").length,
-        classes: classes.data?.length ?? 0,
+        pending: waitingCount,
+        waiting: waitingCount,
+        classes: (classes.data ?? []).filter((item) =>
+          item.level !== ASSESSMENT_CLASS_LEVEL && item.name !== ASSESSMENT_CLASS_NAME,
+        ).length,
         staff: staff.data?.length ?? 0,
         progress: progressCounts,
         tuition: {

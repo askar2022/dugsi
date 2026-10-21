@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { ensureAssessmentClass, needsClassPlacement } from "@/lib/assessment-class";
 import { handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -7,6 +8,7 @@ import { requireAuthedTenant } from "@/lib/supabase/request";
 type ApplicationRow = {
   id: string;
   source: "application" | "student";
+  studentId?: string | null;
   parentName: string;
   parentEmail: string;
   parentPhone: string | null;
@@ -17,6 +19,21 @@ type ApplicationRow = {
   agreedFeeAndEnroll: boolean;
   notes: string | null;
   status: string;
+};
+
+type WaitingRow = {
+  id: string;
+  applicationId: string | null;
+  firstName: string;
+  lastName: string;
+  parentName: string;
+  parentEmail: string;
+  parentPhone: string | null;
+  address: string | null;
+  age: number | null;
+  status: string;
+  classId: string | null;
+  className: string | null;
 };
 
 function guardianFromNotes(notes: string | null) {
@@ -59,6 +76,7 @@ export async function GET(request: NextRequest) {
       applications.push({
         id: item.id,
         source: "application",
+        studentId: item.studentId ?? null,
         parentName: item.parentName,
         parentEmail: item.parentEmail,
         parentPhone: item.parentPhone,
@@ -74,36 +92,64 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const { data: pending } = await admin
+    const holding = await ensureAssessmentClass(admin, session.tenantId);
+    const { data: students } = await admin
       .from("Student")
-      .select("id, firstName, lastName, notes, status, parent:User!parentId(name, email, phone)")
+      .select("id, firstName, lastName, notes, status, classId, class:Class(id, name, level), parent:User!parentId(name, email, phone)")
       .eq("tenantId", session.tenantId)
-      .eq("status", "pending")
       .order("createdAt", { ascending: false });
 
     const linkedIds = new Set((rows ?? []).map((item) => item.studentId).filter(Boolean));
-    for (const item of pending ?? []) {
-      if (linkedIds.has(item.id)) continue;
+    const applicationByStudent = new Map(
+      (rows ?? []).filter((item) => item.studentId).map((item) => [item.studentId as string, item]),
+    );
+    const waiting: WaitingRow[] = [];
+
+    for (const item of students ?? []) {
+      const klass = one(item.class);
       const parent = one(item.parent);
       const extra = guardianFromNotes(item.notes);
-      applications.push({
+      if (!linkedIds.has(item.id) && item.status === "pending") {
+        applications.push({
+          id: item.id,
+          source: "student",
+          studentId: item.id,
+          parentName: extra.guardianName ?? parent?.name ?? "—",
+          parentEmail: extra.guardianEmail ?? parent?.email ?? "",
+          parentPhone: extra.guardianPhone ?? parent?.phone ?? null,
+          address: extra.address ?? null,
+          firstName: item.firstName,
+          lastName: item.lastName,
+          age: extra.age ?? null,
+          agreedFeeAndEnroll: extra.agreedFeeAndEnroll === true,
+          notes: extra.notes ?? (extra.guardianName ? null : item.notes),
+          status: item.status,
+        });
+        continue;
+      }
+      if (!needsClassPlacement({ status: item.status, classId: item.classId, class: klass }, holding.id)) {
+        continue;
+      }
+      const application = applicationByStudent.get(item.id);
+      waiting.push({
         id: item.id,
-        source: "student",
-        parentName: extra.guardianName ?? parent?.name ?? "—",
-        parentEmail: extra.guardianEmail ?? parent?.email ?? "",
-        parentPhone: extra.guardianPhone ?? parent?.phone ?? null,
-        address: extra.address ?? null,
+        applicationId: application?.id ?? null,
         firstName: item.firstName,
         lastName: item.lastName,
-        age: extra.age ?? null,
-        agreedFeeAndEnroll: extra.agreedFeeAndEnroll === true,
-        notes: extra.notes ?? (extra.guardianName ? null : item.notes),
-        status: item.status,
+        parentName: extra.guardianName ?? parent?.name ?? application?.parentName ?? "—",
+        parentEmail: extra.guardianEmail ?? parent?.email ?? application?.parentEmail ?? "",
+        parentPhone: extra.guardianPhone ?? parent?.phone ?? application?.parentPhone ?? null,
+        address: extra.address ?? application?.address ?? null,
+        age: extra.age ?? application?.age ?? null,
+        status: "waiting_assessment",
+        classId: item.classId,
+        className: klass?.name ?? holding.name,
       });
     }
 
     return json({
       applications,
+      waiting,
       enrollUrl: `/s/${session.tenantSlug}`,
       schoolCode: session.tenantSlug,
     });

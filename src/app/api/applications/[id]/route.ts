@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
+import { ensureAssessmentClass } from "@/lib/assessment-class";
 import { sendTenantEmail } from "@/lib/email";
-import { enrollmentConfirmedEmail } from "@/lib/email-messages";
+import { enrollmentAcceptedEmail } from "@/lib/email-messages";
 import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -102,6 +103,7 @@ export async function PATCH(
       parentId = existing?.id ?? null;
     }
 
+    const holding = await ensureAssessmentClass(admin, session.tenantId);
     const storedNotes = guardianNotes({ parentName, parentEmail, parentPhone, address, age, notes });
     let studentId = application?.studentId ?? studentRow?.id ?? null;
     if (studentRow) {
@@ -109,14 +111,14 @@ export async function PATCH(
         .from("Student")
         .update({
           parentId,
-          classId: body.classId || null,
-          status: "enrolled",
+          classId: holding.id,
+          status: "waiting_assessment",
           age,
           address,
           notes: storedNotes,
         })
         .eq("id", studentRow.id);
-      throwIfError(error, "Could not enroll that child.");
+      throwIfError(error, "Could not accept that child.");
       studentId = studentRow.id;
     } else if (!studentId) {
       const { data: student, error } = await admin
@@ -130,24 +132,37 @@ export async function PATCH(
           gender: application?.gender || null,
           notes: storedNotes,
           parentId,
-          classId: body.classId || null,
-          status: "enrolled",
+          classId: holding.id,
+          status: "waiting_assessment",
         })
         .select("id")
         .single();
-      throwIfError(error, "Could not enroll that child.");
+      throwIfError(error, "Could not accept that child.");
       studentId = student?.id;
+    } else {
+      const { error } = await admin
+        .from("Student")
+        .update({
+          parentId,
+          classId: holding.id,
+          status: "waiting_assessment",
+          age,
+          address,
+          notes: storedNotes,
+        })
+        .eq("id", studentId);
+      throwIfError(error, "Could not accept that child.");
     }
 
     if (application) {
       await admin
         .from("EnrollmentApplication")
-        .update({ status: "enrolled", studentId })
+        .update({ status: "accepted", studentId })
         .eq("id", id);
     }
 
     if (parentEmail) {
-      const copy = enrollmentConfirmedEmail({
+      const copy = enrollmentAcceptedEmail({
         schoolName: session.tenantName ?? "your school",
         parentName,
         childName: `${firstName} ${lastName}`,
@@ -161,7 +176,7 @@ export async function PATCH(
       });
     }
 
-    return json({ ok: true, status: "enrolled", studentId });
+    return json({ ok: true, status: "waiting_assessment", studentId });
   } catch (err) {
     return handleApiError(err);
   }

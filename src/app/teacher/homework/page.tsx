@@ -107,7 +107,9 @@ export default function HomeworkPage() {
         (student) =>
           student.classId === classId &&
           student.status !== "unenrolled" &&
-          student.status !== "declined",
+          student.status !== "declined" &&
+          student.status !== "waiting_assessment" &&
+          student.status !== "pending",
       ),
     [students, classId],
   );
@@ -352,7 +354,7 @@ export default function HomeworkPage() {
                 <select className="select" value={studentFilter} onChange={(event) => { setStudentFilter(event.target.value); setPage(1); }}>
                   <option value="">All students</option>
                   {students
-                    .filter((student) => student.status !== "unenrolled" && student.status !== "declined")
+                    .filter((student) => student.status !== "unenrolled" && student.status !== "declined" && student.status !== "waiting_assessment" && student.status !== "pending")
                     .map((student) => (
                       <option key={student.id} value={student.id}>
                         {student.firstName} {student.lastName}

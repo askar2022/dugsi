@@ -3,11 +3,13 @@
 import { FormEvent, useEffect, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
 import { PageHeader } from "@/components/portal/PageHeader";
+import { isAssessmentClass } from "@/lib/assessment-class";
 import { api } from "@/lib/api";
 
 type SchoolClass = {
   id: string;
   name: string;
+  level?: string | null;
   dayOfWeek: string | null;
   startTime: string | null;
   endTime: string | null;
@@ -45,7 +47,7 @@ export default function ClassesPage() {
 
   return (
     <div className="page-stack">
-      <PageHeader title="Classes" description="Class times, rooms, and assigned teachers." />
+      <PageHeader title="Classes" description="Add classes so new students have a place after assessment. Assign teachers and times here." />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Class name"><input className="input" name="name" required /></FormField>
         <FormField label="Level"><input className="input" name="level" placeholder="Year 2" /></FormField>
@@ -68,8 +70,16 @@ export default function ClassesPage() {
         {classes.map((item) => (
           <div key={item.id} className="card p-5">
             <h4 className="text-lg font-semibold text-green">{item.name}</h4>
-            <p className="text-sm text-muted">{item.teacher?.name ?? "No teacher"} · {item._count.students} students</p>
-            <p className="mt-2 text-sm">{item.dayOfWeek} {item.startTime}-{item.endTime}</p>
+            <p className="text-sm text-muted">
+              {isAssessmentClass(item)
+                ? `${item._count.students} waiting for assessment`
+                : `${item.teacher?.name ?? "No teacher"} · ${item._count.students} students`}
+            </p>
+            {isAssessmentClass(item) ? (
+              <p className="mt-2 text-sm">Holding place for new students until you place them in a class.</p>
+            ) : (
+              <p className="mt-2 text-sm">{item.dayOfWeek} {item.startTime}-{item.endTime}</p>
+            )}
           </div>
         ))}
       </div>

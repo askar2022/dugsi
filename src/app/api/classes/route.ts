@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { isAssessmentClass } from "@/lib/assessment-class";
 import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -17,8 +18,12 @@ export async function GET(request: NextRequest) {
     if (session.role === "TEACHER") query = query.eq("teacherId", session.userId);
     const { data: classes, error } = await query;
     throwIfError(error, "Could not load classes.");
+    const visible = (classes ?? []).filter((item) => {
+      if (session.role === "ADMIN" || session.role === "STAFF") return true;
+      return !isAssessmentClass(item);
+    });
     return json({
-      classes: (classes ?? []).map((item) => ({
+      classes: visible.map((item) => ({
         ...item,
         _count: { students: item.students?.length ?? 0 },
       })),

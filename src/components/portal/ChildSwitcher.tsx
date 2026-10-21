@@ -29,7 +29,11 @@ export function ChildSwitcher({
             <span className="child-chip-mark">{child.firstName.charAt(0)}</span>
             <span className="child-chip-copy">
               <span className="child-chip-name">{childName(child)}</span>
-              <span className="child-chip-meta">{child.class?.name ?? "Class pending"}</span>
+              <span className="child-chip-meta">
+                {child.status === "waiting_assessment" || child.status === "pending"
+                  ? "Waiting for assessment"
+                  : child.class?.name ?? "Waiting for assessment"}
+              </span>
             </span>
           </button>
         );

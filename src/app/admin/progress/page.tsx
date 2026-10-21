@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
+import { isAssessmentClass } from "@/lib/assessment-class";
 import { api } from "@/lib/api";
 import { classSupportTone, normalizeProgressStatus, PROGRESS_LABELS } from "@/lib/progress-status";
 import { completedJuzes, quranPortion } from "@/lib/quran";
@@ -32,7 +33,7 @@ type Progress = {
 };
 
 type Attendance = { studentId: string; status: string };
-type SchoolClass = { id: string; name: string; teacher?: { id: string; name: string } | null };
+type SchoolClass = { id: string; name: string; level?: string | null; teacher?: { id: string; name: string } | null };
 type Teacher = { id: string; name: string };
 type StatusFilter = "all" | "on_track" | "needs_practice" | "contact_parent" | "none";
 
@@ -70,7 +71,13 @@ export default function AdminProgressPage() {
     ]).then(([studentData, progressData, attendanceData, classData, staffData, sessionData]) => {
       setStudents(
         studentData.students
-          .filter((student) => student.status !== "unenrolled" && student.status !== "declined")
+          .filter((student) =>
+            student.status !== "unenrolled"
+            && student.status !== "declined"
+            && student.status !== "waiting_assessment"
+            && student.status !== "pending"
+            && !isAssessmentClass(student.class),
+          )
           .map((student) => ({
             ...student,
             class: student.class
@@ -84,10 +91,12 @@ export default function AdminProgressPage() {
       setProgress(progressData.progress);
       setAttendance(attendanceData.attendance);
       setClasses(
-        classData.classes.map((item) => ({
-          ...item,
-          teacher: Array.isArray(item.teacher) ? item.teacher[0] : item.teacher,
-        })),
+        classData.classes
+          .filter((item) => !isAssessmentClass(item))
+          .map((item) => ({
+            ...item,
+            teacher: Array.isArray(item.teacher) ? item.teacher[0] : item.teacher,
+          })),
       );
       setTeachers(staffData.teachers);
       setSchoolName(sessionData.user.tenantName ?? "Quran progress");

@@ -21,17 +21,37 @@ export function enrollmentReceivedEmail(input: {
   };
 }
 
-export function enrollmentConfirmedEmail(input: {
+export function enrollmentAcceptedEmail(input: {
   schoolName: string;
   parentName?: string | null;
   childName: string;
 }) {
   return {
+    subject: `${input.schoolName} accepted ${input.childName} for assessment`,
+    body: [
+      greeting(input.parentName),
+      "",
+      `${input.schoolName} accepted ${input.childName}. The child is waiting for assessment.`,
+      "The office will place them in the right class after that. You do not need a portal login yet.",
+    ].join("\n"),
+  };
+}
+
+export function enrollmentConfirmedEmail(input: {
+  schoolName: string;
+  parentName?: string | null;
+  childName: string;
+  className?: string | null;
+}) {
+  const classLine = input.className
+    ? `${input.childName} is now enrolled at ${input.schoolName} in ${input.className}.`
+    : `${input.childName} is now enrolled at ${input.schoolName}.`;
+  return {
     subject: `${input.childName} is now enrolled at ${input.schoolName}`,
     body: [
       greeting(input.parentName),
       "",
-      `Good news. ${input.childName} is now enrolled at ${input.schoolName}.`,
+      `Good news. ${classLine}`,
       "Teachers and the office will use this record. You do not need a portal login for enrollment.",
     ].join("\n"),
   };

@@ -11,6 +11,7 @@ type Report = {
   students: number;
   enrolled: number;
   pending: number;
+  waiting?: number;
   classes: number;
   progress: { on_track: number; needs_practice: number; contact_parent: number; none: number };
   tuition: { paid: number; due: number; late: number };
@@ -38,7 +39,7 @@ export default function ReportsPage() {
   const enrollment = report
     ? [
         { label: "Enrolled", value: String(report.enrolled), detail: `${report.enrolled} student${report.enrolled === 1 ? "" : "s"} enrolled now`, icon: Users, tone: "paid" },
-        { label: "Pending", value: String(report.pending), detail: "Waiting for the office to enroll", icon: Users, tone: "due" },
+        { label: "Waiting for assessment", value: String(report.waiting ?? report.pending), detail: "Accepted, not placed in a class yet", icon: Users, tone: "due" },
       ]
     : [];
 
