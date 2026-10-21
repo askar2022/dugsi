@@ -51,7 +51,7 @@ export default function ParentProgressPage() {
     <div className="page-stack">
       <PageHeader
         title="Child Progress"
-        description={child ? `Green is on track, yellow needs practice, red means contact the school.` : "Green is on track, yellow needs practice, red means contact the school."}
+        description="Choose a child from the dropdown. Green is on track, yellow needs practice, red means contact the school."
       />
       <ChildSwitcher children={children} childId={childId} onSelect={selectChild} />
       {!ready ? (

@@ -26,7 +26,7 @@ export function ChildSwitcher({
       >
         {children.map((child) => (
           <option key={child.id} value={child.id}>
-            {childName(child)} · {classPlaceLabel(child)}
+            {`${childName(child)} — ${classPlaceLabel(child)}`}
           </option>
         ))}
       </select>
