@@ -1099,6 +1099,28 @@ tbody tr:hover td {
   background: #fdecec;
 }
 
+.progress-status-select {
+  min-width: 10.5rem;
+  max-width: 14rem;
+  min-height: 2.6rem;
+  font-weight: 700;
+}
+
+.progress-status-select.is-on_track {
+  background: var(--green-soft);
+  color: var(--paid);
+}
+
+.progress-status-select.is-needs_practice {
+  background: var(--gold-soft);
+  color: var(--due);
+}
+
+.progress-status-select.is-contact_parent {
+  background: #fdecec;
+  color: var(--late);
+}
+
 .homework-card-top,
 .homework-status-row {
   display: flex;

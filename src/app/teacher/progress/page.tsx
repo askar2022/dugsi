@@ -4,7 +4,6 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/portal/EmptyState";
 import { FormField } from "@/components/forms/FormField";
 import { PageHeader } from "@/components/portal/PageHeader";
-import { StatusBadge } from "@/components/StatusBadge";
 import { StudentPicker } from "@/components/portal/StudentPicker";
 import { api } from "@/lib/api";
 import { PROGRESS_LABELS, PROGRESS_STATUSES, normalizeProgressStatus, type ProgressStatus } from "@/lib/progress-status";
@@ -194,20 +193,16 @@ export default function ProgressPage() {
                     {` · Ayah ${item.ayahFrom}–${item.ayahTo}`}
                     {` · ${item.date}`}
                   </p>
-                  <StatusBadge status={tone} />
-                  <div className="mark-group" style={{ marginTop: "0.7rem" }}>
+                  <select
+                    className={`select progress-status-select is-${tone}`}
+                    value={tone}
+                    disabled={busyId === item.id}
+                    onChange={(event) => setRowStatus(item.id, event.target.value as ProgressStatus)}
+                  >
                     {PROGRESS_STATUSES.map((value) => (
-                      <button
-                        key={value}
-                        type="button"
-                        className={`mark-btn is-${value}${tone === value ? " is-active" : ""}`}
-                        disabled={busyId === item.id}
-                        onClick={() => setRowStatus(item.id, value)}
-                      >
-                        {PROGRESS_LABELS[value]}
-                      </button>
+                      <option key={value} value={value}>{PROGRESS_LABELS[value]}</option>
                     ))}
-                  </div>
+                  </select>
                 </article>
               );
             })}
@@ -236,19 +231,16 @@ export default function ProgressPage() {
                       <td>{item.ayahFrom}–{item.ayahTo}</td>
                       <td>{item.date}</td>
                       <td>
-                        <div className="mark-group">
+                        <select
+                          className={`select progress-status-select is-${tone}`}
+                          value={tone}
+                          disabled={busyId === item.id}
+                          onChange={(event) => setRowStatus(item.id, event.target.value as ProgressStatus)}
+                        >
                           {PROGRESS_STATUSES.map((value) => (
-                            <button
-                              key={value}
-                              type="button"
-                              className={`mark-btn is-${value}${tone === value ? " is-active" : ""}`}
-                              disabled={busyId === item.id}
-                              onClick={() => setRowStatus(item.id, value)}
-                            >
-                              {PROGRESS_LABELS[value]}
-                            </button>
+                            <option key={value} value={value}>{PROGRESS_LABELS[value]}</option>
                           ))}
-                        </div>
+                        </select>
                       </td>
                     </tr>
                   );
