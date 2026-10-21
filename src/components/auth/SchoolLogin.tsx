@@ -11,7 +11,7 @@ type School = { name: string; code: string };
 
 const COPY = {
   parent: {
-    art: "/login/parent.jpg",
+    art: "/parent_Image.png",
     artAlt: "Parent",
     kicker: "Welcome",
     heading: "Parent",
