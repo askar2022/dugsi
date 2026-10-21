@@ -3,6 +3,7 @@ import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { getAppEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { throwIfError } from "@/lib/supabase/request";
 
 const PASSWORD = "Dugsi123!";
 
@@ -90,7 +91,7 @@ export async function POST(_request: NextRequest) {
       role: "TEACHER",
     });
 
-    await ensureUser({
+    const parentId = await ensureUser({
       tenantId: tenant.id,
       tenantSlug: tenant.slug,
       tenantName: tenant.name,
@@ -115,15 +116,72 @@ export async function POST(_request: NextRequest) {
       });
     }
 
-    const { data: openClass } = await admin
+    let classId: string | null = null;
+    const { data: assignedClass } = await admin
       .from("Class")
       .select("id")
       .eq("tenantId", tenant.id)
-      .is("teacherId", null)
+      .eq("teacherId", teacherId)
       .limit(1)
       .maybeSingle();
-    if (openClass) {
-      await admin.from("Class").update({ teacherId }).eq("id", openClass.id);
+    if (assignedClass) {
+      classId = assignedClass.id;
+    } else {
+      const { data: openClass } = await admin
+        .from("Class")
+        .select("id")
+        .eq("tenantId", tenant.id)
+        .is("teacherId", null)
+        .limit(1)
+        .maybeSingle();
+      if (openClass) {
+        await admin.from("Class").update({ teacherId }).eq("id", openClass.id);
+        classId = openClass.id;
+      } else {
+        const { data: createdClass, error: classError } = await admin
+          .from("Class")
+          .insert({
+            tenantId: tenant.id,
+            name: "Saturday Quran Class",
+            level: "Year 2",
+            dayOfWeek: "Saturday",
+            startTime: "09:00",
+            endTime: "11:00",
+            teacherId,
+          })
+          .select("id")
+          .single();
+        throwIfError(classError, "Could not create a class for the teacher.");
+        classId = createdClass?.id ?? null;
+      }
+    }
+
+    if (classId) {
+      await admin.from("Student").update({ classId }).eq("tenantId", tenant.id).is("classId", null);
+      const { data: inClass } = await admin.from("Student").select("id").eq("classId", classId).limit(1);
+      if (!inClass?.length) {
+        const { error: studentError } = await admin.from("Student").insert([
+          {
+            tenantId: tenant.id,
+            firstName: "Aisha",
+            lastName: "Hassan",
+            gender: "girl",
+            parentId,
+            classId,
+            status: "enrolled",
+          },
+          {
+            tenantId: tenant.id,
+            firstName: "Omar",
+            lastName: "Hassan",
+            gender: "boy",
+            parentId,
+            classId,
+            status: "enrolled",
+          },
+        ]);
+        throwIfError(studentError, "Could not add students to the teacher's class.");
+      }
     }
 
     return json({ ok: true });

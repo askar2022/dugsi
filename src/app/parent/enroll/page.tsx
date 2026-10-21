@@ -19,15 +19,18 @@ export default function EnrollPage() {
 
   return (
     <div className="page-stack">
-      <PageHeader title="Enroll" description="The child will be added to your family record." />
-    <form onSubmit={onSubmit} className="card max-w-xl space-y-4 p-6">
-      <FormField label="First name"><input className="input" name="firstName" required /></FormField>
-      <FormField label="Last name"><input className="input" name="lastName" required /></FormField>
-      <FormField label="Date of birth"><input className="input" name="dateOfBirth" type="date" /></FormField>
-      <FormField label="Notes"><input className="input" name="notes" /></FormField>
-      <button className="btn btn-primary">Submit enrollment</button>
-      {message ? <p className="text-sm text-paid">{message}</p> : null}
-    </form>
+      <PageHeader
+        title="Online Enrollment"
+        description="Add another child to your family record. Use this form on your phone or computer."
+      />
+      <form onSubmit={onSubmit} className="card parent-form">
+        <FormField label="First name"><input className="input" name="firstName" autoComplete="given-name" required /></FormField>
+        <FormField label="Last name"><input className="input" name="lastName" autoComplete="family-name" required /></FormField>
+        <FormField label="Date of birth"><input className="input" name="dateOfBirth" type="date" /></FormField>
+        <FormField label="Notes"><textarea className="input parent-notes" name="notes" rows={3} placeholder="Allergies, pickup notes, or anything the school should know." /></FormField>
+        <button className="btn btn-primary parent-form-submit">Submit enrollment</button>
+        {message ? <p className="text-sm text-paid">{message}</p> : null}
+      </form>
     </div>
   );
 }

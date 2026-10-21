@@ -49,6 +49,18 @@ export async function getTenantStudent(
   return { student, session, supabase };
 }
 
+export async function teacherAssignedClassIds(
+  supabase: Awaited<ReturnType<typeof requireAuthedTenant>>["supabase"],
+  session: { role: Role; userId: string },
+) {
+  if (session.role !== "TEACHER") return null;
+  const { data, error } = await supabase.from("Class").select("id").eq("teacherId", session.userId);
+  if (error) {
+    throw new ApiError("Could not load assigned classes.");
+  }
+  return (data ?? []).map((item) => item.id);
+}
+
 export async function getTenantClass(request: NextRequest, classId: string) {
   const { supabase, session } = await requireAuthedTenant(request);
   const { data: schoolClass, error } = await supabase

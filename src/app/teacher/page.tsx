@@ -21,6 +21,7 @@ type Progress = {
   surah: string;
   ayahFrom: number;
   ayahTo: number;
+  juz?: number | null;
   student?: { id: string };
 };
 
@@ -70,7 +71,9 @@ export default function TeacherHomePage() {
           <SchoolImage
             src={schoolImageUrl}
             name={user?.tenantName}
-            message="Your class roster and today's work live on this page."
+            tone="classroom"
+            alt={user?.tenantName ?? "School"}
+            message={user?.tenantName ?? "Your classroom"}
           />
         </div>
       </section>
@@ -95,43 +98,33 @@ export default function TeacherHomePage() {
         </div>
       </section>
 
-      <section className="card table-wrap p-2">
-        <div style={{ padding: "1rem 1rem 0.25rem" }}>
-          <h2 className="page-title" style={{ fontSize: "1.4rem" }}>My class</h2>
-          <p className="page-copy">Today's attendance and the latest Quran progress.</p>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Student</th>
-              <th>Class</th>
-              <th>Today</th>
-              <th>Quran progress</th>
-            </tr>
-          </thead>
-          <tbody>
-            {students.length === 0 ? (
-              <tr>
-                <td colSpan={4}>No students in your class yet.</td>
-              </tr>
-            ) : (
-              students.map((student) => {
-                const mark = attendance.find((item) => item.studentId === student.id);
-                const quran = progress.find((item) => item.studentId === student.id || item.student?.id === student.id);
-                return (
-                  <tr key={student.id}>
-                    <td>{student.firstName} {student.lastName}</td>
-                    <td>{student.class?.name ?? "—"}</td>
-                    <td>{mark ? <StatusBadge status={mark.status} /> : "Not marked"}</td>
-                    <td>
-                      {quran ? `${quran.surah} ${quran.ayahFrom}–${quran.ayahTo}` : "—"}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+      <section className="card" style={{ padding: "1.1rem 1.1rem 1.2rem" }}>
+        <h2 className="page-title" style={{ fontSize: "1.4rem" }}>My class</h2>
+        <p className="page-copy">Today's attendance and the latest Quran progress.</p>
+        {students.length === 0 ? (
+          <p className="page-copy">No students in your assigned class yet.</p>
+        ) : (
+          <div className="record-list" style={{ marginTop: "1rem" }}>
+            {students.map((student) => {
+              const mark = attendance.find((item) => item.studentId === student.id);
+              const quran = progress.find((item) => item.studentId === student.id || item.student?.id === student.id);
+              return (
+                <article key={student.id} className="record-card">
+                  <div>
+                    <p className="record-title">{student.firstName} {student.lastName}</p>
+                    <p className="record-meta">
+                      {student.class?.name ?? "Your class"}
+                      {quran
+                        ? ` · ${quran.surah}${quran.juz ? ` · Juz ${quran.juz}` : ""} · Ayah ${quran.ayahFrom}–${quran.ayahTo}`
+                        : " · No Quran progress yet"}
+                    </p>
+                  </div>
+                  {mark ? <StatusBadge status={mark.status} /> : <span className="record-meta">Not marked</span>}
+                </article>
+              );
+            })}
+          </div>
+        )}
       </section>
     </div>
   );

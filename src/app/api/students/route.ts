@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { sendTenantEmail } from "@/lib/email";
 import { enrollmentConfirmedEmail } from "@/lib/email-messages";
-import { ApiError, handleApiError } from "@/lib/guard";
+import { ApiError, handleApiError, teacherAssignedClassIds } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
@@ -9,12 +9,18 @@ import { studentSchema } from "@/lib/validators";
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
-    const { data: students, error } = await supabase
+    const { supabase, session } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
+    const assignedClassIds = await teacherAssignedClassIds(supabase, session);
+    if (assignedClassIds && assignedClassIds.length === 0) {
+      return json({ students: [] });
+    }
+    let query = supabase
       .from("Student")
       .select("*, class:Class(*), parent:User!parentId(id, name, email, phone)")
       .order("lastName")
       .order("firstName");
+    if (assignedClassIds) query = query.in("classId", assignedClassIds);
+    const { data: students, error } = await query;
     throwIfError(error, "Could not load students.");
     return json({ students: students ?? [] });
   } catch (err) {

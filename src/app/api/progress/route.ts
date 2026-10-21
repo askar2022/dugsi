@@ -1,18 +1,28 @@
 import { NextRequest } from "next/server";
-import { ApiError, getTenantStudent, handleApiError } from "@/lib/guard";
+import { ApiError, getTenantStudent, handleApiError, teacherAssignedClassIds } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 import { progressSchema } from "@/lib/validators";
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
+    const { supabase, session } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
+    const assignedClassIds = await teacherAssignedClassIds(supabase, session);
+    if (assignedClassIds && assignedClassIds.length === 0) {
+      return json({ progress: [] });
+    }
     const studentId = new URL(request.url).searchParams.get("studentId");
     let query = supabase
       .from("QuranProgress")
-      .select("*, student:Student(id, firstName, lastName)")
+      .select("*, student:Student(id, firstName, lastName, class:Class(id, name, level))")
       .order("date", { ascending: false });
     if (studentId) query = query.eq("studentId", studentId);
+    if (assignedClassIds) {
+      const { data: assignedStudents } = await supabase.from("Student").select("id").in("classId", assignedClassIds);
+      const ids = (assignedStudents ?? []).map((item) => item.id);
+      if (ids.length === 0) return json({ progress: [] });
+      query = query.in("studentId", ids);
+    }
     const { data: progress, error } = await query;
     throwIfError(error, "Could not load progress.");
     return json({ progress: progress ?? [] });

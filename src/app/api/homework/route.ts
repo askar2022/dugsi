@@ -1,18 +1,24 @@
 import { NextRequest } from "next/server";
 import { sendTenantEmail } from "@/lib/email";
 import { homeworkAssignedEmail } from "@/lib/email-messages";
-import { ApiError, getTenantClass, handleApiError } from "@/lib/guard";
+import { ApiError, getTenantClass, handleApiError, teacherAssignedClassIds } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 import { homeworkSchema } from "@/lib/validators";
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
-    const { data: homework, error } = await supabase
+    const { supabase, session } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
+    const assignedClassIds = await teacherAssignedClassIds(supabase, session);
+    if (assignedClassIds && assignedClassIds.length === 0) {
+      return json({ homework: [] });
+    }
+    let query = supabase
       .from("Homework")
       .select("*, class:Class(id, name), completions:HomeworkCompletion(*)")
       .order("assignedDate", { ascending: false });
+    if (assignedClassIds) query = query.in("classId", assignedClassIds);
+    const { data: homework, error } = await query;
     throwIfError(error, "Could not load homework.");
     return json({ homework: homework ?? [] });
   } catch (err) {

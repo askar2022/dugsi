@@ -6,11 +6,13 @@ import { classSchema } from "@/lib/validators";
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
-    const { data: classes, error } = await supabase
+    const { supabase, session } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
+    let query = supabase
       .from("Class")
       .select("*, teacher:User!teacherId(id, name, email), students:Student(id)")
       .order("name");
+    if (session.role === "TEACHER") query = query.eq("teacherId", session.userId);
+    const { data: classes, error } = await query;
     throwIfError(error, "Could not load classes.");
     return json({
       classes: (classes ?? []).map((item) => ({

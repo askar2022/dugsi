@@ -1,24 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BookOpen, CalendarDays, ClipboardList, MessageSquare, Receipt, UserPlus } from "lucide-react";
 import { SchoolImage } from "@/components/portal/SchoolImage";
+import { useParentFamily } from "@/components/portal/useParentFamily";
 import { api } from "@/lib/api";
+import { childName } from "@/lib/parent-family";
 import type { Session } from "@/lib/types";
-
-type Student = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  status: string;
-  class?: {
-    name: string;
-    dayOfWeek: string | null;
-    startTime: string | null;
-    endTime: string | null;
-  } | null;
-};
 
 type Homework = { id: string; title: string; dueDate: string | null; class: { name: string } };
 type Attendance = { id: string; date: string; status: string; student: { firstName: string; lastName: string } };
@@ -26,14 +16,15 @@ type Attendance = { id: string; date: string; status: string; student: { firstNa
 const LINKS = [
   { href: "/parent/enroll", label: "Online Enrollment", text: "Add another child to your family record.", icon: UserPlus },
   { href: "/parent#welcome", label: "Welcome note", text: "A short message from your school.", icon: MessageSquare },
-  { href: "/parent/attendance", label: "Attendance & Homework", text: "See who was present and what is due.", icon: CalendarDays },
+  { href: "/parent/attendance", label: "Attendance", text: "See who was present after each class.", icon: CalendarDays },
   { href: "/parent/homework", label: "Homework", text: "Work assigned to your child's class.", icon: ClipboardList },
-  { href: "/parent/progress", label: "Child Progress", text: "The Quran verses your child has reached.", icon: BookOpen },
+  { href: "/parent/progress", label: "Child Progress", text: "Surah, Ayah, Juz, and level.", icon: BookOpen },
   { href: "/parent/billing", label: "Tuition", text: "Green is paid, yellow is due, red is late.", icon: Receipt },
 ];
 
 export default function ParentHomePage() {
-  const [students, setStudents] = useState<Student[]>([]);
+  const router = useRouter();
+  const { children, selectChild, ready } = useParentFamily();
   const [homework, setHomework] = useState<Homework[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [user, setUser] = useState<Session | null>(null);
@@ -43,12 +34,10 @@ export default function ParentHomePage() {
   useEffect(() => {
     api<{ user: Session }>("/api/auth/me").then((data) => setUser(data.user));
     Promise.all([
-      api<{ students: Student[] }>("/api/students"),
       api<{ tenant: { name: string; welcomeNote: string | null; schoolImageUrl: string | null } }>("/api/settings"),
       api<{ homework: Homework[] }>("/api/homework"),
       api<{ attendance: Attendance[] }>("/api/attendance"),
-    ]).then(([studentData, settingData, homeworkData, attendanceData]) => {
-      setStudents(studentData.students);
+    ]).then(([settingData, homeworkData, attendanceData]) => {
       setWelcomeNote(settingData.tenant.welcomeNote);
       setSchoolImageUrl(settingData.tenant.schoolImageUrl);
       setHomework(homeworkData.homework.slice(0, 2));
@@ -56,7 +45,7 @@ export default function ParentHomePage() {
     }).catch(() => undefined);
   }, []);
 
-  const nextClass = students.find((student) => student.class?.dayOfWeek)?.class;
+  const nextClass = children.find((student) => student.class?.dayOfWeek)?.class;
   const updates = [
     nextClass
       ? {
@@ -95,28 +84,44 @@ export default function ParentHomePage() {
       </section>
 
       <section className="card menu-list">
-        {students.length === 0 ? (
+        {!ready ? (
+          <div className="child-card">
+            <div>
+              <p className="menu-row-title">Your children</p>
+              <p className="menu-row-meta">Loading your family record.</p>
+            </div>
+          </div>
+        ) : children.length === 0 ? (
           <div className="child-card">
             <span className="child-mark">+</span>
             <div>
               <p className="menu-row-title">No children yet</p>
-              <p className="menu-row-meta">Use Online Enrollment to add a child.</p>
+              <p className="menu-row-meta">Use Online Enrollment to add a child. Attendance will appear after their first class.</p>
             </div>
           </div>
         ) : (
-          students.map((student) => (
-            <div key={student.id} className="child-card">
+          children.map((student) => (
+            <button
+              key={student.id}
+              type="button"
+              className="child-card child-card-btn"
+              onClick={() => {
+                selectChild(student.id);
+                router.push("/parent/progress");
+              }}
+            >
               <span className="child-mark">{student.firstName.charAt(0)}</span>
               <div>
-                <p className="menu-row-title">{student.firstName} {student.lastName}</p>
+                <p className="menu-row-title">{childName(student)}</p>
                 <p className="menu-row-meta">
                   {student.class?.name ?? "Class pending"}
+                  {student.class?.level ? ` · ${student.class.level}` : ""}
                   {student.class?.dayOfWeek ? ` · ${student.class.dayOfWeek}` : ""}
                   {" · "}
                   {student.status}
                 </p>
               </div>
-            </div>
+            </button>
           ))
         )}
       </section>

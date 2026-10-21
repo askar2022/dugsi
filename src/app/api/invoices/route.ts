@@ -10,10 +10,13 @@ import { invoiceSchema } from "@/lib/validators";
 export async function GET(request: NextRequest) {
   try {
     const { supabase } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "PARENT"]);
-    const { data: invoices, error } = await supabase
+    const studentId = new URL(request.url).searchParams.get("studentId");
+    let query = supabase
       .from("Invoice")
       .select("*, student:Student(id, firstName, lastName, parent:User!parentId(name, email))")
       .order("dueDate", { ascending: false });
+    if (studentId) query = query.eq("studentId", studentId);
+    const { data: invoices, error } = await query;
     throwIfError(error, "Could not load invoices.");
     return json({ invoices: invoices ?? [] });
   } catch (err) {
