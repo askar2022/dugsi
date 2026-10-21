@@ -54,7 +54,7 @@ export default function BillingPage() {
       method: "PATCH",
       body: JSON.stringify({ action: "record-payment" }),
     });
-    setMessage("Payment recorded as green/paid and a parent email was logged.");
+    setMessage("Payment recorded as green/paid and a parent email was sent.");
     await load();
   }
 

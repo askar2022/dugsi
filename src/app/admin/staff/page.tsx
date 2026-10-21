@@ -33,7 +33,7 @@ export default function StaffPage() {
       }),
     });
     form.reset();
-    setMessage("Staff onboarding saved. A welcome email was logged if an address was provided.");
+    setMessage("Staff onboarding saved. A welcome email is sent if an address was provided.");
     await load();
   }
 

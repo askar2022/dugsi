@@ -14,7 +14,7 @@ export default function EnrollPage() {
     const data = Object.fromEntries(new FormData(form).entries());
     await api("/api/enroll", { method: "POST", body: JSON.stringify(data) });
     form.reset();
-    setMessage("Enrollment sent. A confirmation email was logged to the parent account.");
+    setMessage("Enrollment sent. A confirmation email was sent to the parent account.");
   }
 
   return (

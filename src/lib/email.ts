@@ -7,6 +7,38 @@ type EmailEvent =
   | "invoice_late"
   | "staff_onboarded";
 
+function fromAddress() {
+  const raw = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || "fariin@ourdugsi.com";
+  return raw.includes("<") ? raw : `Dugsi <${raw}>`;
+}
+
+async function deliverWithResend(input: { toEmail: string; subject: string; body: string }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return { status: "logged" as const, error: null };
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: fromAddress(),
+      to: [input.toEmail],
+      subject: input.subject,
+      text: input.body,
+    }),
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    console.error("[email] Resend did not accept the message.");
+    return { status: "failed" as const, error: detail.slice(0, 300) };
+  }
+
+  return { status: "sent" as const, error: null };
+}
+
 export async function sendTenantEmail(input: {
   tenantId: string;
   toEmail: string;
@@ -14,7 +46,7 @@ export async function sendTenantEmail(input: {
   body: string;
   event: EmailEvent;
 }) {
-  const status = process.env.RESEND_API_KEY ? "queued" : "logged";
+  const delivery = await deliverWithResend(input);
   const admin = createAdminClient();
   const { data: log } = await admin
     .from("EmailLog")
@@ -24,11 +56,11 @@ export async function sendTenantEmail(input: {
       subject: input.subject,
       body: input.body,
       event: input.event,
-      status,
+      status: delivery.status,
     })
     .select("*")
     .single();
 
-  console.info(`[email:${input.event}] ${status} for ${input.toEmail}: ${input.subject}`);
+  console.info(`[email:${input.event}] ${delivery.status} for ${input.toEmail}: ${input.subject}`);
   return log;
 }
