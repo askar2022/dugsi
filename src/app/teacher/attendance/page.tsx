@@ -37,7 +37,7 @@ export default function AttendancePage() {
       method: "POST",
       body: JSON.stringify({ classId, date, marks }),
     });
-    setMessage("Attendance saved for this class only.");
+    setMessage("Attendance saved.");
   }
 
   const classId = classes[0]?.id ?? "";

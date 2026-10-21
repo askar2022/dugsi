@@ -67,7 +67,7 @@ export default function StudentsRosterPage() {
       <div>
         <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">Students</h3>
         <p className="text-muted">
-          Roster for this dugsi. Students do not have their own login. Parents and teachers use this record.
+          Student roster. Students do not have their own login. Parents and teachers use this record.
         </p>
       </div>
       <input

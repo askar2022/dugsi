@@ -42,7 +42,7 @@ export default function ParentsPage() {
     const data = Object.fromEntries(new FormData(form).entries());
     await api("/api/parents", { method: "POST", body: JSON.stringify(data) });
     form.reset();
-    setMessage("Parent portal access created for this dugsi.");
+    setMessage("Parent portal access created.");
     await load();
   }
 

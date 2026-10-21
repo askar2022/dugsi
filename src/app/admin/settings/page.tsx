@@ -25,7 +25,7 @@ export default function SettingsPage() {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(event.currentTarget).entries());
     await api("/api/settings", { method: "PATCH", body: JSON.stringify(data) });
-    setMessage("School settings saved for this dugsi only.");
+    setMessage("School settings saved.");
   }
 
   if (!tenant) return <p>Loading settings...</p>;

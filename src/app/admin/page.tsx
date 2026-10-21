@@ -35,7 +35,7 @@ export default function AdminHomePage() {
     <div className="space-y-6">
       <div>
         <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">School overview</h3>
-        <p className="mt-1 text-muted">Records stay inside this dugsi. Other schools cannot see this data.</p>
+        <p className="mt-1 text-muted">Overview of your school.</p>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         {cards.map(([label, value]) => (

@@ -43,7 +43,7 @@ export default function EnrollmentPage() {
     const data = Object.fromEntries(new FormData(form).entries());
     await api("/api/students", { method: "POST", body: JSON.stringify({ ...data, status: "enrolled" }) });
     form.reset();
-    setMessage("Student registered for this dugsi.");
+    setMessage("Student registered.");
     await load();
   }
 

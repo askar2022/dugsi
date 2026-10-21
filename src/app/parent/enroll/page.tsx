@@ -19,7 +19,7 @@ export default function EnrollPage() {
   return (
     <form onSubmit={onSubmit} className="card max-w-xl space-y-4 p-5">
       <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">Online enrollment</h3>
-      <p className="text-sm text-muted">The child is added only to your dugsi and stays linked to your parent login.</p>
+      <p className="text-sm text-muted">The child will be added to your family record.</p>
       <FormField label="First name"><input className="input" name="firstName" required /></FormField>
       <FormField label="Last name"><input className="input" name="lastName" required /></FormField>
       <FormField label="Date of birth"><input className="input" name="dateOfBirth" type="date" /></FormField>

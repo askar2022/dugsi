@@ -58,7 +58,7 @@ export default function StaffPage() {
         </FormField>
         <label className="flex items-center gap-2 text-sm text-green md:col-span-2">
           <input type="checkbox" name="createLogin" />
-          Create a login for this dugsi
+          Create a login
         </label>
         <div className="md:col-span-2">
           <button className="btn btn-primary">Save staff member</button>

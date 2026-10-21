@@ -36,7 +36,7 @@ export default function TeacherHomePage() {
     <div className="space-y-6">
       <div>
         <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">My class</h3>
-        <p className="text-muted">You only see students assigned to your class in this dugsi.</p>
+        <p className="text-muted">Your class roster.</p>
       </div>
       <div className="card table-wrap p-2">
         <table>

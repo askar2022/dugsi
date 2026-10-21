@@ -16,7 +16,7 @@ export default function TeachersPage() {
     <div className="space-y-6">
       <div>
         <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">Teachers</h3>
-        <p className="text-muted">Teacher logins belong to this dugsi and cannot open another school.</p>
+        <p className="text-muted">Teachers at your school.</p>
       </div>
       <div className="card table-wrap p-2">
         <table>

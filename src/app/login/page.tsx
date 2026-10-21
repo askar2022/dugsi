@@ -68,7 +68,7 @@ function LoginForm() {
       <div>
         <p className="text-xs uppercase tracking-[0.2em] text-gold">School login</p>
         <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">Sign in to Dugsi</h1>
-        <p className="mt-2 text-sm text-muted">Use your school code, not a shared global login.</p>
+        <p className="mt-2 text-sm text-muted">Sign in with your school code, email, and password.</p>
       </div>
       <FormField label="School code">
         <input className="input" name="schoolCode" placeholder="noor" required />
