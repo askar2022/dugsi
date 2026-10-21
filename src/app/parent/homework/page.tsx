@@ -14,7 +14,7 @@ export default function ParentHomeworkPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="page-stack">
       <PageHeader title="Homework" description="Work assigned to your child's class." />
       {homework.map((item) => (
         <div key={item.id} className="card p-5">

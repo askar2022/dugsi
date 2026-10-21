@@ -21,7 +21,7 @@ export default function ParentProgressPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="page-stack">
       <PageHeader title="Progress" description="The Quran verses your child has reached." />
       <div className="card table-wrap p-2">
         <table>

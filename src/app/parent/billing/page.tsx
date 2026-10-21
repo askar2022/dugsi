@@ -22,7 +22,7 @@ export default function ParentBillingPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="page-stack">
       <PageHeader title="Tuition" description="Green is paid, yellow is due, red is late. This is a record, not a payment page." />
       <div className="card table-wrap p-2">
         <table>

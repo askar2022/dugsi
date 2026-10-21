@@ -18,7 +18,7 @@ export default function EnrollPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-stack">
       <PageHeader title="Enroll" description="The child will be added to your family record." />
     <form onSubmit={onSubmit} className="card max-w-xl space-y-4 p-6">
       <FormField label="First name"><input className="input" name="firstName" required /></FormField>
