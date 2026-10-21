@@ -26,6 +26,9 @@ function guardianFromNotes(notes: string | null) {
       guardianEmail?: string;
       guardianPhone?: string;
       address?: string;
+      city?: string;
+      state?: string;
+      zip?: string;
       age?: number;
       agreedFeeAndEnroll?: boolean;
       notes?: string;
@@ -59,7 +62,9 @@ export async function GET(request: NextRequest) {
         parentName: item.parentName,
         parentEmail: item.parentEmail,
         parentPhone: item.parentPhone,
-        address: item.address ?? extra.address ?? null,
+        address: item.address
+          || [extra.address, extra.city, extra.state, extra.zip].filter(Boolean).join(", ")
+          || null,
         firstName: item.firstName,
         lastName: item.lastName,
         age: item.age ?? extra.age ?? null,

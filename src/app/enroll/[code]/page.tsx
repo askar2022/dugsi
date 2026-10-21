@@ -8,7 +8,16 @@ import { api } from "@/lib/api";
 
 type School = { name: string; city: string | null; code: string };
 
-const emptyParent = { firstName: "", lastName: "", parentEmail: "", parentPhone: "", address: "" };
+const emptyParent = {
+  firstName: "",
+  lastName: "",
+  parentEmail: "",
+  parentPhone: "",
+  address: "",
+  city: "",
+  state: "",
+  zip: "",
+};
 const emptyChild = { firstName: "", lastName: "", age: "", notes: "" };
 
 export default function PublicEnrollPage() {
@@ -52,6 +61,9 @@ export default function PublicEnrollPage() {
           parentEmail: parent.parentEmail,
           parentPhone: parent.parentPhone,
           address: parent.address,
+          city: parent.city,
+          state: parent.state,
+          zip: parent.zip,
           firstName: child.firstName,
           lastName: child.lastName,
           age: child.age ? Number(child.age) : undefined,
@@ -128,6 +140,15 @@ export default function PublicEnrollPage() {
               </FormField>
               <FormField label="Address">
                 <input className="input" required value={parent.address} onChange={(event) => setParent({ ...parent, address: event.target.value })} />
+              </FormField>
+              <FormField label="City">
+                <input className="input" required value={parent.city} onChange={(event) => setParent({ ...parent, city: event.target.value })} />
+              </FormField>
+              <FormField label="State">
+                <input className="input" required value={parent.state} onChange={(event) => setParent({ ...parent, state: event.target.value })} />
+              </FormField>
+              <FormField label="Zip code">
+                <input className="input" required value={parent.zip} onChange={(event) => setParent({ ...parent, zip: event.target.value })} />
               </FormField>
               <button className="btn btn-primary parent-form-submit" type="submit">
                 Next: child information
