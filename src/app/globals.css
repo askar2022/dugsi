@@ -136,6 +136,43 @@ a.tile:hover {
   border-color: var(--gold);
 }
 
+.family-table {
+  min-width: 36rem;
+}
+
+.family-table th {
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.family-table td {
+  font-size: 1.02rem;
+  line-height: 1.35;
+  padding: 0.72rem 0.75rem;
+  white-space: nowrap;
+}
+
+.family-table tfoot td {
+  font-weight: 700;
+  border-top: 2px solid var(--line);
+}
+
+.family-table tr.is-paid td,
+.family-table tr.is-present td {
+  background: var(--green-soft);
+}
+
+.family-table tr.is-due td,
+.family-table tr.is-needs_practice td {
+  background: var(--gold-soft);
+}
+
+.family-table tr.is-late td,
+.family-table tr.is-absent td,
+.family-table tr.is-contact_parent td {
+  background: #fdecec;
+}
+
 .table-wrap {
   overflow-x: auto;
 }

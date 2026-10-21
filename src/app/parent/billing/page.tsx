@@ -85,42 +85,41 @@ export default function ParentBillingPage() {
           text="Use Online Enrollment to add a child to your family record."
         />
       ) : (
-        <>
-          <section className={`card family-total is-${familyStatus}`}>
-            <p className="metric-label">Family total</p>
-            <div className="family-total-grid">
-              <div>
-                <p className="stat-label">Still due</p>
-                <p className="family-total-value">{money(totalDue)}</p>
-              </div>
-              <div>
-                <p className="stat-label">Already paid</p>
-                <p className="family-total-value">{money(totalPaid)}</p>
-              </div>
-            </div>
-          </section>
-          <section className="family-list">
-            {rows.map((row) => (
-              <article key={row.id} className={`card family-item is-${row.status}`}>
-                <div className="family-item-top">
-                  <div>
-                    <p className="family-item-name">{row.name}</p>
-                    <p className="family-item-class">{row.className}</p>
-                  </div>
-                  <StatusBadge status={row.status} />
-                </div>
-                <p className="family-item-money">{money(row.remaining)}</p>
-                <p className="family-item-meta">
-                  {row.status === "paid"
-                    ? `Paid ${money(row.paid)}`
-                    : row.nextDue
-                      ? `Due ${row.nextDue}`
-                      : "No bill yet"}
-                </p>
-              </article>
-            ))}
-          </section>
-        </>
+        <div className="card table-wrap p-2">
+          <table className="family-table">
+            <thead>
+              <tr>
+                <th>Child</th>
+                <th>Class</th>
+                <th>Paid</th>
+                <th>Due</th>
+                <th>Due date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id} className={`is-${row.status}`}>
+                  <td>{row.name}</td>
+                  <td>{row.className}</td>
+                  <td>{money(row.paid)}</td>
+                  <td>{money(row.remaining)}</td>
+                  <td>{row.nextDue || "—"}</td>
+                  <td><StatusBadge status={row.status} /></td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className={`is-${familyStatus}`}>
+                <td colSpan={2}>Family total</td>
+                <td>{money(totalPaid)}</td>
+                <td>{money(totalDue)}</td>
+                <td></td>
+                <td><StatusBadge status={familyStatus} /></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       )}
     </div>
   );
