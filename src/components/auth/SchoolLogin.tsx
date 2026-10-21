@@ -6,7 +6,6 @@ import { FormEvent, Suspense, useEffect, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
 import { PublicHeader } from "@/components/PublicHeader";
 import { api } from "@/lib/api";
-import { schoolLoginPath } from "@/lib/login-path";
 import { portalForRole, type Session } from "@/lib/types";
 
 type School = { name: string; code: string };
@@ -17,18 +16,14 @@ const COPY = {
     artAlt: "Parent portal",
     kicker: "Parents",
     heading: "Parent sign in",
-    text: "This page is only for parents. Teachers and the office use Staff sign in.",
-    other: "staff" as const,
-    otherLabel: "Staff or teacher? Sign in here",
+    text: "This page is only for parents at this school.",
   },
   staff: {
     art: "/login/staff-portal.jpg",
     artAlt: "Teacher and staff portal",
     kicker: "Admin & teachers",
     heading: "Staff sign in",
-    text: "This page is for the office and teachers. Parents use Parent sign in.",
-    other: "parent" as const,
-    otherLabel: "Parent? Sign in here",
+    text: "This page is for the office and teachers.",
   },
 };
 
@@ -87,7 +82,7 @@ function SchoolLoginForm({ portal }: { portal: "parent" | "staff" }) {
   return (
     <div className="min-h-screen">
       {school ? (
-        <PublicHeader variant="school" schoolName={school.name} schoolCode={school.code} />
+        <PublicHeader variant="school" schoolName={school.name} schoolCode={school.code} audience={portal} />
       ) : (
         <PublicHeader />
       )}
@@ -118,11 +113,6 @@ function SchoolLoginForm({ portal }: { portal: "parent" | "staff" }) {
           <button className="btn btn-primary w-full" disabled={pending}>
             {pending ? "Signing in..." : "Sign in"}
           </button>
-          <p className="text-sm text-muted">
-            <Link className="text-green underline" href={schoolLoginPath(copy.other, school?.code ?? schoolCode)}>
-              {copy.otherLabel}
-            </Link>
-          </p>
           {portal === "parent" && school ? (
             <p className="text-sm text-muted">
               Enrolling a child?{" "}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { GraduationCap, Receipt, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SchoolImage } from "@/components/portal/SchoolImage";
 import { schoolLoginPath } from "@/lib/login-path";
@@ -19,21 +19,6 @@ export default async function SchoolLandingPage({ params }: { params: Promise<{ 
   const { code } = await params;
   const school = await getPublicSchool(code);
   if (!school) notFound();
-
-  const logins = [
-    {
-      href: schoolLoginPath("parent", school.code),
-      title: "Parents",
-      text: "See attendance, homework, progress, and tuition.",
-      icon: Receipt,
-    },
-    {
-      href: schoolLoginPath("staff", school.code),
-      title: "Admin & teachers",
-      text: "Run the office or open your class.",
-      icon: GraduationCap,
-    },
-  ];
 
   return (
     <div className="min-h-screen">
@@ -80,25 +65,6 @@ export default async function SchoolLandingPage({ params }: { params: Promise<{ 
           </ol>
         </section>
 
-        <section className="mt-8">
-          <p className="text-sm uppercase tracking-[0.2em] text-gold">This school’s logins</p>
-          <h2 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">Sign in</h2>
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {logins.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link key={item.title} href={item.href} className="card p-5">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green text-white">
-                    <Icon size={20} />
-                  </div>
-                  <h3 className="mt-4 font-semibold text-green">{item.title}</h3>
-                  <p className="mt-2 text-sm text-muted">{item.text}</p>
-                  <p className="mt-4 text-sm font-medium text-green">Sign in →</p>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
       </main>
     </div>
   );
