@@ -939,63 +939,14 @@ tbody tr:hover td {
 
 .child-select {
   display: grid;
-  gap: 0.55rem;
-}
-
-.child-select-button,
-.child-select-option {
-  display: flex;
-  width: 100%;
-  min-height: 3.5rem;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.8rem 1rem;
-  border: 1px solid var(--line);
-  border-radius: 1.1rem;
-  background: white;
-  color: var(--ink);
-  text-align: left;
-  cursor: pointer;
-}
-
-.child-select-button {
-  min-height: 3.8rem;
-}
-
-.child-select-caret {
-  margin-left: auto;
-  color: var(--green);
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
-.child-select-menu {
-  display: grid;
   gap: 0.45rem;
 }
 
-.child-select-option.is-active {
-  background: var(--green);
-  border-color: var(--green);
-  color: white;
-}
-
-.child-select-option.is-active .child-chip-meta {
-  color: rgba(255, 255, 255, 0.74);
-}
-
-.child-select-option.is-active .child-chip-mark {
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--gold);
-}
-
-.child-switcher-wrap {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.child-switcher {
-  display: none;
+.child-select-dropdown {
+  width: 100%;
+  min-height: 3.4rem;
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 .child-chip {
