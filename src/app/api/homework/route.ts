@@ -1,4 +1,6 @@
 import { NextRequest } from "next/server";
+import { sendTenantEmail } from "@/lib/email";
+import { homeworkAssignedEmail } from "@/lib/email-messages";
 import { ApiError, getTenantClass, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
@@ -40,6 +42,33 @@ export async function POST(request: NextRequest) {
       .select("*")
       .single();
     throwIfError(error, "Could not assign homework.");
+
+    const { data: students } = await supabase
+      .from("Student")
+      .select("firstName, lastName, parent:User!parentId(name, email)")
+      .eq("classId", schoolClass.id);
+    const sent = new Set<string>();
+    for (const student of students ?? []) {
+      const parent = Array.isArray(student.parent) ? student.parent[0] : student.parent;
+      if (!parent?.email || sent.has(parent.email)) continue;
+      sent.add(parent.email);
+      const copy = homeworkAssignedEmail({
+        schoolName: session.tenantName ?? "your school",
+        parentName: parent.name,
+        childName: `${student.firstName} ${student.lastName}`,
+        title: homework.title,
+        dueDate: homework.dueDate,
+        homeworkId: homework.id,
+      });
+      await sendTenantEmail({
+        tenantId: session.tenantId,
+        toEmail: parent.email,
+        subject: copy.subject,
+        body: copy.body,
+        event: "homework_assigned",
+      });
+    }
+
     return json({ homework }, 201);
   } catch (err) {
     return handleApiError(err);

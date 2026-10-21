@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { sendTenantEmail } from "@/lib/email";
+import { enrollmentConfirmedEmail } from "@/lib/email-messages";
 import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -83,11 +84,16 @@ export async function POST(request: NextRequest) {
     throwIfError(error, "Could not register the student.");
 
     if (student?.parent?.email) {
+      const copy = enrollmentConfirmedEmail({
+        schoolName: session.tenantName ?? "your school",
+        parentName: student.parent.name,
+        childName: `${student.firstName} ${student.lastName}`,
+      });
       await sendTenantEmail({
         tenantId: session.tenantId,
         toEmail: student.parent.email,
-        subject: `Registration received for ${student.firstName} ${student.lastName}`,
-        body: `${student.firstName} has been registered at ${session.tenantName}.`,
+        subject: copy.subject,
+        body: copy.body,
         event: "student_enrolled",
       });
     }

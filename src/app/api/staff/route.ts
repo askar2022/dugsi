@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { sendTenantEmail } from "@/lib/email";
+import { teacherWelcomeEmail } from "@/lib/email-messages";
 import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -82,11 +83,16 @@ export async function POST(request: NextRequest) {
     throwIfError(error, "Could not save the staff member.");
 
     if (parsed.data.email) {
+      const copy = teacherWelcomeEmail({
+        schoolName: session.tenantName ?? "your school",
+        teacherName: parsed.data.name,
+        title: parsed.data.title,
+      });
       await sendTenantEmail({
         tenantId: session.tenantId,
         toEmail: parsed.data.email,
-        subject: `Welcome to ${session.tenantName}`,
-        body: `You have been added as ${parsed.data.title} at ${session.tenantName}.`,
+        subject: copy.subject,
+        body: copy.body,
         event: "staff_onboarded",
       });
     }

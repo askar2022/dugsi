@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { sendTenantEmail } from "@/lib/email";
+import { parentWelcomeEmail } from "@/lib/email-messages";
 import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -65,12 +66,17 @@ export async function POST(request: NextRequest) {
       .single();
     throwIfError(error, "Could not save the parent.");
 
+    const copy = parentWelcomeEmail({
+      schoolName: session.tenantName ?? "your school",
+      parentName: parsed.data.name,
+      email,
+    });
     await sendTenantEmail({
       tenantId: session.tenantId,
       toEmail: email,
-      subject: `Parent login for ${session.tenantName}`,
-      body: `You can sign in at this dugsi with school code ${session.tenantSlug} and email ${email}.`,
-      event: "staff_onboarded",
+      subject: copy.subject,
+      body: copy.body,
+      event: "parent_welcome",
     });
 
     return json({ parent }, 201);

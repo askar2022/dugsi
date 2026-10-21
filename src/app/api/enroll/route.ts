@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { sendTenantEmail } from "@/lib/email";
+import { enrollmentReceivedEmail } from "@/lib/email-messages";
 import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
@@ -28,11 +29,16 @@ export async function POST(request: NextRequest) {
       .single();
     throwIfError(error, "Could not submit enrollment.");
 
+    const copy = enrollmentReceivedEmail({
+      schoolName: session.tenantName ?? "your school",
+      parentName: session.name,
+      childName: `${student.firstName} ${student.lastName}`,
+    });
     await sendTenantEmail({
       tenantId: session.tenantId,
       toEmail: session.email,
-      subject: `Enrollment received for ${student.firstName}`,
-      body: `${session.tenantName} received an enrollment request for ${student.firstName} ${student.lastName}.`,
+      subject: copy.subject,
+      body: copy.body,
       event: "student_enrolled",
     });
 

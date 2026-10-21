@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { computeInvoiceStatus } from "@/lib/billing";
 import { sendTenantEmail } from "@/lib/email";
+import { tuitionDueEmail } from "@/lib/email-messages";
 import { ApiError, getTenantStudent, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
@@ -45,14 +46,22 @@ export async function POST(request: NextRequest) {
       .single();
     throwIfError(error, "Could not create the billing record.");
 
-    const parentEmail = invoice?.student?.parent?.email;
-    if (parentEmail) {
+    const parent = invoice?.student?.parent;
+    if (parent?.email && status === "late") {
+      const copy = tuitionDueEmail({
+        schoolName: session.tenantName ?? "your school",
+        parentName: parent.name,
+        childName: `${invoice.student.firstName} ${invoice.student.lastName}`,
+        amount: Number(invoice.amount),
+        dueDate: invoice.dueDate,
+        recordId: invoice.id,
+      });
       await sendTenantEmail({
         tenantId: session.tenantId,
-        toEmail: parentEmail,
-        subject: `Tuition record for ${invoice.student.firstName}`,
-        body: `A ${status} tuition record of $${Number(invoice.amount).toFixed(2)} is on file.`,
-        event: status === "late" ? "invoice_late" : "invoice_created",
+        toEmail: parent.email,
+        subject: copy.subject,
+        body: copy.body,
+        event: "invoice_late",
       });
     }
 

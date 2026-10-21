@@ -1,11 +1,14 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 
-type EmailEvent =
+export type EmailEvent =
   | "student_enrolled"
+  | "parent_welcome"
   | "invoice_created"
   | "invoice_paid"
   | "invoice_late"
-  | "staff_onboarded";
+  | "staff_onboarded"
+  | "homework_assigned"
+  | "homework_reminder";
 
 function fromAddress() {
   const raw = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || "fariin@ourdugsi.com";

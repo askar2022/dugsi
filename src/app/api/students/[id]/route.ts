@@ -1,4 +1,6 @@
 import { NextRequest } from "next/server";
+import { sendTenantEmail } from "@/lib/email";
+import { enrollmentConfirmedEmail } from "@/lib/email-messages";
 import { ApiError, getTenantStudent, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
@@ -22,7 +24,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { supabase } = await requireAuthedTenant(request, ["ADMIN", "STAFF"]);
+    const { supabase, session } = await requireAuthedTenant(request, ["ADMIN", "STAFF"]);
     const { id } = await context.params;
     await getTenantStudent(request, id);
     const parsed = studentSchema.partial().safeParse(await request.json());
@@ -41,9 +43,23 @@ export async function PATCH(
         status: parsed.data.status,
       })
       .eq("id", id)
-      .select("*")
+      .select("*, parent:User!parentId(name, email)")
       .single();
     throwIfError(error, "Could not update the student.");
+    if (parsed.data.status === "enrolled" && student?.parent?.email) {
+      const copy = enrollmentConfirmedEmail({
+        schoolName: session.tenantName ?? "your school",
+        parentName: student.parent.name,
+        childName: `${student.firstName} ${student.lastName}`,
+      });
+      await sendTenantEmail({
+        tenantId: session.tenantId,
+        toEmail: student.parent.email,
+        subject: copy.subject,
+        body: copy.body,
+        event: "student_enrolled",
+      });
+    }
     return json({ student });
   } catch (err) {
     return handleApiError(err);
