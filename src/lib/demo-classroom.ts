@@ -27,39 +27,102 @@ async function ensureUser(input: {
     tenant_name: input.tenantName,
   };
 
-  if (existing?.id) {
-    await admin.auth.admin.updateUserById(existing.id, {
+  let userId = existing?.id ?? null;
+  if (userId) {
+    await admin.auth.admin.updateUserById(userId, {
       password: PASSWORD,
       email_confirm: true,
       user_metadata: { name: input.name },
       app_metadata: metadata,
     });
-    return existing.id;
+  } else {
+    const { data: created, error } = await admin.auth.admin.createUser({
+      email: input.email,
+      password: PASSWORD,
+      email_confirm: true,
+      user_metadata: { name: input.name },
+      app_metadata: metadata,
+    });
+    if (error && /already|registered|exists/i.test(error.message)) {
+      const { data: users } = await admin.auth.admin.listUsers({ perPage: 1000 });
+      userId = users.users.find((user) => user.email?.toLowerCase() === input.email)?.id ?? null;
+      if (!userId) throw new ApiError(error.message);
+      await admin.auth.admin.updateUserById(userId, {
+        password: PASSWORD,
+        email_confirm: true,
+        user_metadata: { name: input.name },
+        app_metadata: metadata,
+      });
+    } else if (error || !created.user) {
+      throw new ApiError(error?.message || "Could not create that demo login.");
+    } else {
+      userId = created.user.id;
+    }
   }
 
-  const { data: created, error } = await admin.auth.admin.createUser({
-    email: input.email,
-    password: PASSWORD,
-    email_confirm: true,
-    user_metadata: { name: input.name },
-    app_metadata: metadata,
-  });
-  if (error || !created.user) {
-    throw new ApiError(error?.message || "Could not create that demo login.");
+  if (!userId) {
+    throw new ApiError("Could not create that demo login.");
   }
 
-  const { error: profileError } = await admin.from("User").insert({
-    id: created.user.id,
+  const profile = {
+    id: userId,
     tenantId: input.tenantId,
     email: input.email,
     name: input.name,
     role: input.role,
     status: "active",
-  });
+  };
+  let { error: profileError } = await admin.from("User").upsert(profile);
+  if (profileError && /passwordHash/i.test(profileError.message)) {
+    ({ error: profileError } = await admin.from("User").upsert({ ...profile, passwordHash: "supabase-auth" }));
+  }
   if (profileError) {
     throw new ApiError(profileError.message || "Could not save that demo login.");
   }
-  return created.user.id;
+  return userId;
+}
+
+export async function ensureNoorDemoLogins() {
+  const admin = createAdminClient();
+  const { data: tenant } = await admin.from("Tenant").select("id, slug, name").eq("slug", "noor").maybeSingle();
+  if (!tenant) {
+    throw new ApiError("Create the Noor sample school first.");
+  }
+
+  const adminId = await ensureUser({
+    tenantId: tenant.id,
+    tenantSlug: tenant.slug,
+    tenantName: tenant.name,
+    email: "admin@noor.dugsi",
+    name: "Imam Yusuf",
+    role: "ADMIN",
+  });
+  const teacherId = await ensureUser({
+    tenantId: tenant.id,
+    tenantSlug: tenant.slug,
+    tenantName: tenant.name,
+    email: "teacher@noor.dugsi",
+    name: "Sister Maryam",
+    role: "TEACHER",
+  });
+  const parentId = await ensureUser({
+    tenantId: tenant.id,
+    tenantSlug: tenant.slug,
+    tenantName: tenant.name,
+    email: "parent@noor.dugsi",
+    name: "Amina Hassan",
+    role: "PARENT",
+  });
+
+  await admin.from("Class").update({ teacherId }).eq("tenantId", tenant.id);
+  await admin.from("Student").update({ parentId }).eq("tenantId", tenant.id).like("id", "sample-noor-%");
+
+  return {
+    password: PASSWORD,
+    admin: { email: "admin@noor.dugsi", userId: adminId },
+    teacher: { email: "teacher@noor.dugsi", userId: teacherId },
+    parent: { email: "parent@noor.dugsi", userId: parentId },
+  };
 }
 
 async function ensureStudent(input: {
