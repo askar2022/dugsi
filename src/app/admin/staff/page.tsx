@@ -5,11 +5,20 @@ import { FormField } from "@/components/forms/FormField";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { api } from "@/lib/api";
 
-type Staff = { id: string; name: string; title: string; email: string | null; salary: number | null };
+type Staff = {
+  id: string;
+  name: string;
+  title: string;
+  email: string | null;
+  salary: number | null;
+  userId: string | null;
+  user?: { role: string } | null;
+};
 
 export default function StaffPage() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   async function load() {
     const data = await api<{ staff: Staff[] }>("/api/staff");
@@ -22,24 +31,53 @@ export default function StaffPage() {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError("");
     const form = event.currentTarget;
     const raw = Object.fromEntries(new FormData(form).entries());
+    const createLogin = raw.createLogin === "on";
+    if (createLogin && (!raw.email || String(raw.password).length < 8)) {
+      setError("To open the Teacher Portal, add an email and a password of at least 8 characters.");
+      return;
+    }
     await api("/api/staff", {
       method: "POST",
       body: JSON.stringify({
         ...raw,
         salary: raw.salary ? Number(raw.salary) : undefined,
-        createLogin: raw.createLogin === "on",
+        createLogin,
       }),
     });
     form.reset();
-    setMessage("Staff onboarding saved. A welcome email is sent if an address was provided.");
+    setMessage(
+      createLogin
+        ? "Staff saved and a Teacher Portal login was created. They can sign in with that email and password."
+        : "Staff record saved. Use Give login if they should open the Teacher Portal.",
+    );
     await load();
+  }
+
+  async function giveLogin(person: Staff) {
+    const password = window.prompt(`Temporary password for ${person.name} (at least 8 characters)`, "Dugsi123!");
+    if (!password) return;
+    setError("");
+    try {
+      await api(`/api/staff/${person.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ password, role: "TEACHER" }),
+      });
+      setMessage(`${person.name} can now sign in to the Teacher Portal with ${person.email}.`);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create that login.");
+    }
   }
 
   return (
     <div className="page-stack">
-      <PageHeader title="Staff" description="Add staff and, if needed, create a login." />
+      <PageHeader
+        title="Staff"
+        description="A staff record is only a name on the list. Check Create a login so they can open the Teacher Portal."
+      />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Name"><input className="input" name="name" required /></FormField>
         <FormField label="Title"><input className="input" name="title" placeholder="Teacher" required /></FormField>
@@ -55,14 +93,15 @@ export default function StaffPage() {
           </select>
         </FormField>
         <FormField label="Temporary password">
-          <input className="input" name="password" type="password" />
+          <input className="input" name="password" type="password" placeholder="Dugsi123!" />
         </FormField>
         <label className="flex items-center gap-2 text-sm text-green md:col-span-2">
-          <input type="checkbox" name="createLogin" />
-          Create a login
+          <input type="checkbox" name="createLogin" defaultChecked />
+          Create a Teacher Portal login
         </label>
         <div className="md:col-span-2">
           <button className="btn btn-primary">Save staff member</button>
+          {error ? <p className="mt-3 text-sm text-late">{error}</p> : null}
           {message ? <p className="mt-3 text-sm text-paid">{message}</p> : null}
         </div>
       </form>
@@ -73,7 +112,8 @@ export default function StaffPage() {
               <th>Name</th>
               <th>Title</th>
               <th>Email</th>
-              <th>Salary record</th>
+              <th>Portal</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -82,7 +122,14 @@ export default function StaffPage() {
                 <td>{person.name}</td>
                 <td>{person.title}</td>
                 <td>{person.email ?? "—"}</td>
-                <td>{person.salary ? `$${person.salary}` : "—"}</td>
+                <td>{person.userId ? person.user?.role ?? "Has login" : "No login yet"}</td>
+                <td>
+                  {!person.userId && person.email ? (
+                    <button className="btn btn-ghost py-1 text-xs" onClick={() => giveLogin(person)}>
+                      Give login
+                    </button>
+                  ) : null}
+                </td>
               </tr>
             ))}
           </tbody>
