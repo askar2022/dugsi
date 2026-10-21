@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PageHeader } from "@/components/portal/PageHeader";
 import { api } from "@/lib/api";
 
 type Report = {
@@ -25,7 +26,7 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">Reports</h3>
+      <PageHeader title="Reports" description="A simple summary of students, tuition, and expenses." />
       <div className="grid gap-4 md:grid-cols-3">
         <div className="card p-5">
           <p className="text-sm text-muted">Students</p>

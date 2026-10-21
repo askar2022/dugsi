@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
+import { PageHeader } from "@/components/portal/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api";
 
@@ -48,12 +49,10 @@ export default function ParentsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">Parents</h3>
-        <p className="text-muted">
-          Guardian contact and portal access. One parent can be linked to more than one student.
-        </p>
-      </div>
+      <PageHeader
+        title="Parents"
+        description="Guardian contact and portal access. One parent can be linked to more than one student."
+      />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Parent name"><input className="input" name="name" required /></FormField>
         <FormField label="Email"><input className="input" name="email" type="email" required /></FormField>

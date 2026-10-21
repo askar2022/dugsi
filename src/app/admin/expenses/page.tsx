@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
+import { PageHeader } from "@/components/portal/PageHeader";
 import { api } from "@/lib/api";
 
 type Expense = {
@@ -39,7 +40,7 @@ export default function ExpensesPage() {
 
   return (
     <div className="space-y-6">
-      <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">Expenses</h3>
+      <PageHeader title="Expenses" description="Salaries, rent, equipment, and other school costs." />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Category">
           <select className="select" name="category" defaultValue="salary">

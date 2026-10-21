@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
+import { PageHeader } from "@/components/portal/PageHeader";
 import { api } from "@/lib/api";
 
 type Student = { id: string; firstName: string; lastName: string; classId: string | null };
@@ -44,7 +45,7 @@ export default function AttendancePage() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
-      <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">Attendance</h3>
+      <PageHeader title="Attendance" description="Mark who is present today." />
       <div className="grid gap-4 md:grid-cols-2">
         <FormField label="Class">
           <select className="select" name="classId" defaultValue={classId}>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PageHeader } from "@/components/portal/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api";
 
@@ -22,10 +23,7 @@ export default function ParentBillingPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">Tuition status</h3>
-        <p className="text-muted">Green = paid, yellow = due, red = late. This is a record, not a payment page.</p>
-      </div>
+      <PageHeader title="Tuition" description="Green is paid, yellow is due, red is late. This is a record, not a payment page." />
       <div className="card table-wrap p-2">
         <table>
           <thead>

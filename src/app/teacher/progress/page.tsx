@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
+import { PageHeader } from "@/components/portal/PageHeader";
 import { api } from "@/lib/api";
 
 type Student = { id: string; firstName: string; lastName: string };
@@ -48,7 +49,7 @@ export default function ProgressPage() {
 
   return (
     <div className="space-y-6">
-      <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">Quran progress</h3>
+      <PageHeader title="Quran progress" description="Record the verses a student has reached." />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Student">
           <select className="select" name="studentId" required>

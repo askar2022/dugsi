@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
+import { PageHeader } from "@/components/portal/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api";
 
@@ -59,10 +60,7 @@ export default function BillingPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">Tuition records</h3>
-        <p className="text-muted">Green is paid, yellow is due, red is late. Dugsi does not take card payments.</p>
-      </div>
+      <PageHeader title="Tuition" description="Green is paid, yellow is due, red is late. This is a record, not a payment page." />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Student">
           <select className="select" name="studentId" required>

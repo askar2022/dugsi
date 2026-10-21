@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
+import { PageHeader } from "@/components/portal/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api";
 
@@ -54,10 +55,7 @@ export default function EnrollmentPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">Enrollment</h3>
-        <p className="text-muted">Review new applications and register students. The roster lives under Students.</p>
-      </div>
+      <PageHeader title="Enrollment" description="Review new applications and register students." />
       {students.length === 0 ? (
         <div className="card p-5">
           <p className="text-sm text-muted">No students yet. Register a child, or add the staging sample family.</p>

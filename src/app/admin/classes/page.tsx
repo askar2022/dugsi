@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
+import { PageHeader } from "@/components/portal/PageHeader";
 import { api } from "@/lib/api";
 
 type SchoolClass = {
@@ -44,7 +45,7 @@ export default function ClassesPage() {
 
   return (
     <div className="space-y-6">
-      <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">Teachers & classes</h3>
+      <PageHeader title="Classes" description="Class times, rooms, and assigned teachers." />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Class name"><input className="input" name="name" required /></FormField>
         <FormField label="Level"><input className="input" name="level" placeholder="Year 2" /></FormField>

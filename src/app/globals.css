@@ -49,6 +49,15 @@ body {
   font-family: var(--font-outfit), sans-serif;
 }
 
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.font-display {
+  font-family: var(--font-fraunces), serif;
+}
+
 .pattern-bg {
   background-color: var(--cream);
   background-image:
@@ -103,9 +112,17 @@ body {
 }
 
 .btn-ghost {
-  background: transparent;
+  background: white;
   color: var(--green);
   border: 1px solid var(--line);
+}
+
+.btn-ghost:hover {
+  background: var(--green-soft);
+}
+
+a.card:hover {
+  border-color: var(--gold);
 }
 
 .table-wrap {
@@ -127,7 +144,11 @@ th {
 }
 
 td {
-  padding: 0.85rem 0.75rem;
+  padding: 0.95rem 0.85rem;
   border-top: 1px solid var(--line);
   vertical-align: middle;
+}
+
+tbody tr:hover td {
+  background: rgba(247, 243, 235, 0.7);
 }

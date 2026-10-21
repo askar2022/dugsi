@@ -7,16 +7,18 @@ import {
   BookOpen,
   CalendarDays,
   ClipboardList,
+  Contact,
+  FileBarChart,
+  GraduationCap,
   Home,
   LogOut,
+  Menu,
   Receipt,
   Settings,
+  UserPlus,
   Users,
   Wallet,
-  GraduationCap,
-  FileBarChart,
-  Contact,
-  UserPlus,
+  X,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import type { Role, Session } from "@/lib/types";
@@ -54,6 +56,41 @@ const NAV: Record<string, NavItem[]> = {
   PLATFORM: [{ href: "/platform", label: "Schools", icon: Home }],
 };
 
+function NavLinks({
+  items,
+  pathname,
+  onNavigate,
+}: {
+  items: NavItem[];
+  pathname: string;
+  onNavigate?: () => void;
+}) {
+  return (
+    <nav className="flex flex-col gap-1">
+      {items.map((item) => {
+        const root = item.href === "/admin" || item.href === "/teacher" || item.href === "/parent" || item.href === "/platform";
+        const current = pathname === item.href || (!root && pathname.startsWith(`${item.href}/`));
+        const Icon = item.icon;
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onNavigate}
+            className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium no-underline ${
+              current
+                ? "bg-gold-soft text-green shadow-sm"
+                : "text-white/80 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <Icon size={18} />
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function PortalShell({
   role,
   title,
@@ -66,6 +103,7 @@ export function PortalShell({
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<Session | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     api<{ user: Session }>("/api/auth/me")
@@ -73,7 +111,13 @@ export function PortalShell({
       .catch(() => router.replace("/login"));
   }, [router]);
 
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
   const items = NAV[role === "STAFF" ? "ADMIN" : role] ?? [];
+  const schoolName = user?.tenantName ?? title;
+  const greeting = user?.name ? `Assalamu alaikum, ${user.name}` : "Assalamu alaikum";
 
   async function logout() {
     await api("/api/auth/logout", { method: "POST" });
@@ -81,58 +125,72 @@ export function PortalShell({
   }
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[260px_1fr]">
-      <aside className="hidden border-r border-line bg-green text-white lg:flex lg:flex-col">
-        <div className="px-6 py-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-gold">Dugsi</p>
-          <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-2xl">{title}</h1>
-          <p className="mt-2 text-sm text-white/70">{user?.tenantName ?? "Loading school..."}</p>
+    <div className="min-h-screen bg-cream lg:grid lg:grid-cols-[272px_1fr]">
+      <aside className="hidden bg-green text-white lg:flex lg:flex-col">
+        <div className="border-b border-white/10 px-6 py-7">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gold">Your school</p>
+          <p className="mt-3 font-display text-2xl leading-snug">{schoolName}</p>
         </div>
-        <nav className="flex-1 space-y-1 px-3">
-          {items.map((item) => {
-            const active = pathname === item.href;
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm ${
-                  active ? "bg-white/15 text-white" : "text-white/75 hover:bg-white/10"
-                }`}
-              >
-                <Icon size={18} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-        <button onClick={logout} className="m-4 flex items-center gap-2 rounded-2xl px-4 py-3 text-sm text-white/80 hover:bg-white/10">
-          <LogOut size={18} />
-          Sign out
-        </button>
+        <div className="flex-1 overflow-y-auto px-3 py-5">
+          <NavLinks items={items} pathname={pathname} />
+        </div>
+        <div className="border-t border-white/10 p-4">
+          <button
+            onClick={logout}
+            className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm text-white/80 hover:bg-white/10"
+          >
+            <LogOut size={18} />
+            Sign out
+          </button>
+        </div>
       </aside>
 
-      <div>
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-cream/90 px-4 py-4 backdrop-blur lg:px-8">
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-muted">{user?.tenantSlug ?? "dugsi"}</p>
-            <h2 className="font-[family-name:var(--font-fraunces)] text-xl text-green">{title}</h2>
-          </div>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="hidden rounded-full bg-gold-soft px-3 py-1 text-green sm:inline">{user?.name}</span>
-            <button onClick={logout} className="btn btn-ghost px-3 py-2 text-sm lg:hidden">
-              Sign out
+      {menuOpen ? (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <button className="absolute inset-0 bg-green-deep/40" onClick={() => setMenuOpen(false)} aria-label="Close menu" />
+          <aside className="relative z-50 flex h-full w-[min(86vw,20rem)] flex-col bg-green text-white shadow-2xl">
+            <div className="flex items-start justify-between border-b border-white/10 px-5 py-5">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gold">Your school</p>
+                <p className="mt-2 font-display text-xl leading-snug">{schoolName}</p>
+              </div>
+              <button className="rounded-full p-2 hover:bg-white/10" onClick={() => setMenuOpen(false)} aria-label="Close">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-3 py-4">
+              <NavLinks items={items} pathname={pathname} onNavigate={() => setMenuOpen(false)} />
+            </div>
+            <div className="border-t border-white/10 p-4">
+              <button
+                onClick={logout}
+                className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm text-white/80 hover:bg-white/10"
+              >
+                <LogOut size={18} />
+                Sign out
+              </button>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      <div className="flex min-h-screen flex-col">
+        <header className="sticky top-0 z-20 border-b border-line bg-cream/95 px-4 py-4 backdrop-blur md:px-8">
+          <div className="flex items-center gap-3">
+            <button
+              className="rounded-2xl border border-line bg-white p-2 text-green lg:hidden"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Open menu"
+            >
+              <Menu size={20} />
             </button>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-display text-xl text-green md:text-2xl">{greeting}</p>
+              <p className="truncate text-sm text-muted">{schoolName}</p>
+            </div>
           </div>
         </header>
-        <main className="px-4 py-6 lg:px-8">{children}</main>
-        <nav className="sticky bottom-0 grid grid-cols-4 gap-1 border-t border-line bg-white px-2 py-2 lg:hidden">
-          {items.slice(0, 4).map((item) => (
-            <Link key={item.href} href={item.href} className="rounded-xl px-2 py-2 text-center text-[11px] text-green">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
       </div>
     </div>
   );

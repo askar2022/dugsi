@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
+import { PageHeader } from "@/components/portal/PageHeader";
 import { api } from "@/lib/api";
 
 type Staff = { id: string; name: string; title: string; email: string | null; salary: number | null };
@@ -38,7 +39,7 @@ export default function StaffPage() {
 
   return (
     <div className="space-y-6">
-      <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">Staff onboarding</h3>
+      <PageHeader title="Staff" description="Add staff and, if needed, create a login." />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Name"><input className="input" name="name" required /></FormField>
         <FormField label="Title"><input className="input" name="title" placeholder="Teacher" required /></FormField>

@@ -24,7 +24,7 @@ export default function ParentHomePage() {
     <div className="space-y-6">
       <div className="card p-6">
         <p className="text-xs uppercase tracking-[0.18em] text-gold">Welcome</p>
-        <h3 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">{settings?.name}</h3>
+        <h3 className="mt-2 font-display text-3xl text-green">{settings?.name}</h3>
         <p className="mt-3 text-muted">{settings?.welcomeNote}</p>
       </div>
       <div className="grid gap-4 md:grid-cols-2">

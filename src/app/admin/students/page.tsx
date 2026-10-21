@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { PageHeader } from "@/components/portal/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api";
 
@@ -64,12 +65,10 @@ export default function StudentsRosterPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">Students</h3>
-        <p className="text-muted">
-          Student roster. Students do not have their own login. Parents and teachers use this record.
-        </p>
-      </div>
+      <PageHeader
+        title="Students"
+        description="Student roster. Students do not have their own login. Parents and teachers use this record."
+      />
       <input
         className="input max-w-md"
         value={query}

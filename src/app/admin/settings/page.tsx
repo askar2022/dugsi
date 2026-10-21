@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
+import { PageHeader } from "@/components/portal/PageHeader";
 import { api } from "@/lib/api";
 
 type Tenant = {
@@ -31,9 +32,9 @@ export default function SettingsPage() {
   if (!tenant) return <p>Loading settings...</p>;
 
   return (
-    <form onSubmit={onSubmit} className="card max-w-2xl space-y-4 p-5">
-      <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">School settings</h3>
-      <p className="text-sm text-muted">School code: <b>{tenant.slug}</b></p>
+    <div className="space-y-6">
+      <PageHeader title="Settings" description="Your school name, contact details, and welcome note." />
+    <form onSubmit={onSubmit} className="card max-w-2xl space-y-4 p-6">
       <FormField label="Dugsi name"><input className="input" name="name" defaultValue={tenant.name} /></FormField>
       <FormField label="Phone"><input className="input" name="phone" defaultValue={tenant.phone ?? ""} /></FormField>
       <FormField label="Address"><input className="input" name="address" defaultValue={tenant.address ?? ""} /></FormField>
@@ -44,5 +45,6 @@ export default function SettingsPage() {
       <button className="btn btn-primary">Save settings</button>
       {message ? <p className="text-sm text-paid">{message}</p> : null}
     </form>
+    </div>
   );
 }
