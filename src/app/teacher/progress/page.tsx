@@ -143,22 +143,17 @@ export default function ProgressPage() {
           <FormField label="Date">
             <input className="input" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
           </FormField>
-          <div className="progress-tone">
           <FormField label="Progress">
-            <div className="mark-group">
+            <select
+              className={`select progress-status-select is-${status}`}
+              value={status}
+              onChange={(event) => setStatus(event.target.value as ProgressStatus)}
+            >
               {PROGRESS_STATUSES.map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={`mark-btn is-${value}${status === value ? " is-active" : ""}`}
-                  onClick={() => setStatus(value)}
-                >
-                  {PROGRESS_LABELS[value]}
-                </button>
+                <option key={value} value={value}>{PROGRESS_LABELS[value]}</option>
               ))}
-            </div>
+            </select>
           </FormField>
-          </div>
           <div className="teacher-sticky-save">
             <button className="btn btn-primary parent-form-submit" disabled={!studentId}>Save progress</button>
           </div>
