@@ -18,6 +18,14 @@ export function normalizeHomeworkKind(value?: string | null): HomeworkKind {
   return "reading";
 }
 
+export function homeworkCompletionCounts(rows: Array<{ status?: string | null }>) {
+  return {
+    done: rows.filter((row) => row.status === "done").length,
+    needsHelp: rows.filter((row) => row.status === "needs_help").length,
+    assigned: rows.filter((row) => row.status !== "done" && row.status !== "needs_help").length,
+  };
+}
+
 export function homeworkTitle(input: {
   kind?: string | null;
   surah?: string | null;

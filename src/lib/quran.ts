@@ -158,5 +158,5 @@ export function quranPortion(input: {
         ? `Ayah ${input.ayahFrom}`
         : "";
   const juz = input.juz ? `Juz ${input.juz}` : "";
-  return [`Surah ${input.surah}`, ayah, juz].filter(Boolean).join(" · ");
+  return [juz, `Surah ${input.surah}`, ayah].filter(Boolean).join(" · ");
 }
