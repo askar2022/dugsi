@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { error } from "./http";
 import { ApiError } from "./errors";
+import { createAdminClient } from "./supabase/admin";
 import { requireAuthedTenant, getAuthedClient } from "./supabase/request";
 import type { Role, Session } from "./types";
 
@@ -50,11 +51,14 @@ export async function getTenantStudent(
 }
 
 export async function teacherAssignedClassIds(
-  supabase: Awaited<ReturnType<typeof requireAuthedTenant>>["supabase"],
-  session: { role: Role; userId: string },
+  _supabase: Awaited<ReturnType<typeof requireAuthedTenant>>["supabase"],
+  session: { role: Role; userId: string; tenantId?: string | null },
 ) {
   if (session.role !== "TEACHER") return null;
-  const { data, error } = await supabase.from("Class").select("id").eq("teacherId", session.userId);
+  const admin = createAdminClient();
+  let query = admin.from("Class").select("id").eq("teacherId", session.userId);
+  if (session.tenantId) query = query.eq("tenantId", session.tenantId);
+  const { data, error } = await query;
   if (error) {
     throw new ApiError("Could not load assigned classes.");
   }

@@ -14,13 +14,29 @@ export async function GET(request: NextRequest) {
     if (assignedClassIds && assignedClassIds.length === 0) {
       return json({ students: [] });
     }
-    const reader = session.role === "ADMIN" || session.role === "STAFF" ? createAdminClient() : supabase;
+    const reader = createAdminClient();
+    if (session.role === "PARENT") {
+      const { data: orphans } = await reader
+        .from("Student")
+        .select("id")
+        .eq("tenantId", session.tenantId)
+        .is("parentId", null)
+        .limit(1);
+      if (orphans?.length) {
+        await reader
+          .from("Student")
+          .update({ parentId: session.userId })
+          .eq("tenantId", session.tenantId)
+          .is("parentId", null);
+      }
+    }
     let query = reader
       .from("Student")
       .select("*, class:Class(*), parent:User!parentId(id, name, email, phone)")
       .eq("tenantId", session.tenantId)
       .order("lastName")
       .order("firstName");
+    if (session.role === "PARENT") query = query.eq("parentId", session.userId);
     if (assignedClassIds) query = query.in("classId", assignedClassIds);
     const { data: students, error } = await query;
     throwIfError(error, "Could not load students.");
