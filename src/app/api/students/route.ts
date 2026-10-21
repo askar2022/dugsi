@@ -1,33 +1,21 @@
 import { NextRequest } from "next/server";
 import { sendTenantEmail } from "@/lib/email";
-import { ApiError, handleApiError, requireRoles, tenantWhere } from "@/lib/guard";
+import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 import { studentSchema } from "@/lib/validators";
-import { hashPassword } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireRoles(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
-    const where = tenantWhere(session);
-
-    if (session.role === "PARENT") {
-      Object.assign(where, { parentId: session.userId });
-    }
-    if (session.role === "TEACHER") {
-      Object.assign(where, { class: { teacherId: session.userId } });
-    }
-
-    const students = await prisma.student.findMany({
-      where,
-      include: {
-        class: true,
-        parent: { select: { id: true, name: true, email: true, phone: true } },
-      },
-      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    });
-
-    return json({ students });
+    const { supabase } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
+    const { data: students, error } = await supabase
+      .from("Student")
+      .select("*, class:Class(*), parent:User!parentId(id, name, email, phone)")
+      .order("lastName")
+      .order("firstName");
+    throwIfError(error, "Could not load students.");
+    return json({ students: students ?? [] });
   } catch (err) {
     return handleApiError(err);
   }
@@ -35,7 +23,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireRoles(request, ["ADMIN", "STAFF"]);
+    const { supabase, session } = await requireAuthedTenant(request, ["ADMIN", "STAFF"]);
     const parsed = studentSchema.safeParse(await request.json());
     if (!parsed.success) {
       throw new ApiError("Enter the student's first and last name.");
@@ -44,38 +32,42 @@ export async function POST(request: NextRequest) {
     let parentId: string | undefined;
     if (parsed.data.parentEmail) {
       const email = parsed.data.parentEmail.trim().toLowerCase();
-      const existing = await prisma.user.findFirst({
-        where: { tenantId: session.tenantId, email },
-      });
+      const { data: existing } = await supabase.from("User").select("id").eq("email", email).maybeSingle();
       if (existing) {
         parentId = existing.id;
-      } else if (parsed.data.parentName) {
-        const parent = await prisma.user.create({
-          data: {
+      } else if (parsed.data.parentName && parsed.data.parentEmail) {
+        const admin = createAdminClient();
+        const { data: created, error: authError } = await admin.auth.admin.createUser({
+          email,
+          password: "ChangeMe123!",
+          email_confirm: true,
+          user_metadata: { name: parsed.data.parentName },
+          app_metadata: {
+            role: "PARENT",
+            tenant_id: session.tenantId,
+            tenant_slug: session.tenantSlug,
+            tenant_name: session.tenantName,
+          },
+        });
+        throwIfError(authError, "Could not create the parent login.");
+        if (created.user) {
+          await admin.from("User").insert({
+            id: created.user.id,
             tenantId: session.tenantId,
             email,
             name: parsed.data.parentName,
             phone: parsed.data.parentPhone,
             role: "PARENT",
-            passwordHash: await hashPassword("ChangeMe123!"),
             status: "active",
-          },
-        });
-        parentId = parent.id;
+          });
+          parentId = created.user.id;
+        }
       }
     }
 
-    if (parsed.data.classId) {
-      const schoolClass = await prisma.class.findFirst({
-        where: { id: parsed.data.classId, tenantId: session.tenantId },
-      });
-      if (!schoolClass) {
-        throw new ApiError("That class is not part of this dugsi.", 404);
-      }
-    }
-
-    const student = await prisma.student.create({
-      data: {
+    const { data: student, error } = await supabase
+      .from("Student")
+      .insert({
         tenantId: session.tenantId,
         firstName: parsed.data.firstName.trim(),
         lastName: parsed.data.lastName.trim(),
@@ -85,11 +77,12 @@ export async function POST(request: NextRequest) {
         classId: parsed.data.classId || null,
         notes: parsed.data.notes,
         status: parsed.data.status ?? "enrolled",
-      },
-      include: { parent: true, class: true },
-    });
+      })
+      .select("*, parent:User!parentId(*), class:Class(*)")
+      .single();
+    throwIfError(error, "Could not register the student.");
 
-    if (student.parent?.email) {
+    if (student?.parent?.email) {
       await sendTenantEmail({
         tenantId: session.tenantId,
         toEmail: student.parent.email,

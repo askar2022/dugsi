@@ -1,24 +1,25 @@
 import { NextRequest } from "next/server";
-import { hashPassword } from "@/lib/auth";
 import { sendTenantEmail } from "@/lib/email";
-import { ApiError, handleApiError, requireRoles, tenantWhere } from "@/lib/guard";
+import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 import { staffSchema } from "@/lib/validators";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireRoles(request, ["ADMIN", "STAFF"]);
-    const staff = await prisma.staff.findMany({
-      where: tenantWhere(session),
-      include: { user: { select: { id: true, email: true, role: true, status: true } } },
-      orderBy: { name: "asc" },
-    });
-    const teachers = await prisma.user.findMany({
-      where: { tenantId: session.tenantId, role: "TEACHER" },
-      select: { id: true, name: true, email: true, phone: true },
-    });
-    return json({ staff, teachers });
+    const { supabase, session } = await requireAuthedTenant(request, ["ADMIN", "STAFF"]);
+    const { data: staff, error } = await supabase
+      .from("Staff")
+      .select("*, user:User!userId(id, email, role, status)")
+      .order("name");
+    throwIfError(error, "Could not load staff.");
+    const { data: teachers } = await supabase
+      .from("User")
+      .select("id, name, email, phone")
+      .eq("tenantId", session.tenantId)
+      .eq("role", "TEACHER");
+    return json({ staff: staff ?? [], teachers: teachers ?? [] });
   } catch (err) {
     return handleApiError(err);
   }
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireRoles(request, ["ADMIN"]);
+    const { supabase, session } = await requireAuthedTenant(request, ["ADMIN"]);
     const parsed = staffSchema.safeParse(await request.json());
     if (!parsed.success) {
       throw new ApiError("Enter the staff member's name and title.");
@@ -35,28 +36,37 @@ export async function POST(request: NextRequest) {
     let userId: string | undefined;
     if (parsed.data.createLogin && parsed.data.email && parsed.data.password) {
       const email = parsed.data.email.trim().toLowerCase();
-      const existing = await prisma.user.findFirst({
-        where: { tenantId: session.tenantId, email },
+      const admin = createAdminClient();
+      const { data: created, error: authError } = await admin.auth.admin.createUser({
+        email,
+        password: parsed.data.password,
+        email_confirm: true,
+        user_metadata: { name: parsed.data.name },
+        app_metadata: {
+          role: parsed.data.role ?? "TEACHER",
+          tenant_id: session.tenantId,
+          tenant_slug: session.tenantSlug,
+          tenant_name: session.tenantName,
+        },
       });
-      if (existing) {
-        throw new ApiError("A login already exists for that email in this dugsi.");
-      }
-      const user = await prisma.user.create({
-        data: {
+      throwIfError(authError, "Could not create that login.");
+      if (created.user) {
+        await admin.from("User").insert({
+          id: created.user.id,
           tenantId: session.tenantId,
           email,
           name: parsed.data.name,
           phone: parsed.data.phone,
           role: parsed.data.role ?? "TEACHER",
-          passwordHash: await hashPassword(parsed.data.password),
           status: "active",
-        },
-      });
-      userId = user.id;
+        });
+        userId = created.user.id;
+      }
     }
 
-    const staff = await prisma.staff.create({
-      data: {
+    const { data: staff, error } = await supabase
+      .from("Staff")
+      .insert({
         tenantId: session.tenantId,
         userId,
         name: parsed.data.name,
@@ -66,8 +76,10 @@ export async function POST(request: NextRequest) {
         startDate: parsed.data.startDate,
         salary: parsed.data.salary,
         notes: parsed.data.notes,
-      },
-    });
+      })
+      .select("*")
+      .single();
+    throwIfError(error, "Could not save the staff member.");
 
     if (parsed.data.email) {
       await sendTenantEmail({

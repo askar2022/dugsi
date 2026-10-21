@@ -1,4 +1,4 @@
-import { prisma } from "./prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type EmailEvent =
   | "student_enrolled"
@@ -15,24 +15,20 @@ export async function sendTenantEmail(input: {
   event: EmailEvent;
 }) {
   const status = process.env.RESEND_API_KEY ? "queued" : "logged";
-
-  const log = await prisma.emailLog.create({
-    data: {
+  const admin = createAdminClient();
+  const { data: log } = await admin
+    .from("EmailLog")
+    .insert({
       tenantId: input.tenantId,
       toEmail: input.toEmail,
       subject: input.subject,
       body: input.body,
       event: input.event,
       status,
-    },
-  });
+    })
+    .select("*")
+    .single();
 
-  if (process.env.RESEND_API_KEY) {
-    // Real provider wiring comes later. Staging/production can set RESEND_API_KEY.
-    console.info(`[email:${input.event}] queued to ${input.toEmail}`);
-  } else {
-    console.info(`[email:${input.event}] logged for ${input.toEmail}: ${input.subject}`);
-  }
-
+  console.info(`[email:${input.event}] ${status} for ${input.toEmail}: ${input.subject}`);
   return log;
 }

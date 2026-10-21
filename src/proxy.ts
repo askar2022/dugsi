@@ -1,6 +1,7 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
-import { portalForRole } from "@/lib/types";
+import { applySupabaseEnv } from "@/lib/supabase-env";
+import { portalForRole, type Role } from "@/lib/types";
 
 function expectedRole(pathname: string) {
   if (pathname.startsWith("/admin")) return "ADMIN";
@@ -15,28 +16,43 @@ export async function proxy(request: NextRequest) {
   const roleNeeded = expectedRole(pathname);
   if (!roleNeeded) return NextResponse.next();
 
-  const token = request.cookies.get(SESSION_COOKIE)?.value;
-  if (!token) {
+  let response = NextResponse.next({ request });
+  applySupabaseEnv();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anon) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  const supabase = createServerClient(url, anon, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options);
+        });
+      },
+    },
+  });
+
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) {
     const login = new URL("/login", request.url);
     login.searchParams.set("next", pathname);
     return NextResponse.redirect(login);
   }
 
-  const session = await verifySessionToken(token);
-  if (!session) {
-    const login = new URL("/login", request.url);
-    return NextResponse.redirect(login);
-  }
-
-  const allowed =
-    session.role === roleNeeded ||
-    (roleNeeded === "ADMIN" && session.role === "STAFF");
-
+  const role = String(data.user.app_metadata?.role ?? "") as Role;
+  const allowed = role === roleNeeded || (roleNeeded === "ADMIN" && role === "STAFF");
   if (!allowed) {
-    return NextResponse.redirect(new URL(portalForRole(session.role), request.url));
+    return NextResponse.redirect(new URL(portalForRole(role), request.url));
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {

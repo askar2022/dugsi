@@ -17,35 +17,52 @@ Tuition colors: green = paid, yellow = due, red = late.
 
 ## Tenant isolation
 
-Every school row is stored with a `tenantId`. API routes read the signed session, then query only that tenant. Clients cannot choose another school’s data by sending a tenant id. Teachers only see their class. Parents only see their children.
+Sign-in uses Supabase Auth. The signed JWT carries `tenant_id` and `role` in `app_metadata`. Supabase Row Level Security policies in `supabase/migrations` use those claims so a dugsi can read and write only its own records. Teachers only see their class. Parents only see their children. School data APIs use the signed-in Supabase client so RLS applies.
+
+The service-role key stays on the server. It is used only to register a school, create a login, log email, or list schools for the platform operator. Never prefix it with `NEXT_PUBLIC_`.
 
 Register another dugsi at `/register`. The school code is unique across the platform.
 
 ## Environments
 
-| Environment | URL | Database |
+| Environment | URL | Supabase project |
 | --- | --- | --- |
-| development | `http://localhost:3000` | Local Docker Postgres |
+| development | `http://localhost:3000` | `npx supabase start`, or staging |
 | staging | `https://staging.ourdugsi.com` | [wploiyfewcygrucoysdb](https://wploiyfewcygrucoysdb.supabase.co) |
 | production | `https://ourdugsi.com` | [trcfknfctcdvnqmzessq](https://trcfknfctcdvnqmzessq.supabase.co) |
 
-Never point staging at the production Supabase project. Use a different `AUTH_SECRET` in each environment.
+Never point staging at the production Supabase project. Production and Preview each have their own URL, anon key, and service role key.
 
 `GET /api/health` returns the current `APP_ENV`.
+
+## Database migrations
+
+Schema and RLS live in `supabase/migrations`. Apply them with the Supabase CLI, not during the Vercel build.
+
+```bash
+# Staging first
+npx supabase link --project-ref wploiyfewcygrucoysdb
+npx supabase db push
+
+# Production after staging looks right
+npx supabase link --project-ref trcfknfctcdvnqmzessq
+npx supabase db push
+```
+
+`config.toml` lists both remotes: `[remotes.staging]` and `[remotes.production]`.
 
 ## Local setup
 
 ```bash
-docker compose up -d
 npm install
-npx prisma migrate deploy
-npm run db:seed
+npx supabase start
+# copy the local API URL, anon key, and service role key into .env
 npm run dev
 ```
 
-Or point `.env` at the staging Supabase URIs from `.env.staging.example`.
+Or copy `.env.staging.example` to `.env` and use the staging Supabase keys.
 
-Demo password for every seeded account: `Dugsi123!`
+Demo accounts exist on **staging only**. Password: `Dugsi123!`
 
 | School code | Role | Email |
 | --- | --- | --- |
@@ -55,66 +72,57 @@ Demo password for every seeded account: `Dugsi123!`
 | `huda` | Admin | `admin@huda.dugsi` |
 | `platform` | Platform | `platform@dugsi.app` |
 
+Seed staging after migrations:
+
+```bash
+# uses staging keys; refuses the production project
+npm run db:seed:staging
+```
+
 ## Vercel + ourdugsi.com
 
-Vercel only has Production and Preview by default. `staging.ourdugsi.com` must **not** sit on Production, or both URLs serve the same app and the same secrets.
+Vercel hosts the Next.js app. It does not run database migrations.
 
-Create a real Staging environment:
-
-1. In Vercel, open **Settings → Environments**.
-2. Click **Create Environment**.
-3. Name it `Staging`.
-4. Track the Git branch `staging`.
-5. Open **Settings → Domains**.
-6. Click `staging.ourdugsi.com` and assign it to **Staging**, not Production.
-7. Leave Production with only `ourdugsi.com` and `www.ourdugsi.com`.
-
-Then add environment variables on the matching environment. Do not attach the staging database to Production.
+1. Production: `master` → `ourdugsi.com` / `www.ourdugsi.com` → production Supabase.
+2. Preview: `staging` branch → `staging.ourdugsi.com` → staging Supabase.
+3. Assign `staging.ourdugsi.com` to Preview, not Production.
+4. Add environment variables on the matching environment only. Do not set a variable on **All Environments**.
 
 ### Production (`ourdugsi.com`)
+
+Scope every variable to **Production**. Values come from `trcfknfctcdvnqmzessq`.
 
 | Name | Value |
 | --- | --- |
 | `APP_ENV` | `production` |
 | `APP_URL` | `https://ourdugsi.com` |
-| `DATABASE_URL` | Transaction pooler URI from `trcfknfctcdvnqmzessq` |
-| `DIRECT_URL` | Direct URI from `trcfknfctcdvnqmzessq` |
-| `AUTH_SECRET` | Long random string |
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://trcfknfctcdvnqmzessq.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Project API anon / publishable key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Project API service role key (server only) |
 | `MOBILE_ORIGIN` | `https://ourdugsi.com` |
 
 ### Staging (`staging.ourdugsi.com`)
 
-Set these on the **Preview** environment, or a `staging` branch:
+Scope every variable to **Preview**. Values come from `wploiyfewcygrucoysdb`.
 
 | Name | Value |
 | --- | --- |
 | `APP_ENV` | `staging` |
 | `APP_URL` | `https://staging.ourdugsi.com` |
-| `DATABASE_URL` | Transaction pooler URI from `wploiyfewcygrucoysdb` |
-| `DIRECT_URL` | Direct URI from `wploiyfewcygrucoysdb` |
-| `AUTH_SECRET` | A different long random string |
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://wploiyfewcygrucoysdb.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Staging anon / publishable key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Staging service role key (server only) |
 | `MOBILE_ORIGIN` | `https://staging.ourdugsi.com` |
 
-Copy the URIs from each Supabase project: **Project Settings → Database → Connect**. Use the pooler (port 6543) for `DATABASE_URL` and add `?pgbouncer=true`. Use the direct connection (port 5432) for `DIRECT_URL`.
+Copy keys from each Supabase project: **Project Settings → API**.
 
 ### Domain DNS
 
-In the `ourdugsi.com` DNS host, point Vercel:
-
 | Host | Type | Value |
 | --- | --- | --- |
-| `@` | A | `76.76.21.21` |
-| `www` | A | `76.76.21.21` |
-| `staging` | A | `76.76.21.21` |
-
-Then add `ourdugsi.com`, `www.ourdugsi.com`, and `staging.ourdugsi.com` in the Vercel project domains.
-
-After the first successful deploy, seed only staging unless you want demo schools in production:
-
-```bash
-# against staging
-npx prisma db seed
-```
+| `@` | A | `216.150.1.1` |
+| `www` | A | `216.150.1.1` |
+| `staging` | A | `216.150.1.1` |
 
 ## Mobile
 

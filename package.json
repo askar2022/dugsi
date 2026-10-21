@@ -5,21 +5,16 @@
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/vercel-build.mjs",
-    "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",
-    "db:migrate": "prisma migrate dev",
-    "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma migrate reset --force",
-    "db:studio": "prisma studio"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "db:link:staging": "npx supabase link --project-ref wploiyfewcygrucoysdb",
+    "db:link:production": "npx supabase link --project-ref trcfknfctcdvnqmzessq",
+    "db:push": "npx supabase db push",
+    "db:seed:staging": "tsx scripts/seed-staging.ts"
   },
   "dependencies": {
-    "@prisma/client": "6.19.3",
-    "bcryptjs": "^3.0.3",
-    "jose": "^6.2.13",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.118.0",
     "lucide-react": "^1.60.0",
     "next": "16.4.2",
     "react": "19.3.0",
@@ -33,15 +28,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
-    "prisma": "6.19.3",
+    "supabase": "^2.72.8",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5"
-  },
-  "allowScripts": {
-    "prisma@6.19.3": true,
-    "@prisma/engines@6.19.3": true,
-    "@prisma/client@6.19.3": true,
-    "esbuild@0.28.2": true
   }
 }

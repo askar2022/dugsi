@@ -1,25 +1,31 @@
 import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/guard";
-import { handleApiError } from "@/lib/guard";
+import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
-import { prisma } from "@/lib/prisma";
-import { ApiError } from "@/lib/guard";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getAuthedClient } from "@/lib/supabase/request";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireSession(request);
+    const { session } = await getAuthedClient(request);
     if (session.role !== "PLATFORM") {
       throw new ApiError("Only the platform operator can list all dugsis.", 403);
     }
-
-    const tenants = await prisma.tenant.findMany({
-      orderBy: { createdAt: "desc" },
-      include: {
-        _count: { select: { users: true, students: true, classes: true } },
-      },
+    const admin = createAdminClient();
+    const { data: tenants, error } = await admin
+      .from("Tenant")
+      .select("*, users:User(id), students:Student(id), classes:Class(id)")
+      .order("createdAt", { ascending: false });
+    if (error) throw new ApiError(error.message);
+    return json({
+      tenants: (tenants ?? []).map((tenant) => ({
+        ...tenant,
+        _count: {
+          users: tenant.users?.length ?? 0,
+          students: tenant.students?.length ?? 0,
+          classes: tenant.classes?.length ?? 0,
+        },
+      })),
     });
-
-    return json({ tenants });
   } catch (err) {
     return handleApiError(err);
   }

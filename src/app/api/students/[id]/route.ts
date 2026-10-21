@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
-import { ApiError, getTenantStudent, handleApiError, requireRoles } from "@/lib/guard";
+import { ApiError, getTenantStudent, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
-import { prisma } from "@/lib/prisma";
+import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 import { studentSchema } from "@/lib/validators";
 
 export async function GET(
@@ -9,9 +9,8 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await requireRoles(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
     const { id } = await context.params;
-    const student = await getTenantStudent(session, id);
+    const { student } = await getTenantStudent(request, id);
     return json({ student });
   } catch (err) {
     return handleApiError(err);
@@ -23,26 +22,16 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await requireRoles(request, ["ADMIN", "STAFF"]);
+    const { supabase } = await requireAuthedTenant(request, ["ADMIN", "STAFF"]);
     const { id } = await context.params;
-    const current = await getTenantStudent(session, id);
+    await getTenantStudent(request, id);
     const parsed = studentSchema.partial().safeParse(await request.json());
     if (!parsed.success) {
       throw new ApiError("Check the student details and try again.");
     }
-
-    if (parsed.data.classId) {
-      const schoolClass = await prisma.class.findFirst({
-        where: { id: parsed.data.classId, tenantId: session.tenantId },
-      });
-      if (!schoolClass) {
-        throw new ApiError("That class is not part of this dugsi.", 404);
-      }
-    }
-
-    const student = await prisma.student.update({
-      where: { id: current.id },
-      data: {
+    const { data: student, error } = await supabase
+      .from("Student")
+      .update({
         firstName: parsed.data.firstName,
         lastName: parsed.data.lastName,
         dateOfBirth: parsed.data.dateOfBirth,
@@ -50,9 +39,11 @@ export async function PATCH(
         classId: parsed.data.classId,
         notes: parsed.data.notes,
         status: parsed.data.status,
-      },
-    });
-
+      })
+      .eq("id", id)
+      .select("*")
+      .single();
+    throwIfError(error, "Could not update the student.");
     return json({ student });
   } catch (err) {
     return handleApiError(err);

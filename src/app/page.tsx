@@ -77,21 +77,18 @@ export default function HomePage() {
 
         <section className="grid gap-4 md:grid-cols-4">
           {[
-            ["Enrollment", Users],
-            ["Teachers & Classes", BookOpen],
-            ["Tuition & Expenses", Receipt],
-            ["Reports", ClipboardList],
-          ].map(([label, Icon]) => {
-            const Glyph = Icon as typeof Users;
-            return (
-              <div key={String(label)} className="card p-5 text-center">
+            { label: "Enrollment", Icon: Users },
+            { label: "Teachers & Classes", Icon: BookOpen },
+            { label: "Tuition & Expenses", Icon: Receipt },
+            { label: "Reports", Icon: ClipboardList },
+          ].map(({ label, Icon }) => (
+              <div key={label} className="card p-5 text-center">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green text-white">
-                  <Glyph size={20} />
+                  <Icon size={20} />
                 </div>
                 <p className="mt-3 font-medium text-green">{label}</p>
               </div>
-            );
-          })}
+            ))}
         </section>
       </main>
     </div>
