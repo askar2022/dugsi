@@ -59,8 +59,9 @@ function LoginForm() {
         New school? <Link className="text-green underline" href="/register">Register a dugsi</Link>
       </p>
       <p className="rounded-2xl bg-green-soft p-3 text-xs text-green">
-        Demo: school code <b>noor</b> or <b>huda</b>. Emails: admin@, teacher@, or parent@ plus
-        that code and `.dugsi`. Password: Dugsi123!
+        Staging demo only. School code <b>noor</b> or <b>huda</b>. Email{" "}
+        <b>admin@noor.dugsi</b>, <b>teacher@noor.dugsi</b>, or <b>parent@noor.dugsi</b>.
+        Password: <b>Dugsi123!</b>
       </p>
     </form>
   );
