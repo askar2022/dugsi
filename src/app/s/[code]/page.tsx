@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { PublicHeader } from "@/components/PublicHeader";
+import { RememberSchool } from "@/components/public/RememberSchool";
 import { SchoolHopeStrip } from "@/components/public/SchoolHope";
 import { SchoolImage } from "@/components/portal/SchoolImage";
 import { getPublicSchoolHope } from "@/lib/public-hope";
@@ -21,6 +22,7 @@ export default async function SchoolLandingPage({ params }: { params: Promise<{ 
 
   return (
     <div className="min-h-screen">
+      <RememberSchool code={school.code} />
       <PublicHeader variant="school" schoolName={school.name} schoolCode={school.code} />
       <main className="mx-auto max-w-6xl px-6 pb-20">
         <section className="card overflow-hidden p-0">

@@ -94,14 +94,7 @@ function SchoolLoginForm({
           schoolCode={school?.code ?? schoolCode}
           audience={portal}
         />
-      ) : (
-        <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-          <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-gold">{copy.kicker}</p>
-            <p className="font-[family-name:var(--font-fraunces)] text-2xl text-green">{copy.heading}</p>
-          </div>
-        </header>
-      )}
+      ) : null}
       <div className="login-shell has-welcome">
         <form onSubmit={onSubmit} className="card login-form space-y-4 p-6">
           <div>

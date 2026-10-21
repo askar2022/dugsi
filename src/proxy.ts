@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 import { schoolLoginPath } from "@/lib/login-path";
+import { SCHOOL_COOKIE, schoolFromCookie } from "@/lib/school-cookie";
 import { applySupabaseEnv } from "@/lib/supabase-env";
 import { portalForRole, type Role } from "@/lib/types";
 
@@ -22,7 +23,8 @@ export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anon) {
-    const fallback = roleNeeded === "PARENT" ? schoolLoginPath("parent") : roleNeeded === "PLATFORM" ? "/login" : schoolLoginPath("staff");
+    const school = schoolFromCookie(request.cookies.get(SCHOOL_COOKIE)?.value);
+    const fallback = roleNeeded === "PARENT" ? schoolLoginPath("parent", school) : roleNeeded === "PLATFORM" ? "/login" : schoolLoginPath("staff", school);
     return NextResponse.redirect(new URL(fallback, request.url));
   }
 
@@ -43,7 +45,8 @@ export async function proxy(request: NextRequest) {
 
   const { data } = await supabase.auth.getUser();
   if (!data.user) {
-    const loginPath = roleNeeded === "PARENT" ? schoolLoginPath("parent", null, pathname) : roleNeeded === "PLATFORM" ? "/login" : schoolLoginPath("staff", null, pathname);
+    const school = schoolFromCookie(request.cookies.get(SCHOOL_COOKIE)?.value);
+    const loginPath = roleNeeded === "PARENT" ? schoolLoginPath("parent", school, pathname) : roleNeeded === "PLATFORM" ? "/login" : schoolLoginPath("staff", school, pathname);
     return NextResponse.redirect(new URL(loginPath, request.url));
   }
 
