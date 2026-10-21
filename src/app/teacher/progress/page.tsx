@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/portal/PageHeader";
 import { StudentPicker } from "@/components/portal/StudentPicker";
 import { api } from "@/lib/api";
 import { PROGRESS_LABELS, PROGRESS_STATUSES, normalizeProgressStatus, type ProgressStatus } from "@/lib/progress-status";
+import { placeLabel } from "@/lib/progress-compare";
 import { SURAHS, juzFor, surahByNumber } from "@/lib/quran";
 
 type Student = { id: string; firstName: string; lastName: string };
@@ -183,10 +184,7 @@ export default function ProgressPage() {
                 <article key={item.id} className={`card record-card-stack progress-row is-${tone}`}>
                   <p className="record-title">{student ? `${student.firstName} ${student.lastName}` : "Student"}</p>
                   <p className="record-meta">
-                    {item.juz ? `Juz ${item.juz} · ` : ""}
-                    Surah {item.surah}
-                    {` · Ayah ${item.ayahFrom}–${item.ayahTo}`}
-                    {` · ${item.date}`}
+                    {placeLabel(item)} · {item.date}
                   </p>
                   <select
                     className={`select progress-status-select is-${tone}`}

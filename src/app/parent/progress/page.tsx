@@ -1,34 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChildSwitcher } from "@/components/portal/ChildSwitcher";
 import { EmptyState } from "@/components/portal/EmptyState";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { useParentFamily } from "@/components/portal/useParentFamily";
 import { StatusBadge } from "@/components/StatusBadge";
+import { classPlaceLabel } from "@/lib/assessment-class";
 import { api } from "@/lib/api";
 import { childName } from "@/lib/parent-family";
+import { describeProgress, historyKind, type ProgressPlace } from "@/lib/progress-compare";
 import { normalizeProgressStatus } from "@/lib/progress-status";
 
-type Progress = {
-  id: string;
-  surah: string;
-  ayahFrom: number;
-  ayahTo: number;
-  juz: number | null;
-  date: string;
-  status?: string | null;
+type Progress = ProgressPlace & {
   student?: {
     firstName: string;
     lastName: string;
-    class?: { name: string; level: string | null } | { name: string; level: string | null }[] | null;
   } | null;
 };
-
-function classOf(item: Progress) {
-  const value = item.student?.class;
-  return Array.isArray(value) ? value[0] ?? null : value ?? null;
-}
 
 export default function ParentProgressPage() {
   const { children, child, childId, selectChild, ready } = useParentFamily();
@@ -44,14 +33,15 @@ export default function ParentProgressPage() {
       .catch(() => setProgress([]));
   }, [childId]);
 
-  const latest = progress[0];
-  const level = child?.class?.level ?? classOf(latest ?? {})?.level ?? null;
+  const story = useMemo(() => describeProgress(progress), [progress]);
+  const latest = story.latest;
+  const className = child ? classPlaceLabel(child) : "";
 
   return (
     <div className="page-stack">
       <PageHeader
         title="Child Progress"
-        description="Choose a child from the dropdown. Green is on track, yellow needs practice, red means contact the school."
+        description="Choose a child from the dropdown. This page uses the same Juz, Surah, and ayah the teacher recorded. Green is on track, yellow needs practice, red means contact the school."
       />
       <ChildSwitcher children={children} childId={childId} onSelect={selectChild} />
       {!ready ? (
@@ -67,16 +57,20 @@ export default function ParentProgressPage() {
           text={
             child?.status === "waiting_assessment" || child?.status === "pending"
               ? `${child.firstName} is waiting for assessment. Progress will appear after they are placed in a class and the teacher records it.`
-              : `Quran progress will appear after the teacher records ${child ? child.firstName + "'s" : "your child's"} Surah and Ayah.`
+              : `Quran progress will appear after the teacher records ${child ? child.firstName + "'s" : "your child's"} Juz, Surah, and ayah.`
           }
         />
-      ) : (
+      ) : latest ? (
         <>
           <section className={`card progress-latest is-${normalizeProgressStatus(latest.status)}`}>
-            <p className="progress-latest-kicker">{child ? childName(child) : "Latest"}</p>
+            <p className="progress-latest-kicker">
+              {child ? childName(child) : "Current place"}
+              {className ? ` · ${className}` : ""}
+            </p>
             <h2 className="progress-latest-title">Current Quran place</h2>
-            <div style={{ margin: "-0.35rem 0 0.9rem" }}>
+            <div className="progress-latest-status">
               <StatusBadge status={normalizeProgressStatus(latest.status)} />
+              <p className="progress-recorded">Teacher recorded {latest.date}</p>
             </div>
             <div className="progress-stats">
               <div className="stat">
@@ -91,42 +85,57 @@ export default function ParentProgressPage() {
                 <p className="stat-label">Ayah</p>
                 <p className="stat-value">{latest.ayahFrom}–{latest.ayahTo}</p>
               </div>
-              <div className="stat">
-                <p className="stat-label">Level</p>
-                <p className="stat-value">{level ?? "—"}</p>
-              </div>
             </div>
           </section>
-          <div className="record-list progress-history-list">
-            {progress.map((item) => (
-              <article key={item.id} className={`card progress-history is-${normalizeProgressStatus(item.status)}`}>
-                <div className="progress-history-top">
-                  <p className="progress-history-title">{item.juz ? `Juz ${item.juz}` : item.surah}</p>
-                  <StatusBadge status={normalizeProgressStatus(item.status)} />
-                </div>
-                <div className="progress-stats">
-                  <div className="stat">
-                    <p className="stat-label">Surah</p>
-                    <p className="stat-value">{item.surah}</p>
-                  </div>
-                  <div className="stat">
-                    <p className="stat-label">Ayah</p>
-                    <p className="stat-value">{item.ayahFrom}–{item.ayahTo}</p>
-                  </div>
-                  <div className="stat">
-                    <p className="stat-label">Level</p>
-                    <p className="stat-value">{level ?? "—"}</p>
-                  </div>
-                  <div className="stat">
-                    <p className="stat-label">Date</p>
-                    <p className="stat-value">{item.date}</p>
-                  </div>
-                </div>
-              </article>
-            ))}
+
+          {story.change ? (
+            <section className={`card progress-change is-${story.change.kind}`}>
+              <p className="progress-change-label">Since the last update</p>
+              <p className="progress-change-text">{story.change.text}</p>
+              <p className="progress-change-note">
+                New ayahs count only when the teacher marks the work on track. Review and practice are not new progress.
+              </p>
+            </section>
+          ) : null}
+
+          {story.weekly || story.quarterly ? (
+            <section className="card progress-periods">
+              {story.weekly ? <p>{story.weekly.text}</p> : null}
+              {story.quarterly ? <p>{story.quarterly.text}</p> : null}
+            </section>
+          ) : null}
+
+          <div className="card table-wrap p-2">
+            <table className="family-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Juz</th>
+                  <th>Surah</th>
+                  <th>Ayah</th>
+                  <th>Status</th>
+                  <th>Update</th>
+                </tr>
+              </thead>
+              <tbody>
+                {story.history.map((item, index) => {
+                  const older = story.history[index + 1] ?? null;
+                  return (
+                    <tr key={item.id ?? `${item.date}-${item.surah}`} className={`is-${normalizeProgressStatus(item.status)}`}>
+                      <td>{item.date}</td>
+                      <td>{item.juz ?? "—"}</td>
+                      <td>{item.surah}</td>
+                      <td>{item.ayahFrom}–{item.ayahTo}</td>
+                      <td><StatusBadge status={normalizeProgressStatus(item.status)} /></td>
+                      <td>{historyKind(item, older)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </>
-      )}
+      ) : null}
     </div>
   );
 }

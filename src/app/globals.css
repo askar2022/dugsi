@@ -158,7 +158,8 @@ a.tile:hover {
 }
 
 .family-table tr.is-paid td,
-.family-table tr.is-present td {
+.family-table tr.is-present td,
+.family-table tr.is-on_track td {
   background: var(--green-soft);
 }
 
@@ -1205,10 +1206,59 @@ tbody tr:hover td {
 }
 
 .progress-latest-title {
-  margin: 0.4rem 0 0.9rem;
+  margin: 0.4rem 0 0.55rem;
   font-family: var(--font-fraunces), serif;
   font-size: 1.35rem;
   color: var(--green);
+}
+
+.progress-latest-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.9rem;
+  margin-bottom: 0.95rem;
+}
+
+.progress-recorded,
+.progress-change-label,
+.progress-change-note,
+.progress-periods p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.progress-change,
+.progress-periods {
+  display: grid;
+  gap: 0.45rem;
+  padding: 1.15rem 1.15rem 1.2rem;
+}
+
+.progress-change-label {
+  color: var(--gold);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.progress-change-text {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--green);
+}
+
+.progress-change.is-review .progress-change-text {
+  color: var(--due);
+}
+
+.progress-periods p + p {
+  margin-top: 0.35rem;
 }
 
 .progress-history-list {
