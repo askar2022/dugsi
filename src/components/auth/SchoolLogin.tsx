@@ -13,10 +13,10 @@ type School = { name: string; code: string };
 const COPY = {
   parent: {
     art: "/login/parent-portal.jpg",
-    artAlt: "Parent portal",
-    kicker: "Parents",
-    heading: "Parent sign in",
-    text: "This page is only for parents at this school.",
+    artAlt: "Parent",
+    kicker: "Welcome",
+    heading: "Parent",
+    text: "Assalamu alaikum. Sign in to see your children.",
   },
   staff: {
     art: "/login/staff-portal.jpg",

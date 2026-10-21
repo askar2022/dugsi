@@ -179,7 +179,7 @@ function LoginForm() {
                 Staging: open Teacher Portal
               </button>
               <button type="button" className="btn btn-ghost w-full" disabled={pending} onClick={() => openNoor("PARENT")}>
-                Staging: open Parent Portal
+                Staging: open Parent
               </button>
             </>
           ) : null}
