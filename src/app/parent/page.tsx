@@ -11,7 +11,13 @@ import { api } from "@/lib/api";
 import { childName, type ParentChild } from "@/lib/parent-family";
 import type { Session } from "@/lib/types";
 
-type Homework = { id: string; title: string; dueDate: string | null; class: { id?: string; name: string } | { id?: string; name: string }[] | null };
+type Homework = {
+  id: string;
+  title: string;
+  dueDate: string | null;
+  class: { id?: string; name: string } | { id?: string; name: string }[] | null;
+  completions?: Array<{ studentId: string }>;
+};
 type Attendance = {
   id: string;
   date: string;
@@ -22,7 +28,7 @@ type Attendance = {
 
 const ACTIONS = [
   { href: "/parent/attendance", label: "Attendance", text: "See who was present after each class.", icon: CalendarDays },
-  { href: "/parent/homework", label: "Homework", text: "Work assigned to your child's class.", icon: ClipboardList },
+  { href: "/parent/homework", label: "Homework", text: "Work assigned to your child.", icon: ClipboardList },
   { href: "/parent/progress", label: "Child Progress", text: "Surah, Ayah, Juz, and level.", icon: BookOpen },
   { href: "/parent/billing", label: "Tuition", text: "Green is paid, yellow is due, red is late.", icon: Receipt },
 ];
@@ -43,7 +49,12 @@ function childSummary(student: ParentChild, homework: Homework[], attendance: At
   if (mark) return `${classLine} · ${mark.status} on ${mark.date}`;
 
   const classId = student.classId ?? student.class?.id;
-  const work = homework.find((item) => !classId || classOf(item)?.id === classId);
+  const work = homework.find((item) => {
+    const sameClass = !classId || classOf(item)?.id === classId;
+    const completions = item.completions ?? [];
+    const forChild = completions.length === 0 || completions.some((row) => row.studentId === student.id);
+    return sameClass && forChild;
+  });
   if (work) return `${classLine} · ${work.title}${work.dueDate ? ` due ${work.dueDate}` : ""}`;
 
   return classLine;

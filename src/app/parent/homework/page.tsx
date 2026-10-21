@@ -13,11 +13,17 @@ type Homework = {
   description: string | null;
   dueDate: string | null;
   class: { id: string; name: string } | { id: string; name: string }[] | null;
+  completions?: Array<{ studentId: string }>;
 };
 
 function classOf(item: Homework) {
   const value = item.class;
   return Array.isArray(value) ? value[0] ?? null : value;
+}
+
+function assignedToChild(item: Homework, childId: string) {
+  const completions = item.completions ?? [];
+  return completions.length === 0 || completions.some((row) => row.studentId === childId);
 }
 
 export default function ParentHomeworkPage() {
@@ -31,15 +37,15 @@ export default function ParentHomeworkPage() {
   }, []);
 
   const classId = child?.classId ?? child?.class?.id ?? null;
-  const rows = classId
-    ? homework.filter((item) => classOf(item)?.id === classId)
+  const rows = classId && childId
+    ? homework.filter((item) => classOf(item)?.id === classId && assignedToChild(item, childId))
     : [];
 
   return (
     <div className="page-stack">
       <PageHeader
         title="Homework"
-        description={child ? `Work assigned to ${child.firstName}'s class.` : "Work assigned to your child's class."}
+        description={child ? `Work assigned to ${child.firstName}.` : "Work assigned to your child."}
       />
       <ChildSwitcher children={children} childId={childId} onSelect={selectChild} />
       {!ready ? (
@@ -57,7 +63,7 @@ export default function ParentHomeworkPage() {
       ) : rows.length === 0 ? (
         <EmptyState
           title="No homework yet"
-          text="Homework will appear when the teacher assigns work to your child's class."
+          text="Homework will appear when the teacher assigns work to your child."
         />
       ) : (
         <div className="record-list">

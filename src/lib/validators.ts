@@ -77,6 +77,7 @@ export const attendanceSchema = z.object({
 
 export const homeworkSchema = z.object({
   classId: z.string(),
+  studentId: z.string().optional(),
   title: z.string().min(2),
   description: z.string().optional(),
   assignedDate: z.string(),
