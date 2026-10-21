@@ -29,7 +29,34 @@ function LoginForm() {
       });
       router.replace(params.get("next") || portalForRole(data.user.role));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not sign in.");
+      setError(
+        err instanceof Error
+          ? `${err.message} If this is the first time, open Register a dugsi and create the school first.`
+          : "Could not sign in.",
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function createDemoSchool() {
+    setPending(true);
+    setError("");
+    try {
+      await api("/api/tenants/register", {
+        method: "POST",
+        body: JSON.stringify({
+          dugsiName: "Masjid Al-Noor Weekend Dugsi",
+          schoolCode: "noor",
+          adminName: "Imam Yusuf",
+          email: "admin@noor.dugsi",
+          password: "Dugsi123!",
+          city: "Minneapolis",
+        }),
+      });
+      router.replace("/admin");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create the demo school.");
     } finally {
       setPending(false);
     }
@@ -55,13 +82,21 @@ function LoginForm() {
       <button className="btn btn-primary w-full" disabled={pending}>
         {pending ? "Signing in..." : "Sign in"}
       </button>
+      <button
+        type="button"
+        className="btn btn-ghost w-full"
+        disabled={pending}
+        onClick={createDemoSchool}
+      >
+        {pending ? "Creating school..." : "Create the noor demo school"}
+      </button>
       <p className="text-sm text-muted">
         New school? <Link className="text-green underline" href="/register">Register a dugsi</Link>
       </p>
       <p className="rounded-2xl bg-green-soft p-3 text-xs text-green">
-        Staging demo only. School code <b>noor</b> or <b>huda</b>. Email{" "}
-        <b>admin@noor.dugsi</b>, <b>teacher@noor.dugsi</b>, or <b>parent@noor.dugsi</b>.
-        Password: <b>Dugsi123!</b>
+        Sign-in only works after the school exists. Use <b>Create the noor demo school</b> or
+        Register. Then sign in with school code <b>noor</b>, email <b>admin@noor.dugsi</b>,
+        password <b>Dugsi123!</b>
       </p>
     </form>
   );
