@@ -39,7 +39,7 @@ function childSummary(student: ParentChild, homework: Homework[], attendance: At
     student.class?.dayOfWeek ? `Class this ${student.class.dayOfWeek}` : null,
   ].filter(Boolean).join(" · ");
 
-  const mark = attendance.find((row) => row.studentId === student.id || row.student.id === student.id);
+  const mark = attendance.find((row) => row.studentId === student.id || row.student?.id === student.id);
   if (mark) return `${classLine} · ${mark.status} on ${mark.date}`;
 
   const classId = student.classId ?? student.class?.id;
@@ -89,24 +89,25 @@ export default function ParentHomePage() {
       ? { title: "Homework assigned", text: `${homework[0].title}${homework[0].dueDate ? ` · due ${homework[0].dueDate}` : ""}` }
       : null,
     attendance[0]
-      ? { title: "Attendance", text: `${attendance[0].student.firstName} was marked ${attendance[0].status} on ${attendance[0].date}.` }
+      ? { title: "Attendance", text: `${attendance[0].student?.firstName ?? "Your child"} was marked ${attendance[0].status} on ${attendance[0].date}.` }
       : null,
   ].filter(Boolean) as Array<{ title: string; text: string }>;
 
   return (
     <div className="page-stack">
-      <section className="card hero hero-compact">
+      <section className="card hero parent-hero">
         <div className="hero-copy">
           <p className="hero-kicker">Parent Portal</p>
           <h1 className="hero-title">{user?.tenantName ?? "Your school"}</h1>
           <p className="hero-text">
-            Assalamu alaikum{user?.name ? `, ${user.name}` : ""}. Here are your children and class updates.
+            Assalamu alaikum{user?.name ? `, ${user.name}` : ""}. Your children, class, and updates are below.
           </p>
         </div>
         <div className="hero-art">
           <SchoolImage
             src={schoolImageUrl}
             name={user?.tenantName}
+            alt={user?.tenantName ?? "School"}
             message={user?.tenantName ?? "Your school"}
           />
         </div>
