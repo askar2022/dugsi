@@ -562,6 +562,91 @@ tbody tr:hover td {
   font-size: 0.88rem;
 }
 
+.metric-grid {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.metric-card {
+  padding: 1.15rem 1.15rem 1.2rem;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(196, 163, 90, 0.16), transparent 42%),
+    white;
+}
+
+.metric-icon {
+  display: flex;
+  width: 2.6rem;
+  height: 2.6rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: var(--green);
+}
+
+.metric-card.is-paid .metric-icon {
+  background: var(--green-soft);
+  color: var(--paid);
+}
+
+.metric-card.is-due .metric-icon {
+  background: var(--gold-soft);
+  color: var(--due);
+}
+
+.metric-card.is-late .metric-icon {
+  background: #fde8e8;
+  color: var(--late);
+}
+
+.metric-label {
+  margin: 0.85rem 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.metric-value {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-fraunces), serif;
+  font-size: 2rem;
+  line-height: 1.1;
+  color: var(--green);
+}
+
+.metric-card.is-paid .metric-value {
+  color: var(--paid);
+}
+
+.metric-card.is-due .metric-value {
+  color: var(--due);
+}
+
+.metric-card.is-late .metric-value {
+  color: var(--late);
+}
+
+.metric-detail {
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.tone-chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  background: var(--gold-soft);
+  color: var(--green);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
 .stat-value {
   margin: 0.25rem 0 0;
   font-family: var(--font-fraunces), serif;
@@ -945,6 +1030,10 @@ tbody tr:hover td {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .portal-content {
     padding: 1.8rem 2rem 2.8rem;
   }
@@ -972,5 +1061,9 @@ tbody tr:hover td {
 
   .tile-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
