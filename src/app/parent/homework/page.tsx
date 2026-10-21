@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/portal/EmptyState";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useParentFamily } from "@/components/portal/useParentFamily";
+import { isAssessmentClass } from "@/lib/assessment-class";
 import { api } from "@/lib/api";
 import { quranPortion } from "@/lib/quran";
 
@@ -48,8 +49,9 @@ export default function ParentHomeworkPage() {
     load().catch(() => setHomework([]));
   }, []);
 
-  const classId = child?.classId ?? child?.class?.id ?? null;
-  const rows = classId && childId
+  const classId = isAssessmentClass(child?.class) ? null : child?.classId ?? child?.class?.id ?? null;
+  const waiting = child?.status === "waiting_assessment" || child?.status === "pending" || !classId;
+  const rows = classId && childId && !waiting
     ? homework.filter((item) => classOf(item)?.id === classId && assignedToChild(item, childId))
     : [];
 
@@ -85,9 +87,9 @@ export default function ParentHomeworkPage() {
           title="No children yet"
           text="Use Online Enrollment to add a child to your family record."
         />
-      ) : !classId ? (
+      ) : waiting ? (
         <EmptyState
-          title="No class yet"
+          title="Waiting for assessment"
           text={`Homework will appear after ${child ? child.firstName : "your child"} is placed in a class.`}
         />
       ) : rows.length === 0 ? (
