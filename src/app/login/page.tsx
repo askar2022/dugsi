@@ -55,9 +55,36 @@ function LoginForm() {
         }),
       });
       await api("/api/demo/sample-families", { method: "POST" }).catch(() => undefined);
-      router.replace("/admin/students");
+      await api("/api/demo/portals", { method: "POST" }).catch(() => undefined);
+      router.replace("/admin");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create the demo school.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function openDemoPortal(role: "TEACHER" | "PARENT") {
+    setPending(true);
+    setError("");
+    try {
+      await api("/api/demo/portals", { method: "POST" });
+      const email = role === "TEACHER" ? "teacher@noor.dugsi" : "parent@noor.dugsi";
+      const data = await api<{ user: Session }>("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+          schoolCode: "noor",
+          email,
+          password: "Dugsi123!",
+        }),
+      });
+      router.replace(portalForRole(data.user.role));
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not open that portal. Create the demo school first.",
+      );
     } finally {
       setPending(false);
     }
@@ -87,6 +114,22 @@ function LoginForm() {
         type="button"
         className="btn btn-ghost w-full"
         disabled={pending}
+        onClick={() => openDemoPortal("TEACHER")}
+      >
+        Open Teacher Portal
+      </button>
+      <button
+        type="button"
+        className="btn btn-ghost w-full"
+        disabled={pending}
+        onClick={() => openDemoPortal("PARENT")}
+      >
+        Open Parent Portal
+      </button>
+      <button
+        type="button"
+        className="btn btn-ghost w-full"
+        disabled={pending}
         onClick={createDemoSchool}
       >
         {pending ? "Creating school..." : "Create the noor demo school"}
@@ -95,9 +138,8 @@ function LoginForm() {
         New school? <Link className="text-green underline" href="/register">Register a dugsi</Link>
       </p>
       <p className="rounded-2xl bg-green-soft p-3 text-xs text-green">
-        Sign-in only works after the school exists. Use <b>Create the noor demo school</b> or
-        Register. Then sign in with school code <b>noor</b>, email <b>admin@noor.dugsi</b>,
-        password <b>Dugsi123!</b>
+        You are opening a different portal when you change login. Imam Yusuf is Management.
+        Teacher: <b>teacher@noor.dugsi</b>. Parent: <b>parent@noor.dugsi</b>. Password <b>Dugsi123!</b>
       </p>
     </form>
   );
