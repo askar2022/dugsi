@@ -17,12 +17,12 @@ export function ChildSwitcher({
 
   return (
     <label className="child-select">
-      <span className="metric-label">Select child</span>
+      <span className="child-select-label">Select a child from the dropdown list</span>
       <select
         className="select child-select-dropdown"
         value={selected.id}
         onChange={(event) => onSelect(event.target.value)}
-        aria-label="Select child"
+        aria-label="Select a child from the dropdown list"
       >
         {children.map((child) => (
           <option key={child.id} value={child.id}>

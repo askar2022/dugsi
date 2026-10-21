@@ -75,8 +75,8 @@ export default function ParentHomeworkPage() {
         title="Homework"
         description={
           child
-            ? `Quran work for ${child.firstName}. Mark Done or Needs help so the teacher can follow up.`
-            : "Quran work for your child. Mark Done or Needs help so the teacher can follow up."
+            ? `Quran work for ${child.firstName}. Choose a child from the dropdown, then mark Done or Needs help.`
+            : "Choose a child from the dropdown, then mark Done or Needs help."
         }
       />
       <ChildSwitcher children={children} childId={childId} onSelect={selectChild} />
