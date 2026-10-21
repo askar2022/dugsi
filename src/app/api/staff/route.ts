@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
         teacherName: parsed.data.name,
         title: parsed.data.title,
         inviteLink,
+        schoolCode: session.tenantSlug,
       });
       await sendTenantEmail({
         tenantId: session.tenantId,

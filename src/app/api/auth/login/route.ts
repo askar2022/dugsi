@@ -75,6 +75,14 @@ export async function POST(request: Request) {
       await supabase.auth.signOut();
       return error("Those details do not match a school account.", 401);
     }
+    if (parsed.data.portal === "parent" && profile.role !== "PARENT") {
+      await supabase.auth.signOut();
+      return error("This page is for parents. Use Staff sign in.");
+    }
+    if (parsed.data.portal === "staff" && profile.role === "PARENT") {
+      await supabase.auth.signOut();
+      return error("This page is for the office and teachers. Use Parent sign in.");
+    }
   }
 
   const app = data.user.app_metadata ?? {};

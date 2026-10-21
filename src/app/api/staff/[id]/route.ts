@@ -52,6 +52,7 @@ export async function PATCH(
       teacherName: staff.name,
       title: staff.title,
       inviteLink: invited.inviteLink,
+      schoolCode: session.tenantSlug,
     });
     await sendTenantEmail({
       tenantId: session.tenantId,

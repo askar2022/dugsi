@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import { api, ApiRequestError } from "@/lib/api";
+import { schoolLoginPath } from "@/lib/login-path";
 import { portalForRole, type Session } from "@/lib/types";
 import { FormField } from "@/components/forms/FormField";
-import { SchoolImage } from "@/components/portal/SchoolImage";
 import { PublicHeader } from "@/components/PublicHeader";
 
 const showDemo = process.env.NEXT_PUBLIC_APP_ENV !== "production";
@@ -19,7 +19,7 @@ const NOOR = {
   parent: "parent@noor.dugsi",
 };
 
-type School = { name: string; code: string; imageUrl?: string | null; welcomeNote?: string | null };
+type School = { name: string; code: string };
 
 function LoginForm() {
   const router = useRouter();
@@ -29,6 +29,16 @@ function LoginForm() {
   const [school, setSchool] = useState<School | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    if (portal === "parent") {
+      router.replace(schoolLoginPath("parent", schoolCode || null, params.get("next")));
+      return;
+    }
+    if (portal === "teacher" || portal === "admin" || portal === "staff") {
+      router.replace(schoolLoginPath("staff", schoolCode || null, params.get("next")));
+    }
+  }, [params, portal, router, schoolCode]);
 
   useEffect(() => {
     if (!schoolCode) {
@@ -104,59 +114,52 @@ function LoginForm() {
     }
   }
 
-  const heading =
-    portal === "teacher"
-      ? "Teacher sign in"
-      : portal === "parent"
-        ? "Parent sign in"
-        : portal === "admin"
-          ? "Admin & staff sign in"
-          : "Sign in";
+  if (school && !portal) {
+    return (
+      <div className="min-h-screen">
+        <PublicHeader variant="school" schoolName={school.name} schoolCode={school.code} />
+        <div className="login-shell">
+          <div className="login-choose">
+            <p className="text-xs uppercase tracking-[0.2em] text-gold">{school.name}</p>
+            <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">Who is signing in?</h1>
+            <p className="mt-2 text-sm text-muted">Parents and staff have their own login pages.</p>
+            <div className="login-choose-grid">
+              <Link href={schoolLoginPath("parent", school.code)} className="card login-choose-card">
+                <img src="/login/parent-portal.jpg" alt="Parent portal" />
+                <div>
+                  <h2>Parents</h2>
+                  <p>See attendance, homework, progress, and tuition.</p>
+                </div>
+              </Link>
+              <Link href={schoolLoginPath("staff", school.code)} className="card login-choose-card">
+                <img src="/login/staff-portal.jpg" alt="Staff portal" />
+                <div>
+                  <h2>Admin & teachers</h2>
+                  <p>Run the office or open your class.</p>
+                </div>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
-      {school ? (
-        <PublicHeader variant="school" schoolName={school.name} schoolCode={school.code} />
-      ) : (
-        <PublicHeader />
-      )}
-      <div className={`login-shell${school ? " has-welcome" : ""}`}>
-        {school ? (
-          <section className="card login-welcome">
-            <div className="login-welcome-copy">
-              <p className="hero-kicker">{portal === "parent" ? "Parent Portal" : school.name}</p>
-              <h2 className="hero-title">{school.name}</h2>
-              <p className="hero-text">
-                {school.welcomeNote || "Assalamu alaikum. Sign in with your email and password for this school."}
-              </p>
-            </div>
-            <div className="login-welcome-art">
-              <SchoolImage
-                src={school.imageUrl}
-                name={school.name}
-                alt={`${school.name} welcome`}
-                message={school.name}
-              />
-            </div>
-          </section>
-        ) : null}
+      <PublicHeader />
+      <div className="login-shell">
         <form onSubmit={onSubmit} className="card login-form space-y-4 p-6">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-gold">{school?.name ?? "Our Dugsi"}</p>
-            <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">{heading}</h1>
+            <p className="text-xs uppercase tracking-[0.2em] text-gold">Our Dugsi</p>
+            <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">School sign in</h1>
             <p className="mt-2 text-sm text-muted">
-              {school
-                ? "Use your own email and password for this school."
-                : "Sign in to the school you already run. Families enroll on that school’s own page."}
+              Sign in to the school you already run. Families use their school’s own parent page.
             </p>
           </div>
-          {school ? (
-            <input type="hidden" name="schoolCode" value={school.code} />
-          ) : (
-            <FormField label="School code">
-              <input className="input" name="schoolCode" required autoComplete="organization" />
-            </FormField>
-          )}
+          <FormField label="School code">
+            <input className="input" name="schoolCode" required autoComplete="organization" />
+          </FormField>
           <FormField label="Email">
             <input className="input" name="email" type="email" required autoComplete="username" />
           </FormField>
@@ -167,7 +170,7 @@ function LoginForm() {
           <button className="btn btn-primary w-full" disabled={pending}>
             {pending ? "Signing in..." : "Sign in"}
           </button>
-          {showDemo && !school ? (
+          {showDemo ? (
             <>
               <button type="button" className="btn btn-ghost w-full" disabled={pending} onClick={() => openNoor("ADMIN")}>
                 Staging: open noor Management
@@ -180,15 +183,9 @@ function LoginForm() {
               </button>
             </>
           ) : null}
-          {school ? (
-            <p className="text-sm text-muted">
-              Enrolling a child? <Link className="text-green underline" href={`/enroll/${school.code}`}>Enroll without signing in</Link>
-            </p>
-          ) : (
-            <p className="text-sm text-muted">
-              New school? <Link className="text-green underline" href="/register">Create a dugsi</Link>
-            </p>
-          )}
+          <p className="text-sm text-muted">
+            New school? <Link className="text-green underline" href="/register">Create a dugsi</Link>
+          </p>
         </form>
       </div>
     </div>

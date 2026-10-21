@@ -628,27 +628,61 @@ tbody tr:hover td {
   padding: 0;
 }
 
-.login-welcome-copy {
-  padding: 1.2rem 1.2rem 1rem;
+.login-welcome-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #f7f3ea;
 }
 
-.login-welcome-art {
-  min-height: 12rem;
+.login-choose {
+  width: 100%;
 }
 
-.login-welcome-art img,
-.login-welcome-art .school-placeholder {
-  min-height: 12rem;
+.login-choose-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.2rem;
+}
+
+.login-choose-card {
+  overflow: hidden;
+  padding: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.login-choose-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.login-choose-card div {
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+.login-choose-card h2 {
+  margin: 0;
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.35rem;
+  color: var(--green);
+}
+
+.login-choose-card p {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
 }
 
 @media (min-width: 800px) {
   .login-shell.has-welcome {
-    grid-template-columns: 1.1fr 0.9fr;
+    grid-template-columns: 1.05fr 0.95fr;
     align-items: start;
   }
 
-  .login-welcome {
-    display: grid;
+  .login-choose-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
 

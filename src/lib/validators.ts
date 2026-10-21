@@ -10,6 +10,7 @@ export const loginSchema = z.object({
   schoolCode: z.string().min(2),
   email: z.string().min(3),
   password: z.string().min(8),
+  portal: z.enum(["parent", "staff"]).optional(),
 });
 
 export const registerTenantSchema = z.object({

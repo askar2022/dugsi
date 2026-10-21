@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
+import { schoolLoginPath } from "@/lib/login-path";
 import { applySupabaseEnv } from "@/lib/supabase-env";
 import { portalForRole, type Role } from "@/lib/types";
 
@@ -21,7 +22,8 @@ export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anon) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    const fallback = roleNeeded === "PARENT" ? schoolLoginPath("parent") : roleNeeded === "PLATFORM" ? "/login" : schoolLoginPath("staff");
+    return NextResponse.redirect(new URL(fallback, request.url));
   }
 
   const supabase = createServerClient(url, anon, {
@@ -41,9 +43,8 @@ export async function proxy(request: NextRequest) {
 
   const { data } = await supabase.auth.getUser();
   if (!data.user) {
-    const login = new URL("/login", request.url);
-    login.searchParams.set("next", pathname);
-    return NextResponse.redirect(login);
+    const loginPath = roleNeeded === "PARENT" ? schoolLoginPath("parent", null, pathname) : roleNeeded === "PLATFORM" ? "/login" : schoolLoginPath("staff", null, pathname);
+    return NextResponse.redirect(new URL(loginPath, request.url));
   }
 
   const role = String(data.user.app_metadata?.role ?? "") as Role;

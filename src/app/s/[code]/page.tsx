@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { GraduationCap, Receipt, UserPlus, Users } from "lucide-react";
+import { GraduationCap, Receipt, UserPlus } from "lucide-react";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SchoolImage } from "@/components/portal/SchoolImage";
+import { schoolLoginPath } from "@/lib/login-path";
 import { getPublicSchool } from "@/lib/public-school";
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
@@ -21,22 +22,16 @@ export default async function SchoolLandingPage({ params }: { params: Promise<{ 
 
   const logins = [
     {
-      href: `/login?school=${school.code}&portal=admin`,
-      title: "Admin & staff",
-      text: "Review enrollment and run this school.",
-      icon: Users,
-    },
-    {
-      href: `/login?school=${school.code}&portal=teacher`,
-      title: "Teachers",
-      text: "Open your class, attendance, and Quran progress.",
-      icon: GraduationCap,
-    },
-    {
-      href: `/login?school=${school.code}&portal=parent`,
+      href: schoolLoginPath("parent", school.code),
       title: "Parents",
-      text: "See your child after this school invites you.",
+      text: "See attendance, homework, progress, and tuition.",
       icon: Receipt,
+    },
+    {
+      href: schoolLoginPath("staff", school.code),
+      title: "Admin & teachers",
+      text: "Run the office or open your class.",
+      icon: GraduationCap,
     },
   ];
 
@@ -61,7 +56,7 @@ export default async function SchoolLandingPage({ params }: { params: Promise<{ 
                 <UserPlus size={18} />
                 Enroll your child
               </Link>
-              <Link href={`/login?school=${school.code}&portal=parent`} className="btn btn-ghost">
+              <Link href={schoolLoginPath("parent", school.code)} className="btn btn-ghost">
                 Parent sign in
               </Link>
             </div>
@@ -88,7 +83,7 @@ export default async function SchoolLandingPage({ params }: { params: Promise<{ 
         <section className="mt-8">
           <p className="text-sm uppercase tracking-[0.2em] text-gold">This school’s logins</p>
           <h2 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">Sign in</h2>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
             {logins.map((item) => {
               const Icon = item.icon;
               return (

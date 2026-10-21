@@ -1,4 +1,5 @@
 import { getAppUrl } from "@/lib/env";
+import { schoolLoginPath } from "@/lib/login-path";
 
 function greeting(name?: string | null) {
   return name ? `Assalamu alaikum, ${name}.` : "Assalamu alaikum.";
@@ -62,7 +63,9 @@ export function teacherWelcomeEmail(input: {
   teacherName: string;
   title: string;
   inviteLink?: string | null;
+  schoolCode?: string | null;
 }) {
+  const staffLogin = `${getAppUrl()}${schoolLoginPath("staff", input.schoolCode)}`;
   return {
     subject: `Welcome to ${input.schoolName}`,
     body: [
@@ -71,7 +74,7 @@ export function teacherWelcomeEmail(input: {
       `Welcome to our dugsi. You have been added as ${input.title} at ${input.schoolName}.`,
       input.inviteLink
         ? `Create your own password here: ${input.inviteLink}`
-        : `Sign in at ${getAppUrl()}/login with this email and the school code your office gave you.`,
+        : `Sign in at ${staffLogin} with this email.`,
       "",
       "We are glad you are with us.",
     ].join("\n"),
@@ -93,7 +96,7 @@ export function parentWelcomeEmail(input: {
       `You can now open the parent portal for ${input.schoolName}.`,
       input.inviteLink
         ? `Create your own password here: ${input.inviteLink}`
-        : `Sign in at ${getAppUrl()}/login with your school code and ${input.email}.`,
+        : `Sign in at ${getAppUrl()}${schoolLoginPath("parent", input.schoolCode)} with ${input.email}.`,
       input.schoolCode ? `School code: ${input.schoolCode}` : "",
     ].filter(Boolean).join("\n"),
   };

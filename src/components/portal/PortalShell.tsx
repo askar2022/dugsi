@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { schoolLoginPath } from "@/lib/login-path";
 import type { Role, Session } from "@/lib/types";
 
 type NavItem = { href: string; label: string; icon: typeof Home };
@@ -145,7 +146,7 @@ export function PortalShell({
   useEffect(() => {
     api<{ user: Session }>("/api/auth/me")
       .then((data) => setUser(data.user))
-      .catch(() => router.replace("/login"));
+      .catch(() => router.replace(role === "PARENT" ? schoolLoginPath("parent") : role === "PLATFORM" ? "/login" : schoolLoginPath("staff")));
   }, [router]);
 
   useEffect(() => {
@@ -167,7 +168,13 @@ export function PortalShell({
 
   async function logout() {
     await api("/api/auth/logout", { method: "POST" });
-    router.replace("/login");
+    router.replace(
+      role === "PARENT"
+        ? schoolLoginPath("parent", user?.tenantSlug)
+        : role === "PLATFORM"
+          ? "/login"
+          : schoolLoginPath("staff", user?.tenantSlug),
+    );
   }
 
   const teacherDock = [

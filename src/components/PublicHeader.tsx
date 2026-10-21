@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { schoolLoginPath } from "@/lib/login-path";
 
 type PlatformProps = {
   variant?: "platform";
@@ -24,8 +25,11 @@ export function PublicHeader(props: PlatformProps | SchoolProps) {
           <Link href={`/enroll/${props.schoolCode}`} className="btn btn-primary">
             Enroll your child
           </Link>
-          <Link href={`/login?school=${props.schoolCode}`} className="btn btn-ghost">
-            Sign in
+          <Link href={schoolLoginPath("parent", props.schoolCode)} className="btn btn-ghost">
+            Parent sign in
+          </Link>
+          <Link href={schoolLoginPath("staff", props.schoolCode)} className="btn btn-ghost">
+            Staff sign in
           </Link>
         </nav>
       </header>
