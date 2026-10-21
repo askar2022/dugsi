@@ -95,6 +95,9 @@ function SchoolLoginForm({
         />
       ) : null}
       <div className="login-shell has-welcome">
+        <section className="card login-welcome">
+          <img className="login-welcome-image" src={copy.art} alt={copy.artAlt} />
+        </section>
         <form onSubmit={onSubmit} className="card login-form space-y-4 p-6">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-gold">{copy.kicker}</p>
@@ -119,9 +122,6 @@ function SchoolLoginForm({
             {pending ? "Signing in..." : "Sign in"}
           </button>
         </form>
-        <section className="card login-welcome">
-          <img className="login-welcome-image" src={copy.art} alt={copy.artAlt} />
-        </section>
       </div>
     </div>
   );
