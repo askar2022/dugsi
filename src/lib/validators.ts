@@ -35,6 +35,13 @@ export const studentSchema = z.object({
   status: z.string().optional(),
 });
 
+export const parentSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().min(3),
+  phone: z.string().optional(),
+  password: z.string().min(8).optional(),
+});
+
 export const staffSchema = z.object({
   name: z.string().min(2),
   email: z.string().optional(),

@@ -54,7 +54,8 @@ function LoginForm() {
           city: "Minneapolis",
         }),
       });
-      router.replace("/admin");
+      await api("/api/demo/sample-families", { method: "POST" }).catch(() => undefined);
+      router.replace("/admin/students");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create the demo school.");
     } finally {

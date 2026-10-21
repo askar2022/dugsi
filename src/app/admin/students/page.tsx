@@ -20,6 +20,7 @@ export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [message, setMessage] = useState("");
+  const [addingSample, setAddingSample] = useState(false);
 
   async function load() {
     const [studentData, classData] = await Promise.all([
@@ -47,9 +48,31 @@ export default function StudentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">Student registration</h3>
+        <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">Students</h3>
         <p className="text-muted">Register a child and optionally create a parent login for this dugsi only.</p>
       </div>
+      {students.length === 0 ? (
+        <div className="card p-5">
+          <p className="text-sm text-muted">No students yet. Register a child below, or add the staging sample family.</p>
+          <button
+            type="button"
+            className="btn btn-ghost mt-3"
+            disabled={addingSample}
+            onClick={async () => {
+              setAddingSample(true);
+              try {
+                await api("/api/demo/sample-families", { method: "POST" });
+                setMessage("Sample parent and students added.");
+                await load();
+              } finally {
+                setAddingSample(false);
+              }
+            }}
+          >
+            {addingSample ? "Adding..." : "Add sample parent and students"}
+          </button>
+        </div>
+      ) : null}
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="First name"><input className="input" name="firstName" required /></FormField>
         <FormField label="Last name"><input className="input" name="lastName" required /></FormField>

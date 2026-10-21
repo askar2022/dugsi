@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
         const admin = createAdminClient();
         const { data: created, error: authError } = await admin.auth.admin.createUser({
           email,
-          password: "ChangeMe123!",
+          password: "Dugsi123!",
           email_confirm: true,
           user_metadata: { name: parsed.data.parentName },
           app_metadata: {
