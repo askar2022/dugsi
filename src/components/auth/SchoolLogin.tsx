@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
@@ -12,7 +11,7 @@ type School = { name: string; code: string };
 
 const COPY = {
   parent: {
-    art: "/login/parent-portal.jpg",
+    art: "/login/parent.jpg",
     artAlt: "Parent",
     kicker: "Welcome",
     heading: "Parent",
@@ -98,7 +97,7 @@ function SchoolLoginForm({
       <div className="login-shell has-welcome">
         <form onSubmit={onSubmit} className="card login-form space-y-4 p-6">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-gold">{school?.name ?? copy.kicker}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-gold">{copy.kicker}</p>
             <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">{copy.heading}</h1>
             <p className="mt-2 text-sm text-muted">{copy.text}</p>
           </div>
@@ -119,14 +118,6 @@ function SchoolLoginForm({
           <button className="btn btn-primary w-full" disabled={pending}>
             {pending ? "Signing in..." : "Sign in"}
           </button>
-          {portal === "parent" && school ? (
-            <p className="text-sm text-muted">
-              Enrolling a child?{" "}
-              <Link className="text-green underline" href={`/enroll/${school.code}`}>
-                Enroll without signing in
-              </Link>
-            </p>
-          ) : null}
         </form>
         <section className="card login-welcome">
           <img className="login-welcome-image" src={copy.art} alt={copy.artAlt} />

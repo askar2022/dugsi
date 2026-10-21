@@ -125,7 +125,7 @@ function LoginForm() {
             <p className="mt-2 text-sm text-muted">Parents and staff have their own login pages.</p>
             <div className="login-choose-grid">
               <Link href={schoolLoginPath("parent", school.code)} className="card login-choose-card">
-                <img src="/login/parent-portal.jpg" alt="Parent portal" />
+                <img src="/login/parent.jpg" alt="Parent" />
                 <div>
                   <h2>Parents</h2>
                   <p>See attendance, homework, progress, and tuition.</p>
