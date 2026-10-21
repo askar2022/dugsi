@@ -99,8 +99,8 @@ export default function ProgressPage() {
               ))}
             </select>
           </FormField>
-          <FormField label="Surah"><input className="input" name="surah" required /></FormField>
           <FormField label="Juz"><input className="input" name="juz" type="number" min={1} max={30} /></FormField>
+          <FormField label="Surah"><input className="input" name="surah" required /></FormField>
           <FormField label="Ayah from"><input className="input" name="ayahFrom" type="number" required /></FormField>
           <FormField label="Ayah to"><input className="input" name="ayahTo" type="number" required /></FormField>
           <FormField label="Date"><input className="input" name="date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} /></FormField>
@@ -138,8 +138,8 @@ export default function ProgressPage() {
                 <article key={item.id} className={`card record-card-stack progress-row is-${tone}`}>
                   <p className="record-title">{student ? `${student.firstName} ${student.lastName}` : "Student"}</p>
                   <p className="record-meta">
+                    {item.juz ? `Juz ${item.juz} · ` : ""}
                     Surah {item.surah}
-                    {item.juz ? ` · Juz ${item.juz}` : ""}
                     {` · Ayah ${item.ayahFrom}–${item.ayahTo}`}
                     {` · ${item.date}`}
                   </p>
@@ -166,8 +166,8 @@ export default function ProgressPage() {
               <thead>
                 <tr>
                   <th>Student</th>
-                  <th>Surah</th>
                   <th>Juz</th>
+                  <th>Surah</th>
                   <th>Ayah</th>
                   <th>Date</th>
                   <th>Progress</th>
@@ -180,8 +180,8 @@ export default function ProgressPage() {
                   return (
                     <tr key={item.id} className={`progress-row is-${tone}`}>
                       <td>{student ? `${student.firstName} ${student.lastName}` : "Student"}</td>
-                      <td>{item.surah}</td>
                       <td>{item.juz ?? "—"}</td>
+                      <td>{item.surah}</td>
                       <td>{item.ayahFrom}–{item.ayahTo}</td>
                       <td>{item.date}</td>
                       <td>

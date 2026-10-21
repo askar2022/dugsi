@@ -116,7 +116,7 @@ export default function TeacherHomePage() {
                     <p className="record-meta">
                       {student.class?.name ?? "Your class"}
                       {quran
-                        ? ` · ${quran.surah}${quran.juz ? ` · Juz ${quran.juz}` : ""} · Ayah ${quran.ayahFrom}–${quran.ayahTo}`
+                        ? ` · ${quran.juz ? `Juz ${quran.juz} · ` : ""}${quran.surah} · Ayah ${quran.ayahFrom}–${quran.ayahTo}`
                         : " · No Quran progress yet"}
                     </p>
                   </div>

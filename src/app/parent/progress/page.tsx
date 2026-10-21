@@ -76,16 +76,16 @@ export default function ParentProgressPage() {
             </div>
             <div className="progress-stats">
               <div className="stat">
+                <p className="stat-label">Juz</p>
+                <p className="stat-value">{latest.juz ?? "—"}</p>
+              </div>
+              <div className="stat">
                 <p className="stat-label">Surah</p>
                 <p className="stat-value">{latest.surah}</p>
               </div>
               <div className="stat">
                 <p className="stat-label">Ayah</p>
                 <p className="stat-value">{latest.ayahFrom}–{latest.ayahTo}</p>
-              </div>
-              <div className="stat">
-                <p className="stat-label">Juz</p>
-                <p className="stat-value">{latest.juz ?? "—"}</p>
               </div>
               <div className="stat">
                 <p className="stat-label">Level</p>
@@ -96,10 +96,10 @@ export default function ParentProgressPage() {
           <div className="record-list">
             {progress.map((item) => (
               <article key={item.id} className={`card record-card record-card-stack progress-row is-${normalizeProgressStatus(item.status)}`}>
-                <p className="record-title">{item.surah}</p>
+                <p className="record-title">{item.juz ? `Juz ${item.juz}` : item.surah}</p>
                 <p className="record-meta">
-                  Ayah {item.ayahFrom}–{item.ayahTo}
-                  {item.juz ? ` · Juz ${item.juz}` : ""}
+                  Surah {item.surah}
+                  {` · Ayah ${item.ayahFrom}–${item.ayahTo}`}
                   {level ? ` · ${level}` : ""}
                   {` · ${item.date}`}
                 </p>
