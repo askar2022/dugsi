@@ -16,6 +16,7 @@ import {
   GraduationCap,
   FileBarChart,
   Contact,
+  UserPlus,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import type { Role, Session } from "@/lib/types";
@@ -25,6 +26,7 @@ type NavItem = { href: string; label: string; icon: typeof Home };
 const NAV: Record<string, NavItem[]> = {
   ADMIN: [
     { href: "/admin", label: "Overview", icon: Home },
+    { href: "/admin/enrollment", label: "Enrollment", icon: UserPlus },
     { href: "/admin/students", label: "Students", icon: Users },
     { href: "/admin/parents", label: "Parents", icon: Contact },
     { href: "/admin/teachers", label: "Teachers", icon: GraduationCap },

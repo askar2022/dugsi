@@ -1,7 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { FormField } from "@/components/forms/FormField";
+import { useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api";
 
@@ -14,84 +13,69 @@ type Student = {
   parent?: { name: string; email: string } | null;
 };
 
-type SchoolClass = { id: string; name: string };
+type Attendance = { studentId: string; date: string; status: string };
+type Progress = { studentId: string; surah: string; ayahFrom: number; ayahTo: number; date: string };
 
-export default function StudentsPage() {
+export default function StudentsRosterPage() {
   const [students, setStudents] = useState<Student[]>([]);
-  const [classes, setClasses] = useState<SchoolClass[]>([]);
-  const [message, setMessage] = useState("");
-  const [addingSample, setAddingSample] = useState(false);
-
-  async function load() {
-    const [studentData, classData] = await Promise.all([
-      api<{ students: Student[] }>("/api/students"),
-      api<{ classes: SchoolClass[] }>("/api/classes"),
-    ]);
-    setStudents(studentData.students);
-    setClasses(classData.classes);
-  }
+  const [attendance, setAttendance] = useState<Attendance[]>([]);
+  const [progress, setProgress] = useState<Progress[]>([]);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
-    load();
+    Promise.all([
+      api<{ students: Student[] }>("/api/students"),
+      api<{ attendance: Attendance[] }>("/api/attendance"),
+      api<{ progress: Progress[] }>("/api/progress"),
+    ]).then(([studentData, attendanceData, progressData]) => {
+      setStudents(studentData.students);
+      setAttendance(attendanceData.attendance);
+      setProgress(progressData.progress);
+    });
   }, []);
 
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const data = Object.fromEntries(new FormData(form).entries());
-    await api("/api/students", { method: "POST", body: JSON.stringify(data) });
-    form.reset();
-    setMessage("Student registered and the parent email was logged.");
-    await load();
-  }
+  const rows = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return students
+      .filter((student) => {
+        const haystack = [
+          student.firstName,
+          student.lastName,
+          student.class?.name,
+          student.parent?.name,
+          student.status,
+        ]
+          .join(" ")
+          .toLowerCase();
+        return !needle || haystack.includes(needle);
+      })
+      .map((student) => {
+        const lastMark = attendance.find((item) => item.studentId === student.id);
+        const lastProgress = progress.find((item) => item.studentId === student.id);
+        return {
+          student,
+          attendance: lastMark ? `${lastMark.status} (${lastMark.date})` : "—",
+          progress: lastProgress
+            ? `${lastProgress.surah} ${lastProgress.ayahFrom}–${lastProgress.ayahTo}`
+            : "—",
+        };
+      });
+  }, [attendance, progress, query, students]);
 
   return (
     <div className="space-y-6">
       <div>
         <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">Students</h3>
-        <p className="text-muted">Register a child and optionally create a parent login for this dugsi only.</p>
+        <p className="text-muted">
+          Roster for this dugsi. Students do not have their own login. Parents and teachers use this record.
+        </p>
       </div>
-      {students.length === 0 ? (
-        <div className="card p-5">
-          <p className="text-sm text-muted">No students yet. Register a child below, or add the staging sample family.</p>
-          <button
-            type="button"
-            className="btn btn-ghost mt-3"
-            disabled={addingSample}
-            onClick={async () => {
-              setAddingSample(true);
-              try {
-                await api("/api/demo/sample-families", { method: "POST" });
-                setMessage("Sample parent and students added.");
-                await load();
-              } finally {
-                setAddingSample(false);
-              }
-            }}
-          >
-            {addingSample ? "Adding..." : "Add sample parent and students"}
-          </button>
-        </div>
-      ) : null}
-      <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
-        <FormField label="First name"><input className="input" name="firstName" required /></FormField>
-        <FormField label="Last name"><input className="input" name="lastName" required /></FormField>
-        <FormField label="Date of birth"><input className="input" name="dateOfBirth" type="date" /></FormField>
-        <FormField label="Class">
-          <select className="select" name="classId">
-            <option value="">Unassigned</option>
-            {classes.map((item) => (
-              <option key={item.id} value={item.id}>{item.name}</option>
-            ))}
-          </select>
-        </FormField>
-        <FormField label="Parent name"><input className="input" name="parentName" /></FormField>
-        <FormField label="Parent email"><input className="input" name="parentEmail" type="email" /></FormField>
-        <div className="md:col-span-2">
-          <button className="btn btn-primary">Register student</button>
-          {message ? <p className="mt-3 text-sm text-paid">{message}</p> : null}
-        </div>
-      </form>
+      <input
+        className="input max-w-md"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder="Search name, class, parent, or status"
+      />
       <div className="card table-wrap p-2">
         <table>
           <thead>
@@ -99,18 +83,28 @@ export default function StudentsPage() {
               <th>Student</th>
               <th>Class</th>
               <th>Parent</th>
+              <th>Attendance</th>
+              <th>Quran progress</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody>
-            {students.map((student) => (
-              <tr key={student.id}>
-                <td>{student.firstName} {student.lastName}</td>
-                <td>{student.class?.name ?? "—"}</td>
-                <td>{student.parent?.name ?? "—"}</td>
-                <td><StatusBadge status={student.status} /></td>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={6}>No students match. Register a child under Enrollment.</td>
               </tr>
-            ))}
+            ) : (
+              rows.map(({ student, attendance: mark, progress: quran }) => (
+                <tr key={student.id}>
+                  <td>{student.firstName} {student.lastName}</td>
+                  <td>{student.class?.name ?? "—"}</td>
+                  <td>{student.parent?.name ?? "—"}</td>
+                  <td>{mark}</td>
+                  <td>{quran}</td>
+                  <td><StatusBadge status={student.status} /></td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
