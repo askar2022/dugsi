@@ -1,15 +1,18 @@
 import { NextRequest } from "next/server";
 import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 import { classSchema } from "@/lib/validators";
 
 export async function GET(request: NextRequest) {
   try {
     const { supabase, session } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
-    let query = supabase
+    const reader = session.role === "ADMIN" || session.role === "STAFF" ? createAdminClient() : supabase;
+    let query = reader
       .from("Class")
       .select("*, teacher:User!teacherId(id, name, email), students:Student(id)")
+      .eq("tenantId", session.tenantId)
       .order("name");
     if (session.role === "TEACHER") query = query.eq("teacherId", session.userId);
     const { data: classes, error } = await query;

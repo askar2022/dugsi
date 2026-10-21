@@ -14,9 +14,11 @@ export async function GET(request: NextRequest) {
     if (assignedClassIds && assignedClassIds.length === 0) {
       return json({ students: [] });
     }
-    let query = supabase
+    const reader = session.role === "ADMIN" || session.role === "STAFF" ? createAdminClient() : supabase;
+    let query = reader
       .from("Student")
       .select("*, class:Class(*), parent:User!parentId(id, name, email, phone)")
+      .eq("tenantId", session.tenantId)
       .order("lastName")
       .order("firstName");
     if (assignedClassIds) query = query.in("classId", assignedClassIds);
@@ -92,7 +94,8 @@ export async function POST(request: NextRequest) {
       parentId = (demoParent ?? anyParent)?.id;
     }
 
-    const { data: student, error } = await supabase
+    const writer = createAdminClient();
+    const { data: student, error } = await writer
       .from("Student")
       .insert({
         tenantId: session.tenantId,
