@@ -18,8 +18,10 @@ const TONES: Record<string, string> = {
   late: "bg-red-50 text-late",
   absent: "bg-red-50 text-late",
   contact_parent: "bg-red-50 text-late",
+  needs_support: "bg-red-50 text-late",
   needs_help: "bg-red-50 text-late",
   assigned: "bg-gold-soft text-due",
+  no_record: "bg-gold-soft text-due",
 };
 
 const LABELS: Record<string, string> = {
@@ -33,6 +35,8 @@ const LABELS: Record<string, string> = {
   memorization: "Memorization",
   review: "Review",
   written: "Written work",
+  no_record: "No record yet",
+  needs_support: "Needs support",
 };
 
 export function StatusBadge({ status }: { status: string }) {

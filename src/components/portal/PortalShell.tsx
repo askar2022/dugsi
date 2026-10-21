@@ -56,6 +56,7 @@ const NAV: Record<string, NavSection[]> = {
       label: "Reports & Settings",
       items: [
         { href: "/admin/reports", label: "Reports", icon: FileBarChart },
+        { href: "/admin/progress", label: "Quran Progress", icon: BookOpen },
         { href: "/admin/settings", label: "Settings", icon: Settings },
       ],
     },

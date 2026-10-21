@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { BookOpen, Mail, Receipt, Users, Wallet } from "lucide-react";
 import { SchoolImage } from "@/components/portal/SchoolImage";
@@ -53,8 +54,8 @@ export default function ReportsPage() {
           <p className="hero-kicker">Reports</p>
           <h1 className="hero-title">{user?.tenantName ?? "Your school"}</h1>
           <p className="hero-text">
-            Assalamu alaikum{user?.name ? `, ${user.name}` : ""}. Welcome. These cards show your
-            students, tuition colors, and school costs at a glance.
+            Assalamu alaikum{user?.name ? `, ${user.name}` : ""}. These cards show students, tuition,
+            and Quran progress so you can see which classes need support.
           </p>
         </div>
         <div className="hero-art">
@@ -88,6 +89,19 @@ export default function ReportsPage() {
                 </article>
               );
             })}
+          </section>
+
+          <section className="card" style={{ padding: "1.2rem 1.15rem 1.3rem" }}>
+            <div className="child-card" style={{ padding: "0 0 0.85rem" }}>
+              <span className="menu-icon">
+                <BookOpen size={18} />
+              </span>
+              <div>
+                <h2 className="page-title" style={{ fontSize: "1.4rem" }}>Quran progress</h2>
+                <p className="page-copy">Monitor what teachers recorded. Green is on track, yellow needs practice, red needs support.</p>
+              </div>
+            </div>
+            <Link href="/admin/progress" className="btn btn-primary">Open Quran progress</Link>
           </section>
 
           <section className="card" style={{ padding: "1.2rem 1.15rem 1.3rem" }}>

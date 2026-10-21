@@ -41,6 +41,12 @@ const TASKS = [
     text: "A simple view of students, tuition, and expenses.",
     icon: ClipboardList,
   },
+  {
+    href: "/admin/progress",
+    label: "Quran Progress",
+    text: "See which classes are on track and which need support.",
+    icon: BookOpen,
+  },
 ];
 
 export default function AdminHomePage() {
