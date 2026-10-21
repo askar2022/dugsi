@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { BookOpen, ClipboardList, Receipt, Users } from "lucide-react";
+import { SchoolImage } from "@/components/portal/SchoolImage";
 import { api } from "@/lib/api";
 import type { Session } from "@/lib/types";
 
@@ -45,10 +46,14 @@ const TASKS = [
 export default function AdminHomePage() {
   const [report, setReport] = useState<Report | null>(null);
   const [user, setUser] = useState<Session | null>(null);
+  const [schoolImageUrl, setSchoolImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     api<{ report: Report }>("/api/reports").then((data) => setReport(data.report));
     api<{ user: Session }>("/api/auth/me").then((data) => setUser(data.user));
+    api<{ tenant: { schoolImageUrl: string | null } }>("/api/settings")
+      .then((data) => setSchoolImageUrl(data.tenant.schoolImageUrl))
+      .catch(() => setSchoolImageUrl(null));
   }, []);
 
   const cards = report
@@ -73,8 +78,8 @@ export default function AdminHomePage() {
             common task below, or use the menu to open students, parents, tuition, and reports.
           </p>
         </div>
-        <div className="hero-art" aria-hidden="true">
-          <img src="/welcome-dugsi.jpg" alt="" />
+        <div className="hero-art">
+          <SchoolImage src={schoolImageUrl} name={user?.tenantName} alt="" />
         </div>
       </section>
 

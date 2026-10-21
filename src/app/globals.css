@@ -69,12 +69,9 @@ textarea {
 .pattern-bg {
   background-color: var(--cream);
   background-image:
-    url("/geom-star.svg"),
-    radial-gradient(circle at 12% 18%, rgba(196, 163, 90, 0.16), transparent 28%),
-    radial-gradient(circle at 92% 0%, rgba(11, 61, 46, 0.1), transparent 26%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.5), transparent 34%);
-  background-size: 72px 72px, auto, auto, auto;
-  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+    radial-gradient(circle at 8% 10%, rgba(196, 163, 90, 0.07), transparent 26%),
+    radial-gradient(circle at 96% 0%, rgba(11, 61, 46, 0.05), transparent 22%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42), transparent 36%);
 }
 
 .card {
@@ -172,10 +169,7 @@ tbody tr:hover td {
 .portal-sidebar {
   display: none;
   background-color: var(--green);
-  background-image:
-    url("/geom-star.svg"),
-    linear-gradient(180deg, rgba(196, 163, 90, 0.08), transparent 18%);
-  background-size: 64px 64px, auto;
+  background-image: linear-gradient(180deg, rgba(196, 163, 90, 0.1), transparent 22%);
   color: white;
 }
 
@@ -416,28 +410,80 @@ tbody tr:hover td {
 
 .hero-art {
   position: relative;
-  min-height: 13rem;
+  min-height: 14rem;
   background:
-    url("/geom-star.svg"),
-    radial-gradient(circle at 80% 18%, rgba(196, 163, 90, 0.28), transparent 34%),
+    radial-gradient(circle at 80% 18%, rgba(196, 163, 90, 0.22), transparent 36%),
     var(--green);
-  background-size: 56px 56px, auto, auto;
-}
-
-.hero-art::before {
-  content: "";
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 1.4rem;
-  background: radial-gradient(circle at 50% 0, transparent 58%, var(--green) 59%);
 }
 
 .hero-art img {
   display: block;
   width: 100%;
   height: 100%;
+  min-height: 14rem;
   object-fit: cover;
-  object-position: 70% 28%;
+  object-position: center;
+}
+
+.school-photo {
+  width: 100%;
+  height: 100%;
+  min-height: 14rem;
+  object-fit: cover;
+  object-position: center;
+}
+
+.school-placeholder {
+  display: flex;
+  min-height: 14rem;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  padding: 1.5rem;
+  text-align: center;
+  color: white;
+  background:
+    radial-gradient(circle at 80% 16%, rgba(196, 163, 90, 0.22), transparent 34%),
+    var(--green);
+}
+
+.school-placeholder-mark {
+  display: flex;
+  width: 4.2rem;
+  height: 4.2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--gold);
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.7rem;
+}
+
+.school-placeholder-copy {
+  margin: 0;
+  max-width: 14rem;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.profile-preview {
+  overflow: hidden;
+  width: 100%;
+  max-width: 22rem;
+  aspect-ratio: 4 / 3;
+  border-radius: 1.2rem;
+  border: 1px solid var(--line);
+  background: var(--cream);
+}
+
+.profile-preview img,
+.profile-preview .school-placeholder,
+.profile-preview .school-photo {
+  min-height: 0;
 }
 
 .tile-grid {

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
+import { signedSchoolImageUrl } from "@/lib/supabase/school-image";
 import { settingsSchema } from "@/lib/validators";
 
 export async function GET(request: NextRequest) {
@@ -9,11 +10,12 @@ export async function GET(request: NextRequest) {
     const { supabase, session } = await requireAuthedTenant(request);
     const { data: tenant, error } = await supabase
       .from("Tenant")
-      .select("id, name, slug, email, phone, address, city, welcomeNote")
+      .select("id, name, email, phone, address, city, welcomeNote")
       .eq("id", session.tenantId)
       .single();
     throwIfError(error, "School not found.");
-    return json({ tenant });
+    const schoolImageUrl = await signedSchoolImageUrl(supabase, session.tenantId);
+    return json({ tenant: { ...tenant, schoolImageUrl } });
   } catch (err) {
     return handleApiError(err);
   }
