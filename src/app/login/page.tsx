@@ -3,9 +3,17 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useState } from "react";
-import { api } from "@/lib/api";
+import { api, ApiRequestError } from "@/lib/api";
 import { portalForRole, type Session } from "@/lib/types";
 import { FormField } from "@/components/forms/FormField";
+
+const NOOR = {
+  schoolCode: "noor",
+  password: "Dugsi123!",
+  admin: "admin@noor.dugsi",
+  teacher: "teacher@noor.dugsi",
+  parent: "parent@noor.dugsi",
+};
 
 function LoginForm() {
   const router = useRouter();
@@ -31,7 +39,7 @@ function LoginForm() {
     } catch (err) {
       setError(
         err instanceof Error
-          ? `${err.message} If this is the first time, open Register a dugsi and create the school first.`
+          ? `${err.message} For the noor demo, use password Dugsi123! or tap a button below. Do not create another school.`
           : "Could not sign in.",
       );
     } finally {
@@ -39,43 +47,38 @@ function LoginForm() {
     }
   }
 
-  async function createDemoSchool() {
-    setPending(true);
-    setError("");
+  async function ensureNoorSchool() {
     try {
       await api("/api/tenants/register", {
         method: "POST",
         body: JSON.stringify({
           dugsiName: "Masjid Al-Noor Weekend Dugsi",
-          schoolCode: "noor",
+          schoolCode: NOOR.schoolCode,
           adminName: "Imam Yusuf",
-          email: "admin@noor.dugsi",
-          password: "Dugsi123!",
+          email: NOOR.admin,
+          password: NOOR.password,
           city: "Minneapolis",
         }),
       });
-      await api("/api/demo/sample-families", { method: "POST" }).catch(() => undefined);
-      await api("/api/demo/portals", { method: "POST" }).catch(() => undefined);
-      router.replace("/admin");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create the demo school.");
-    } finally {
-      setPending(false);
+      const message = err instanceof ApiRequestError || err instanceof Error ? err.message : "";
+      if (!/already in use/i.test(message)) throw err;
     }
+    await api("/api/demo/fill", { method: "POST" }).catch(() => undefined);
   }
 
-  async function openDemoPortal(role: "TEACHER" | "PARENT") {
+  async function openNoor(role: "ADMIN" | "TEACHER" | "PARENT") {
     setPending(true);
     setError("");
     try {
-      await api("/api/demo/portals", { method: "POST" });
-      const email = role === "TEACHER" ? "teacher@noor.dugsi" : "parent@noor.dugsi";
+      await ensureNoorSchool();
+      const email = role === "ADMIN" ? NOOR.admin : role === "TEACHER" ? NOOR.teacher : NOOR.parent;
       const data = await api<{ user: Session }>("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({
-          schoolCode: "noor",
+          schoolCode: NOOR.schoolCode,
           email,
-          password: "Dugsi123!",
+          password: NOOR.password,
         }),
       });
       router.replace(portalForRole(data.user.role));
@@ -83,7 +86,7 @@ function LoginForm() {
       setError(
         err instanceof Error
           ? err.message
-          : "Could not open that portal. Create the demo school first.",
+          : "Could not open noor. Use school code noor and password Dugsi123!.",
       );
     } finally {
       setPending(false);
@@ -95,52 +98,36 @@ function LoginForm() {
       <div>
         <p className="text-xs uppercase tracking-[0.2em] text-gold">School login</p>
         <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">Sign in to Dugsi</h1>
-        <p className="mt-2 text-sm text-muted">Sign in with your school code, email, and password.</p>
+        <p className="mt-2 text-sm text-muted">The noor school is already created. Open it below. Do not register a second school.</p>
       </div>
       <FormField label="School code">
-        <input className="input" name="schoolCode" placeholder="noor" required />
+        <input className="input" name="schoolCode" defaultValue="noor" required />
       </FormField>
       <FormField label="Email">
-        <input className="input" name="email" type="email" placeholder="admin@noor.dugsi" required />
+        <input className="input" name="email" type="email" defaultValue="admin@noor.dugsi" required />
       </FormField>
       <FormField label="Password">
-        <input className="input" name="password" type="password" required />
+        <input className="input" name="password" type="password" defaultValue="Dugsi123!" required />
       </FormField>
       {error ? <p className="text-sm text-late">{error}</p> : null}
       <button className="btn btn-primary w-full" disabled={pending}>
         {pending ? "Signing in..." : "Sign in"}
       </button>
-      <button
-        type="button"
-        className="btn btn-ghost w-full"
-        disabled={pending}
-        onClick={() => openDemoPortal("TEACHER")}
-      >
+      <button type="button" className="btn btn-ghost w-full" disabled={pending} onClick={() => openNoor("ADMIN")}>
+        Open noor Management
+      </button>
+      <button type="button" className="btn btn-ghost w-full" disabled={pending} onClick={() => openNoor("TEACHER")}>
         Open Teacher Portal
       </button>
-      <button
-        type="button"
-        className="btn btn-ghost w-full"
-        disabled={pending}
-        onClick={() => openDemoPortal("PARENT")}
-      >
+      <button type="button" className="btn btn-ghost w-full" disabled={pending} onClick={() => openNoor("PARENT")}>
         Open Parent Portal
-      </button>
-      <button
-        type="button"
-        className="btn btn-ghost w-full"
-        disabled={pending}
-        onClick={createDemoSchool}
-      >
-        {pending ? "Creating school..." : "Create the noor demo school"}
       </button>
       <p className="text-sm text-muted">
         New school? <Link className="text-green underline" href="/register">Register a dugsi</Link>
       </p>
       <p className="rounded-2xl bg-green-soft p-3 text-xs text-green">
-        First click <b>Create the noor demo school</b> if needed. Then <b>Open Parent Portal</b>
-        or <b>Open Teacher Portal</b> to load Aisha, Omar, attendance, Quran progress, and tuition.
-        Parent: <b>parent@noor.dugsi</b>. Teacher: <b>teacher@noor.dugsi</b>. Password <b>Dugsi123!</b>
+        noor already exists. Tap a button. Password is <b>Dugsi123!</b>
+        Management: <b>admin@noor.dugsi</b>. Teacher: <b>teacher@noor.dugsi</b>. Parent: <b>parent@noor.dugsi</b>.
       </p>
     </form>
   );

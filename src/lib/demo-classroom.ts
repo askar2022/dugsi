@@ -10,7 +10,7 @@ async function ensureUser(input: {
   tenantName: string;
   email: string;
   name: string;
-  role: "TEACHER" | "PARENT";
+  role: "ADMIN" | "TEACHER" | "PARENT";
 }) {
   const admin = createAdminClient();
   const { data: existing } = await admin
@@ -114,6 +114,14 @@ export async function fillDemoClassroom() {
     throw new ApiError("Create the noor demo school first, then fill the classroom.");
   }
 
+  await ensureUser({
+    tenantId: tenant.id,
+    tenantSlug: tenant.slug,
+    tenantName: tenant.name,
+    email: "admin@noor.dugsi",
+    name: "Imam Yusuf",
+    role: "ADMIN",
+  });
   const teacherId = await ensureUser({
     tenantId: tenant.id,
     tenantSlug: tenant.slug,
