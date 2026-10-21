@@ -52,7 +52,7 @@ export default function ParentAttendancePage() {
     <div className="page-stack">
       <PageHeader
         title="Attendance"
-        description="All of your children in one table. Green is present, yellow is late, red is absent."
+        description="Green is present. Yellow is late. Red is absent."
       />
       {!ready ? (
         <EmptyState title="Loading" text="Loading your family attendance." />
@@ -62,27 +62,22 @@ export default function ParentAttendancePage() {
           text="Use Online Enrollment to add a child to your family record."
         />
       ) : (
-        <section className="card table-wrap parent-tuition-table">
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Class</th>
-                <th>Date</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  <td>{row.name}</td>
-                  <td>{row.className}</td>
-                  <td>{row.date || "—"}</td>
-                  <td><StatusBadge status={row.status} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <section className="family-list">
+          {rows.map((row) => (
+            <article key={row.id} className={`card family-item is-${row.status}`}>
+              <div className="family-item-top">
+                <div>
+                  <p className="family-item-name">{row.name}</p>
+                  <p className="family-item-class">{row.className}</p>
+                </div>
+                <StatusBadge status={row.status} />
+              </div>
+              <p className="family-item-money">{row.date || "No class yet"}</p>
+              <p className="family-item-meta">
+                {row.status === "no_record" ? "No attendance yet" : row.status.replaceAll("_", " ")}
+              </p>
+            </article>
+          ))}
         </section>
       )}
     </div>

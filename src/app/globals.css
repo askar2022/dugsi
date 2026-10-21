@@ -140,31 +140,74 @@ a.tile:hover {
   overflow-x: auto;
 }
 
-.parent-tuition-table {
-  padding: 0.4rem;
+.family-list {
+  display: grid;
+  gap: 0.85rem;
 }
 
-.parent-tuition-table th,
-.parent-tuition-table td {
-  font-size: 1rem;
-  padding: 1rem 0.9rem;
-  vertical-align: top;
-}
-
-.parent-tuition-table th {
-  font-size: 0.82rem;
-}
-
-.parent-tuition-due,
-.parent-tuition-paid {
+.family-item,
+.family-total {
   display: grid;
   gap: 0.35rem;
+  padding: 1.15rem 1.2rem 1.2rem;
 }
 
-.parent-tuition-paid {
-  margin-top: 0.35rem;
+.family-item-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.family-item-name,
+.family-total-value {
+  margin: 0;
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.45rem;
+  line-height: 1.2;
+  color: var(--green);
+}
+
+.family-item-money {
+  margin: 0.45rem 0 0;
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.85rem;
+  line-height: 1.1;
+  color: var(--green);
+}
+
+.family-item-class,
+.family-item-meta {
+  margin: 0.2rem 0 0;
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.family-total-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+  margin-top: 0.55rem;
+}
+
+.family-total.is-paid,
+.family-item.is-paid,
+.family-item.is-present {
+  background: var(--green-soft);
+}
+
+.family-total.is-due,
+.family-item.is-due,
+.family-item.is-needs_practice {
+  background: var(--gold-soft);
+}
+
+.family-total.is-late,
+.family-item.is-late,
+.family-item.is-absent,
+.family-item.is-contact_parent {
+  background: #fdecec;
 }
 
 table {
