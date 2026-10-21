@@ -1,23 +1,45 @@
 import { NextRequest } from "next/server";
 import { ApiError, getTenantClass, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
+import { attachChildrenToParent } from "@/lib/parent-link";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 import { attendanceSchema } from "@/lib/validators";
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
+    const { supabase, session } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
     const url = new URL(request.url);
-    let query = supabase
+    const reader = session.role === "PARENT" || session.role === "ADMIN" || session.role === "STAFF"
+      ? createAdminClient()
+      : supabase;
+    let childIds: string[] | null = null;
+    if (session.role === "PARENT") {
+      await attachChildrenToParent(reader, session.tenantId, session.userId, session.email);
+      const { data: kids } = await reader
+        .from("Student")
+        .select("id")
+        .eq("tenantId", session.tenantId)
+        .eq("parentId", session.userId);
+      childIds = (kids ?? []).map((item) => item.id);
+      if (childIds.length === 0) return json({ attendance: [] });
+    }
+    let query = reader
       .from("Attendance")
       .select("*, student:Student(id, firstName, lastName), class:Class(id, name)")
+      .eq("tenantId", session.tenantId)
       .order("date", { ascending: false });
     const classId = url.searchParams.get("classId");
     const date = url.searchParams.get("date");
     const studentId = url.searchParams.get("studentId");
     if (classId) query = query.eq("classId", classId);
     if (date) query = query.eq("date", date);
-    if (studentId) query = query.eq("studentId", studentId);
+    if (studentId) {
+      if (childIds && !childIds.includes(studentId)) return json({ attendance: [] });
+      query = query.eq("studentId", studentId);
+    } else if (childIds) {
+      query = query.in("studentId", childIds);
+    }
     const { data: attendance, error } = await query;
     throwIfError(error, "Could not load attendance.");
     return json({ attendance: attendance ?? [] });
