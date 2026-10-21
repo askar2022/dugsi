@@ -81,10 +81,20 @@ function SchoolLoginForm({ portal }: { portal: "parent" | "staff" }) {
 
   return (
     <div className="min-h-screen">
-      {school ? (
-        <PublicHeader variant="school" schoolName={school.name} schoolCode={school.code} audience={portal} />
+      {school || schoolCode ? (
+        <PublicHeader
+          variant="school"
+          schoolName={school?.name ?? schoolCode}
+          schoolCode={school?.code ?? schoolCode}
+          audience={portal}
+        />
       ) : (
-        <PublicHeader />
+        <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+          <div>
+            <p className="text-xs uppercase tracking-[0.24em] text-gold">{copy.kicker}</p>
+            <p className="font-[family-name:var(--font-fraunces)] text-2xl text-green">{copy.heading}</p>
+          </div>
+        </header>
       )}
       <div className="login-shell has-welcome">
         <section className="card login-welcome">
@@ -96,8 +106,8 @@ function SchoolLoginForm({ portal }: { portal: "parent" | "staff" }) {
             <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">{copy.heading}</h1>
             <p className="mt-2 text-sm text-muted">{copy.text}</p>
           </div>
-          {school ? (
-            <input type="hidden" name="schoolCode" value={school.code} />
+          {school || schoolCode ? (
+            <input type="hidden" name="schoolCode" value={school?.code ?? schoolCode} />
           ) : (
             <FormField label="School code">
               <input className="input" name="schoolCode" required autoComplete="organization" />
