@@ -77,11 +77,15 @@ export async function POST(request: Request) {
     }
     if (parsed.data.portal === "parent" && profile.role !== "PARENT") {
       await supabase.auth.signOut();
-      return error("This page is for parents. Use Staff sign in.");
+      return error("This page is for parents. Use Teacher or Admin on the school page.");
     }
     if (parsed.data.portal === "staff" && profile.role === "PARENT") {
       await supabase.auth.signOut();
       return error("This page is for the office and teachers. Use Parent sign in.");
+    }
+    if (parsed.data.portal === "teacher" && profile.role !== "TEACHER") {
+      await supabase.auth.signOut();
+      return error("This page is for teachers. Admin uses Admin on the school page.");
     }
     if (parsed.data.portal === "admin" && profile.role !== "ADMIN" && profile.role !== "STAFF") {
       await supabase.auth.signOut();

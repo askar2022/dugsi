@@ -7,5 +7,5 @@ export default async function SchoolStaffAliasPage({
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  redirect(schoolLoginPath("staff", code));
+  redirect(schoolLoginPath("teacher", code));
 }

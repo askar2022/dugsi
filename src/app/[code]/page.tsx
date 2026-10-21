@@ -13,6 +13,7 @@ const RESERVED = new Set([
   "api",
   "s",
   "school",
+  "staff",
   "mobile",
 ]);
 

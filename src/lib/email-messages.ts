@@ -65,7 +65,7 @@ export function teacherWelcomeEmail(input: {
   inviteLink?: string | null;
   schoolCode?: string | null;
 }) {
-  const staffLogin = `${getAppUrl()}${schoolLoginPath("staff", input.schoolCode)}`;
+  const staffLogin = `${getAppUrl()}${schoolLoginPath("teacher", input.schoolCode)}`;
   return {
     subject: `Welcome to ${input.schoolName}`,
     body: [

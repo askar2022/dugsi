@@ -33,10 +33,10 @@ export function PublicHeader(props: PlatformProps | SchoolProps) {
                 <Link href={schoolLoginPath("parent", props.schoolCode)} className="btn btn-ghost">
                   Parent
                 </Link>
-                <Link href={schoolLoginPath("staff", props.schoolCode)} className="btn btn-ghost">
+                <Link href={schoolLoginPath("teacher", props.schoolCode)} className="btn btn-ghost">
                   Teacher
                 </Link>
-                <Link href={schoolLoginPath("staff", props.schoolCode)} className="btn btn-ghost">
+                <Link href={schoolLoginPath("admin", props.schoolCode)} className="btn btn-ghost">
                   Admin
                 </Link>
               </>

@@ -24,7 +24,11 @@ function LoginForm() {
       return;
     }
     if (portal === "teacher" || portal === "staff") {
-      router.replace(schoolLoginPath("staff", schoolCode || null, params.get("next")));
+      router.replace(schoolLoginPath("teacher", schoolCode || null, params.get("next")));
+      return;
+    }
+    if (portal === "admin" && schoolCode) {
+      router.replace(schoolLoginPath("admin", schoolCode, params.get("next")));
       return;
     }
     if (schoolCode && portal !== "admin") {

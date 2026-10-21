@@ -11,6 +11,6 @@ export default async function StaffLoginPage({
 }) {
   const [{ next }, jar] = await Promise.all([searchParams, cookies()]);
   const school = schoolFromCookie(jar.get(SCHOOL_COOKIE)?.value);
-  if (school) redirect(schoolLoginPath("staff", school, next ?? null));
-  return <SchoolLogin portal="staff" />;
+  if (school) redirect(schoolLoginPath("teacher", school, next ?? null));
+  return <SchoolLogin portal="teacher" />;
 }

@@ -7,7 +7,8 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { api } from "@/lib/api";
 import { portalForRole, type Session } from "@/lib/types";
 
-type School = { name: string; code: string };
+type School = { name: string; code: string; imageUrl?: string | null };
+type LoginPortal = "parent" | "teacher" | "admin" | "staff";
 
 const COPY = {
   parent: {
@@ -16,6 +17,20 @@ const COPY = {
     kicker: "Welcome",
     heading: "Parent",
     text: "Assalamu alaikum. Sign in to see your children.",
+  },
+  teacher: {
+    art: "/teacher_image.png",
+    artAlt: "Welcome back, Teacher",
+    kicker: "Welcome",
+    heading: "Teacher",
+    text: "Assalamu alaikum. Sign in to your class.",
+  },
+  admin: {
+    art: "/ourdugsi-landing.jpg",
+    artAlt: "Admin",
+    kicker: "Office",
+    heading: "Admin",
+    text: "Assalamu alaikum. Sign in to run this school.",
   },
   staff: {
     art: "/teacher_image.png",
@@ -30,7 +45,7 @@ function SchoolLoginForm({
   portal,
   schoolCode: schoolCodeProp,
 }: {
-  portal: "parent" | "staff";
+  portal: LoginPortal;
   schoolCode?: string;
 }) {
   const router = useRouter();
@@ -73,9 +88,13 @@ function SchoolLoginForm({
           ? next?.startsWith("/parent")
             ? next
             : home
-          : next?.startsWith("/admin") || next?.startsWith("/teacher")
-            ? next
-            : home;
+          : portal === "admin"
+            ? next?.startsWith("/admin")
+              ? next
+              : "/admin"
+            : next?.startsWith("/teacher")
+              ? next
+              : "/teacher";
       router.replace(safeNext);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not sign in.");
@@ -91,12 +110,16 @@ function SchoolLoginForm({
           variant="school"
           schoolName={school?.name ?? schoolCode}
           schoolCode={school?.code ?? schoolCode}
-          audience={portal}
+          audience={portal === "parent" ? "parent" : "staff"}
         />
       ) : null}
       <div className="login-shell has-welcome">
         <section className="card login-welcome">
-          <img className="login-welcome-image" src={copy.art} alt={copy.artAlt} />
+          <img
+            className="login-welcome-image"
+            src={portal === "admin" && school?.imageUrl ? school.imageUrl : copy.art}
+            alt={copy.artAlt}
+          />
         </section>
         <form onSubmit={onSubmit} className="card login-form space-y-4 p-6">
           <div>
@@ -131,7 +154,7 @@ export function SchoolLogin({
   portal,
   schoolCode,
 }: {
-  portal: "parent" | "staff";
+  portal: LoginPortal;
   schoolCode?: string;
 }) {
   return (
