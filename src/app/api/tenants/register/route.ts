@@ -1,15 +1,7 @@
-import { cookies } from "next/headers";
-import {
-  cookieOptions,
-  createSessionToken,
-  hashPassword,
-  normalizeSchoolCode,
-  publicUser,
-  SESSION_COOKIE,
-  toSession,
-} from "@/lib/auth";
 import { applyCors, error, json } from "@/lib/http";
-import { prisma } from "@/lib/prisma";
+import { normalizeSchoolCode } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createCookieClient, publicUser } from "@/lib/supabase/request";
 import { registerTenantSchema } from "@/lib/validators";
 
 export async function OPTIONS() {
@@ -28,42 +20,89 @@ export async function POST(request: Request) {
     return error("Choose a different school code.");
   }
 
-  const existing = await prisma.tenant.findUnique({ where: { slug } });
+  const admin = createAdminClient();
+  const { data: existing } = await admin.from("Tenant").select("id").eq("slug", slug).maybeSingle();
   if (existing) {
     return error("That school code is already in use. Pick another.");
   }
 
-  const passwordHash = await hashPassword(parsed.data.password);
   const email = parsed.data.email.trim().toLowerCase();
-
-  const tenant = await prisma.tenant.create({
-    data: {
-      name: parsed.data.dugsiName.trim(),
+  const name = parsed.data.dugsiName.trim();
+  const { data: tenant, error: tenantError } = await admin
+    .from("Tenant")
+    .insert({
+      name,
       slug,
       email,
       phone: parsed.data.phone,
       city: parsed.data.city,
       status: "active",
-      welcomeNote: `Assalamu alaikum and welcome to ${parsed.data.dugsiName.trim()}.`,
-      users: {
-        create: {
-          email,
-          passwordHash,
-          name: parsed.data.adminName.trim(),
-          role: "ADMIN",
-          phone: parsed.data.phone,
-          status: "active",
-        },
-      },
+      welcomeNote: `Assalamu alaikum and welcome to ${name}.`,
+    })
+    .select("*")
+    .single();
+
+  if (tenantError || !tenant) {
+    return error(tenantError?.message ?? "Could not create this dugsi.");
+  }
+
+  const { data: created, error: userError } = await admin.auth.admin.createUser({
+    email,
+    password: parsed.data.password,
+    email_confirm: true,
+    user_metadata: { name: parsed.data.adminName.trim() },
+    app_metadata: {
+      role: "ADMIN",
+      tenant_id: tenant.id,
+      tenant_slug: tenant.slug,
+      tenant_name: tenant.name,
     },
-    include: { users: true },
   });
 
-  const admin = tenant.users[0];
-  const session = toSession(admin, tenant);
-  const token = await createSessionToken(session);
-  const store = await cookies();
-  store.set(SESSION_COOKIE, token, cookieOptions());
+  if (userError || !created.user) {
+    await admin.from("Tenant").delete().eq("id", tenant.id);
+    return error(userError?.message ?? "Could not create the admin login.");
+  }
 
-  return json({ token, user: publicUser(session), tenant: { id: tenant.id, name: tenant.name, slug: tenant.slug } }, 201);
+  const { error: profileError } = await admin.from("User").insert({
+    id: created.user.id,
+    tenantId: tenant.id,
+    email,
+    name: parsed.data.adminName.trim(),
+    role: "ADMIN",
+    phone: parsed.data.phone,
+    status: "active",
+  });
+
+  if (profileError) {
+    await admin.auth.admin.deleteUser(created.user.id);
+    await admin.from("Tenant").delete().eq("id", tenant.id);
+    return error(profileError.message);
+  }
+
+  const supabase = await createCookieClient();
+  const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
+    email,
+    password: parsed.data.password,
+  });
+  if (signInError || !sessionData.session) {
+    return error("School created. Sign in with your school code and email.");
+  }
+
+  return json(
+    {
+      token: sessionData.session.access_token,
+      user: publicUser({
+        userId: created.user.id,
+        email,
+        name: parsed.data.adminName.trim(),
+        role: "ADMIN",
+        tenantId: tenant.id,
+        tenantSlug: tenant.slug,
+        tenantName: tenant.name,
+      }),
+      tenant: { id: tenant.id, name: tenant.name, slug: tenant.slug },
+    },
+    201,
+  );
 }

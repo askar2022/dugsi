@@ -1,13 +1,12 @@
-import { cookies } from "next/headers";
-import { SESSION_COOKIE } from "@/lib/auth";
 import { applyCors, json } from "@/lib/http";
+import { createCookieClient } from "@/lib/supabase/request";
 
 export async function OPTIONS() {
   return applyCors(json({ ok: true }));
 }
 
 export async function POST() {
-  const store = await cookies();
-  store.delete(SESSION_COOKIE);
+  const supabase = await createCookieClient();
+  await supabase.auth.signOut();
   return json({ ok: true });
 }

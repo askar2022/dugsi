@@ -10,6 +10,7 @@ export const loginSchema = z.object({
   schoolCode: z.string().min(2),
   email: z.string().min(3),
   password: z.string().min(8),
+  portal: z.enum(["parent", "staff", "admin", "teacher"]).optional(),
 });
 
 export const registerTenantSchema = z.object({
@@ -33,6 +34,12 @@ export const studentSchema = z.object({
   classId: z.string().optional(),
   notes: z.string().optional(),
   status: z.string().optional(),
+});
+
+export const parentSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().min(3),
+  phone: z.string().optional(),
 });
 
 export const staffSchema = z.object({
@@ -71,10 +78,21 @@ export const attendanceSchema = z.object({
 
 export const homeworkSchema = z.object({
   classId: z.string(),
-  title: z.string().min(2),
+  studentId: z.string().optional(),
+  kind: z.enum(["reading", "memorization", "review", "written"]).default("reading"),
+  surah: z.string().min(1),
+  ayahFrom: z.coerce.number().int().min(1),
+  ayahTo: z.coerce.number().int().min(1),
+  juz: z.coerce.number().int().min(1).max(30).optional(),
+  title: z.string().optional(),
   description: z.string().optional(),
   assignedDate: z.string(),
   dueDate: z.string().optional(),
+});
+
+export const homeworkCompletionSchema = z.object({
+  studentId: z.string(),
+  status: z.enum(["done", "needs_help"]),
 });
 
 export const progressSchema = z.object({
@@ -85,6 +103,7 @@ export const progressSchema = z.object({
   juz: z.number().int().optional(),
   notes: z.string().optional(),
   date: z.string(),
+  status: z.enum(["on_track", "needs_practice", "contact_parent"]).default("on_track"),
 });
 
 export const invoiceSchema = z.object({
@@ -110,6 +129,23 @@ export const enrollSchema = z.object({
   dateOfBirth: z.string().optional(),
   gender: z.string().optional(),
   notes: z.string().optional(),
+});
+
+export const publicEnrollSchema = z.object({
+  schoolCode: z.string().min(2),
+  parentName: z.string().min(2),
+  parentEmail: z.string().email(),
+  parentPhone: z.string().min(7),
+  address: z.string().min(4),
+  city: z.string().min(2),
+  state: z.string().min(2),
+  zip: z.string().min(3),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  age: z.coerce.number().int().min(3).max(25),
+  gender: z.string().optional(),
+  notes: z.string().optional(),
+  agreeFeeAndEnroll: z.literal(true),
 });
 
 export const settingsSchema = z.object({

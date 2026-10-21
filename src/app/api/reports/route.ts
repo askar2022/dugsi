@@ -1,46 +1,77 @@
 import { NextRequest } from "next/server";
-import { handleApiError, requireRoles, tenantWhere } from "@/lib/guard";
+import { ASSESSMENT_CLASS_LEVEL, ASSESSMENT_CLASS_NAME, needsClassPlacement } from "@/lib/assessment-class";
+import { handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
-import { prisma } from "@/lib/prisma";
+import { normalizeProgressStatus } from "@/lib/progress-status";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireRoles(request, ["ADMIN", "STAFF"]);
-    const where = tenantWhere(session);
-
-    const [students, classes, invoices, expenses, staff, emails] = await Promise.all([
-      prisma.student.findMany({ where }),
-      prisma.class.findMany({ where, include: { _count: { select: { students: true } } } }),
-      prisma.invoice.findMany({ where }),
-      prisma.expense.findMany({ where }),
-      prisma.staff.findMany({ where }),
-      prisma.emailLog.findMany({ where, orderBy: { createdAt: "desc" }, take: 20 }),
+    const { session } = await requireAuthedTenant(request, ["ADMIN", "STAFF"]);
+    const admin = createAdminClient();
+    const [students, classes, invoices, expenses, staff, progress] = await Promise.all([
+      admin.from("Student").select("id, status, classId").eq("tenantId", session.tenantId),
+      admin.from("Class").select("id, name, level").eq("tenantId", session.tenantId),
+      admin.from("Invoice").select("amount, status").eq("tenantId", session.tenantId),
+      admin.from("Expense").select("amount, category").eq("tenantId", session.tenantId),
+      admin.from("Staff").select("id").eq("tenantId", session.tenantId),
+      admin.from("QuranProgress").select("studentId, status, date").eq("tenantId", session.tenantId).order("date", { ascending: false }),
     ]);
+    for (const result of [students, classes, invoices, expenses, staff, progress]) {
+      throwIfError(result.error, "Could not load the report.");
+    }
 
-    const tuition = {
-      paid: invoices.filter((item) => item.status === "paid").reduce((sum, item) => sum + item.amount, 0),
-      due: invoices.filter((item) => item.status === "due").reduce((sum, item) => sum + item.amount, 0),
-      late: invoices.filter((item) => item.status === "late").reduce((sum, item) => sum + item.amount, 0),
-    };
+    const studentRows = students.data ?? [];
+    const holdingId = (classes.data ?? []).find((item) =>
+      item.level === ASSESSMENT_CLASS_LEVEL || item.name === ASSESSMENT_CLASS_NAME,
+    )?.id ?? null;
+    const waitingCount = studentRows.filter((item) =>
+      needsClassPlacement({ status: item.status, classId: item.classId }, holdingId),
+    ).length;
+    const enrolledIds = new Set(
+      studentRows.filter((item) => item.status === "enrolled" && item.classId && item.classId !== holdingId).map((item) => item.id),
+    );
+    const latest = new Map<string, string>();
+    for (const item of progress.data ?? []) {
+      if (!latest.has(item.studentId)) latest.set(item.studentId, item.status);
+    }
+    const progressCounts = { on_track: 0, needs_practice: 0, contact_parent: 0, none: 0 };
+    for (const student of studentRows) {
+      if (student.status === "unenrolled" || student.status === "declined") continue;
+      if (needsClassPlacement({ status: student.status, classId: student.classId }, holdingId)) continue;
+      const status = latest.get(student.id);
+      if (!status) progressCounts.none += 1;
+      else progressCounts[normalizeProgressStatus(status)] += 1;
+    }
 
+    const invoiceRows = invoices.data ?? [];
+    const expenseRows = expenses.data ?? [];
     const expenseTotals = {
-      salary: expenses.filter((item) => item.category === "salary").reduce((sum, item) => sum + item.amount, 0),
-      rent: expenses.filter((item) => item.category === "rent").reduce((sum, item) => sum + item.amount, 0),
-      equipment: expenses.filter((item) => item.category === "equipment").reduce((sum, item) => sum + item.amount, 0),
-      other: expenses.filter((item) => item.category === "other").reduce((sum, item) => sum + item.amount, 0),
+      salary: expenseRows.filter((item) => item.category === "salary").reduce((sum, item) => sum + item.amount, 0),
+      rent: expenseRows.filter((item) => item.category === "rent").reduce((sum, item) => sum + item.amount, 0),
+      equipment: expenseRows.filter((item) => item.category === "equipment").reduce((sum, item) => sum + item.amount, 0),
+      other: expenseRows.filter((item) => item.category === "other").reduce((sum, item) => sum + item.amount, 0),
     };
 
     return json({
       report: {
-        students: students.length,
-        enrolled: students.filter((item) => item.status === "enrolled").length,
-        pending: students.filter((item) => item.status === "pending").length,
-        classes: classes.length,
-        staff: staff.length,
-        tuition,
+        students: studentRows.length,
+        enrolled: enrolledIds.size,
+        pending: waitingCount,
+        waiting: waitingCount,
+        classes: (classes.data ?? []).filter((item) =>
+          item.level !== ASSESSMENT_CLASS_LEVEL && item.name !== ASSESSMENT_CLASS_NAME,
+        ).length,
+        staff: staff.data?.length ?? 0,
+        progress: progressCounts,
+        tuition: {
+          paid: invoiceRows.filter((item) => item.status === "paid").reduce((sum, item) => sum + item.amount, 0),
+          due: invoiceRows.filter((item) => item.status === "due").reduce((sum, item) => sum + item.amount, 0),
+          late: invoiceRows.filter((item) => item.status === "late").reduce((sum, item) => sum + item.amount, 0),
+        },
         expenses: expenseTotals,
         expenseTotal: Object.values(expenseTotals).reduce((sum, value) => sum + value, 0),
-        emails,
       },
     });
   } catch (err) {

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Outfit } from "next/font/google";
 import "./globals.css";
 
@@ -14,7 +14,14 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: "Dugsi",
-  description: "Multi-tenant dugsi management for administrators, teachers, and parents.",
+  description: "Our Dugsi is the home for opening a school. Each dugsi has its own page for families.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0b3d2e",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

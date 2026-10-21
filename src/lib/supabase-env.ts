@@ -7,19 +7,19 @@ function firstValue(...names: string[]) {
 }
 
 export function applySupabaseEnv() {
-  if (!process.env.DATABASE_URL) {
-    process.env.DATABASE_URL = firstValue(
-      "POSTGRES_PRISMA_URL",
-      "POSTGRES_URL",
-      "POSTGRES_URL_NON_POOLING",
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = firstValue("SUPABASE_URL");
+  }
+  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = firstValue(
+      "SUPABASE_ANON_KEY",
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
     );
   }
-
-  if (!process.env.DIRECT_URL) {
-    process.env.DIRECT_URL = firstValue(
-      "POSTGRES_URL_NON_POOLING",
-      "DATABASE_URL",
-      "POSTGRES_URL",
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    process.env.SUPABASE_SERVICE_ROLE_KEY = firstValue(
+      "SUPABASE_SERVICE_KEY",
+      "SUPABASE_SECRET_KEY",
     );
   }
 
@@ -35,19 +35,4 @@ export function applySupabaseEnv() {
     else if (process.env.VERCEL_ENV === "preview") process.env.APP_ENV = "staging";
     else process.env.APP_ENV = "development";
   }
-
-  return {
-    databaseUrl: process.env.DATABASE_URL,
-    directUrl: process.env.DIRECT_URL,
-  };
-}
-
-export function requireDatabaseUrl() {
-  const { databaseUrl } = applySupabaseEnv();
-  if (!databaseUrl) {
-    throw new Error(
-      "No database URL. Connect the Supabase project in Vercel, or set POSTGRES_URL / DATABASE_URL.",
-    );
-  }
-  return databaseUrl;
 }

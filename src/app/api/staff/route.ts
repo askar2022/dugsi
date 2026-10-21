@@ -1,24 +1,27 @@
 import { NextRequest } from "next/server";
-import { hashPassword } from "@/lib/auth";
 import { sendTenantEmail } from "@/lib/email";
-import { ApiError, handleApiError, requireRoles, tenantWhere } from "@/lib/guard";
+import { teacherWelcomeEmail } from "@/lib/email-messages";
+import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
-import { prisma } from "@/lib/prisma";
+import { inviteSchoolUser } from "@/lib/invite";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 import { staffSchema } from "@/lib/validators";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireRoles(request, ["ADMIN", "STAFF"]);
-    const staff = await prisma.staff.findMany({
-      where: tenantWhere(session),
-      include: { user: { select: { id: true, email: true, role: true, status: true } } },
-      orderBy: { name: "asc" },
-    });
-    const teachers = await prisma.user.findMany({
-      where: { tenantId: session.tenantId, role: "TEACHER" },
-      select: { id: true, name: true, email: true, phone: true },
-    });
-    return json({ staff, teachers });
+    const { supabase, session } = await requireAuthedTenant(request, ["ADMIN", "STAFF"]);
+    const { data: staff, error } = await supabase
+      .from("Staff")
+      .select("*, user:User!userId(id, email, role, status)")
+      .order("name");
+    throwIfError(error, "Could not load staff.");
+    const { data: teachers } = await supabase
+      .from("User")
+      .select("id, name, email, phone")
+      .eq("tenantId", session.tenantId)
+      .eq("role", "TEACHER");
+    return json({ staff: staff ?? [], teachers: teachers ?? [] });
   } catch (err) {
     return handleApiError(err);
   }
@@ -26,55 +29,63 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireRoles(request, ["ADMIN"]);
+    const { session } = await requireAuthedTenant(request, ["ADMIN"]);
     const parsed = staffSchema.safeParse(await request.json());
     if (!parsed.success) {
       throw new ApiError("Enter the staff member's name and title.");
     }
 
+    const email = parsed.data.email?.trim().toLowerCase() || null;
     let userId: string | undefined;
-    if (parsed.data.createLogin && parsed.data.email && parsed.data.password) {
-      const email = parsed.data.email.trim().toLowerCase();
-      const existing = await prisma.user.findFirst({
-        where: { tenantId: session.tenantId, email },
-      });
-      if (existing) {
-        throw new ApiError("A login already exists for that email in this dugsi.");
+    let inviteLink: string | null = null;
+    if (parsed.data.createLogin) {
+      if (!email) {
+        throw new ApiError("Add an email so this person can create their own login.");
       }
-      const user = await prisma.user.create({
-        data: {
-          tenantId: session.tenantId,
-          email,
-          name: parsed.data.name,
-          phone: parsed.data.phone,
-          role: parsed.data.role ?? "TEACHER",
-          passwordHash: await hashPassword(parsed.data.password),
-          status: "active",
-        },
+      const invited = await inviteSchoolUser({
+        tenantId: session.tenantId,
+        tenantSlug: session.tenantSlug,
+        tenantName: session.tenantName,
+        email,
+        name: parsed.data.name,
+        role: parsed.data.role ?? "TEACHER",
+        phone: parsed.data.phone,
       });
-      userId = user.id;
+      userId = invited.userId;
+      inviteLink = invited.inviteLink;
     }
 
-    const staff = await prisma.staff.create({
-      data: {
+    const writer = createAdminClient();
+    const { data: staff, error } = await writer
+      .from("Staff")
+      .insert({
         tenantId: session.tenantId,
         userId,
         name: parsed.data.name,
-        email: parsed.data.email,
-        phone: parsed.data.phone,
+        email,
+        phone: parsed.data.phone || null,
         title: parsed.data.title,
-        startDate: parsed.data.startDate,
+        startDate: parsed.data.startDate || null,
         salary: parsed.data.salary,
-        notes: parsed.data.notes,
-      },
-    });
+        notes: parsed.data.notes || null,
+      })
+      .select("*")
+      .single();
+    throwIfError(error, "Could not save the staff member.");
 
-    if (parsed.data.email) {
+    if (email) {
+      const copy = teacherWelcomeEmail({
+        schoolName: session.tenantName ?? "your school",
+        teacherName: parsed.data.name,
+        title: parsed.data.title,
+        inviteLink,
+        schoolCode: session.tenantSlug,
+      });
       await sendTenantEmail({
         tenantId: session.tenantId,
-        toEmail: parsed.data.email,
-        subject: `Welcome to ${session.tenantName}`,
-        body: `You have been added as ${parsed.data.title} at ${session.tenantName}.`,
+        toEmail: email,
+        subject: copy.subject,
+        body: copy.body,
         event: "staff_onboarded",
       });
     }

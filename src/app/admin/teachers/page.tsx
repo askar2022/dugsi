@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PageHeader } from "@/components/portal/PageHeader";
 import { api } from "@/lib/api";
 
 type Teacher = { id: string; name: string; email: string; phone: string | null };
@@ -13,11 +14,8 @@ export default function TeachersPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="font-[family-name:var(--font-fraunces)] text-3xl text-green">Teachers</h3>
-        <p className="text-muted">Teacher logins belong to this dugsi and cannot open another school.</p>
-      </div>
+    <div className="page-stack">
+      <PageHeader title="Teachers" description="Teachers at your school." />
       <div className="card table-wrap p-2">
         <table>
           <thead>
@@ -28,13 +26,19 @@ export default function TeachersPage() {
             </tr>
           </thead>
           <tbody>
-            {teachers.map((teacher) => (
-              <tr key={teacher.id}>
-                <td>{teacher.name}</td>
-                <td>{teacher.email}</td>
-                <td>{teacher.phone ?? "—"}</td>
+            {teachers.length === 0 ? (
+              <tr>
+                <td colSpan={3}>No teachers yet. Add them under Staff.</td>
               </tr>
-            ))}
+            ) : (
+              teachers.map((teacher) => (
+                <tr key={teacher.id}>
+                  <td>{teacher.name}</td>
+                  <td>{teacher.email}</td>
+                  <td>{teacher.phone ?? "—"}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

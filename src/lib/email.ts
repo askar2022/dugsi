@@ -1,11 +1,47 @@
-import { prisma } from "./prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 
-type EmailEvent =
+export type EmailEvent =
   | "student_enrolled"
+  | "parent_welcome"
   | "invoice_created"
   | "invoice_paid"
   | "invoice_late"
-  | "staff_onboarded";
+  | "staff_onboarded"
+  | "homework_assigned"
+  | "homework_reminder"
+  | "progress_contact";
+
+function fromAddress() {
+  const raw = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || "fariin@ourdugsi.com";
+  return raw.includes("<") ? raw : `Dugsi <${raw}>`;
+}
+
+async function deliverWithResend(input: { toEmail: string; subject: string; body: string }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return { status: "logged" as const, error: null };
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: fromAddress(),
+      to: [input.toEmail],
+      subject: input.subject,
+      text: input.body,
+    }),
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    console.error("[email] Resend did not accept the message.");
+    return { status: "failed" as const, error: detail.slice(0, 300) };
+  }
+
+  return { status: "sent" as const, error: null };
+}
 
 export async function sendTenantEmail(input: {
   tenantId: string;
@@ -14,25 +50,21 @@ export async function sendTenantEmail(input: {
   body: string;
   event: EmailEvent;
 }) {
-  const status = process.env.RESEND_API_KEY ? "queued" : "logged";
-
-  const log = await prisma.emailLog.create({
-    data: {
+  const delivery = await deliverWithResend(input);
+  const admin = createAdminClient();
+  const { data: log } = await admin
+    .from("EmailLog")
+    .insert({
       tenantId: input.tenantId,
       toEmail: input.toEmail,
       subject: input.subject,
       body: input.body,
       event: input.event,
-      status,
-    },
-  });
+      status: delivery.status,
+    })
+    .select("*")
+    .single();
 
-  if (process.env.RESEND_API_KEY) {
-    // Real provider wiring comes later. Staging/production can set RESEND_API_KEY.
-    console.info(`[email:${input.event}] queued to ${input.toEmail}`);
-  } else {
-    console.info(`[email:${input.event}] logged for ${input.toEmail}: ${input.subject}`);
-  }
-
+  console.info(`[email:${input.event}] ${delivery.status} for ${input.toEmail}: ${input.subject}`);
   return log;
 }

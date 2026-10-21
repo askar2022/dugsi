@@ -1,38 +1,24 @@
 import { NextRequest } from "next/server";
-import { getSessionFromRequest } from "./auth";
 import { error } from "./http";
-import { prisma } from "./prisma";
+import { ApiError } from "./errors";
+import { createAdminClient } from "./supabase/admin";
+import { requireAuthedTenant, getAuthedClient } from "./supabase/request";
 import type { Role, Session } from "./types";
 
-export class ApiError extends Error {
-  status: number;
-  constructor(message: string, status = 400) {
-    super(message);
-    this.status = status;
-  }
-}
+export { ApiError };
 
 export async function requireSession(request: NextRequest) {
-  const session = await getSessionFromRequest(request);
-  if (!session) {
-    throw new ApiError("Sign in required.", 401);
-  }
+  const { session } = await getAuthedClient(request);
   return session;
 }
 
 export async function requireTenantSession(request: NextRequest) {
-  const session = await requireSession(request);
-  if (!session.tenantId) {
-    throw new ApiError("This action belongs to a school account.", 403);
-  }
-  return session as Session & { tenantId: string };
+  const { session } = await requireAuthedTenant(request);
+  return session;
 }
 
 export async function requireRoles(request: NextRequest, roles: Role[]) {
-  const session = await requireTenantSession(request);
-  if (!roles.includes(session.role)) {
-    throw new ApiError("You do not have access to this action.", 403);
-  }
+  const { session } = await requireAuthedTenant(request, roles);
   return session;
 }
 
@@ -49,37 +35,48 @@ export function handleApiError(err: unknown) {
 }
 
 export async function getTenantStudent(
-  session: { tenantId: string; role: Role; userId: string },
+  request: NextRequest,
   studentId: string,
 ) {
-  const student = await prisma.student.findFirst({
-    where: { id: studentId, tenantId: session.tenantId },
-    include: { class: true, parent: { select: { id: true, name: true, email: true } } },
-  });
-  if (!student) {
+  const { supabase, session } = await requireAuthedTenant(request);
+  const { data: student, error } = await supabase
+    .from("Student")
+    .select("*, class:Class(*), parent:User!parentId(id, name, email)")
+    .eq("id", studentId)
+    .maybeSingle();
+  if (error || !student) {
     throw new ApiError("Student not found in this dugsi.", 404);
   }
-  if (session.role === "PARENT" && student.parentId !== session.userId) {
-    throw new ApiError("You can only view your own children.", 403);
-  }
-  if (session.role === "TEACHER" && student.class?.teacherId !== session.userId) {
-    throw new ApiError("You can only view students in your class.", 403);
-  }
-  return student;
+  return { student, session, supabase };
 }
 
-export async function getTenantClass(
-  session: { tenantId: string; role: Role; userId: string },
-  classId: string,
+export async function teacherAssignedClassIds(
+  _supabase: Awaited<ReturnType<typeof requireAuthedTenant>>["supabase"],
+  session: { role: Role; userId: string; tenantId?: string | null },
 ) {
-  const schoolClass = await prisma.class.findFirst({
-    where: { id: classId, tenantId: session.tenantId },
-  });
-  if (!schoolClass) {
+  if (session.role !== "TEACHER") return null;
+  const admin = createAdminClient();
+  let query = admin.from("Class").select("id").eq("teacherId", session.userId);
+  if (session.tenantId) query = query.eq("tenantId", session.tenantId);
+  const { data, error } = await query;
+  if (error) {
+    throw new ApiError("Could not load assigned classes.");
+  }
+  return (data ?? []).map((item) => item.id);
+}
+
+export async function getTenantClass(request: NextRequest, classId: string) {
+  const { supabase, session } = await requireAuthedTenant(request);
+  const { data: schoolClass, error } = await supabase
+    .from("Class")
+    .select("*")
+    .eq("id", classId)
+    .maybeSingle();
+  if (error || !schoolClass) {
     throw new ApiError("Class not found in this dugsi.", 404);
   }
   if (session.role === "TEACHER" && schoolClass.teacherId !== session.userId) {
     throw new ApiError("You can only manage your own class.", 403);
   }
-  return schoolClass;
+  return { schoolClass, session, supabase };
 }

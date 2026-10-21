@@ -2,14 +2,6 @@ import { applySupabaseEnv } from "./supabase-env";
 
 export type AppEnv = "development" | "staging" | "production";
 
-function readEnv(name: string, fallback?: string) {
-  const value = process.env[name] ?? fallback;
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-  return value;
-}
-
 export function getAppEnv(): AppEnv {
   applySupabaseEnv();
   const value = (process.env.APP_ENV ?? "development").toLowerCase();
@@ -19,10 +11,6 @@ export function getAppEnv(): AppEnv {
   throw new Error(`APP_ENV must be development, staging, or production. Received: ${value}`);
 }
 
-export function getAuthSecret() {
-  return readEnv("AUTH_SECRET", "dev-only-change-me-before-staging");
-}
-
 export function getAppUrl() {
   applySupabaseEnv();
   return process.env.APP_URL ?? "http://localhost:3000";
@@ -30,4 +18,8 @@ export function getAppUrl() {
 
 export function isProduction() {
   return getAppEnv() === "production";
+}
+
+export function isPublicDemoEnabled() {
+  return process.env.NEXT_PUBLIC_APP_ENV !== "production";
 }

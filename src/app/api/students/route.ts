@@ -1,33 +1,36 @@
 import { NextRequest } from "next/server";
 import { sendTenantEmail } from "@/lib/email";
-import { ApiError, handleApiError, requireRoles, tenantWhere } from "@/lib/guard";
+import { enrollmentConfirmedEmail, parentWelcomeEmail } from "@/lib/email-messages";
+import { ApiError, handleApiError, teacherAssignedClassIds } from "@/lib/guard";
 import { json } from "@/lib/http";
-import { prisma } from "@/lib/prisma";
+import { inviteSchoolUser } from "@/lib/invite";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
+import { attachChildrenToParent } from "@/lib/parent-link";
 import { studentSchema } from "@/lib/validators";
-import { hashPassword } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireRoles(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
-    const where = tenantWhere(session);
-
+    const { supabase, session } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
+    const assignedClassIds = await teacherAssignedClassIds(supabase, session);
+    if (assignedClassIds && assignedClassIds.length === 0) {
+      return json({ students: [] });
+    }
+    const reader = createAdminClient();
     if (session.role === "PARENT") {
-      Object.assign(where, { parentId: session.userId });
+      await attachChildrenToParent(reader, session.tenantId, session.userId, session.email);
     }
-    if (session.role === "TEACHER") {
-      Object.assign(where, { class: { teacherId: session.userId } });
-    }
-
-    const students = await prisma.student.findMany({
-      where,
-      include: {
-        class: true,
-        parent: { select: { id: true, name: true, email: true, phone: true } },
-      },
-      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    });
-
-    return json({ students });
+    let query = reader
+      .from("Student")
+      .select("*, class:Class(*, teacher:User!teacherId(id, name)), parent:User!parentId(id, name, email, phone)")
+      .eq("tenantId", session.tenantId)
+      .order("lastName")
+      .order("firstName");
+    if (session.role === "PARENT") query = query.eq("parentId", session.userId);
+    if (assignedClassIds) query = query.in("classId", assignedClassIds);
+    const { data: students, error } = await query;
+    throwIfError(error, "Could not load students.");
+    return json({ students: students ?? [] });
   } catch (err) {
     return handleApiError(err);
   }
@@ -35,68 +38,77 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireRoles(request, ["ADMIN", "STAFF"]);
+    const { session } = await requireAuthedTenant(request, ["ADMIN", "STAFF"]);
     const parsed = studentSchema.safeParse(await request.json());
     if (!parsed.success) {
       throw new ApiError("Enter the student's first and last name.");
     }
 
     let parentId: string | undefined;
-    if (parsed.data.parentEmail) {
-      const email = parsed.data.parentEmail.trim().toLowerCase();
-      const existing = await prisma.user.findFirst({
-        where: { tenantId: session.tenantId, email },
+    let inviteLink: string | null = null;
+    const parentEmail = parsed.data.parentEmail?.trim().toLowerCase();
+    if (parentEmail) {
+      const invited = await inviteSchoolUser({
+        tenantId: session.tenantId,
+        tenantSlug: session.tenantSlug,
+        tenantName: session.tenantName,
+        email: parentEmail,
+        name: parsed.data.parentName || "Parent",
+        role: "PARENT",
+        phone: parsed.data.parentPhone,
       });
-      if (existing) {
-        parentId = existing.id;
-      } else if (parsed.data.parentName) {
-        const parent = await prisma.user.create({
-          data: {
-            tenantId: session.tenantId,
-            email,
-            name: parsed.data.parentName,
-            phone: parsed.data.parentPhone,
-            role: "PARENT",
-            passwordHash: await hashPassword("ChangeMe123!"),
-            status: "active",
-          },
-        });
-        parentId = parent.id;
-      }
+      parentId = invited.userId;
+      inviteLink = invited.inviteLink;
     }
 
-    if (parsed.data.classId) {
-      const schoolClass = await prisma.class.findFirst({
-        where: { id: parsed.data.classId, tenantId: session.tenantId },
-      });
-      if (!schoolClass) {
-        throw new ApiError("That class is not part of this dugsi.", 404);
-      }
-    }
-
-    const student = await prisma.student.create({
-      data: {
+    const writer = createAdminClient();
+    const { data: student, error } = await writer
+      .from("Student")
+      .insert({
         tenantId: session.tenantId,
         firstName: parsed.data.firstName.trim(),
         lastName: parsed.data.lastName.trim(),
-        dateOfBirth: parsed.data.dateOfBirth,
+        dateOfBirth: parsed.data.dateOfBirth || null,
         gender: parsed.data.gender,
         parentId,
         classId: parsed.data.classId || null,
         notes: parsed.data.notes,
         status: parsed.data.status ?? "enrolled",
-      },
-      include: { parent: true, class: true },
-    });
+      })
+      .select("*, parent:User!parentId(*), class:Class(*)")
+      .single();
+    throwIfError(error, "Could not register the student.");
 
-    if (student.parent?.email) {
+    if (parentEmail) {
+      const childName = `${student.firstName} ${student.lastName}`;
+      const confirmed = enrollmentConfirmedEmail({
+        schoolName: session.tenantName ?? "your school",
+        parentName: parsed.data.parentName,
+        childName,
+      });
       await sendTenantEmail({
         tenantId: session.tenantId,
-        toEmail: student.parent.email,
-        subject: `Registration received for ${student.firstName} ${student.lastName}`,
-        body: `${student.firstName} has been registered at ${session.tenantName}.`,
+        toEmail: parentEmail,
+        subject: confirmed.subject,
+        body: confirmed.body,
         event: "student_enrolled",
       });
+      if (inviteLink) {
+        const welcome = parentWelcomeEmail({
+          schoolName: session.tenantName ?? "your school",
+          parentName: parsed.data.parentName || "Parent",
+          email: parentEmail,
+          inviteLink,
+          schoolCode: session.tenantSlug,
+        });
+        await sendTenantEmail({
+          tenantId: session.tenantId,
+          toEmail: parentEmail,
+          subject: welcome.subject,
+          body: welcome.body,
+          event: "parent_welcome",
+        });
+      }
     }
 
     return json({ student }, 201);

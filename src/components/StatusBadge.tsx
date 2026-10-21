@@ -3,10 +3,44 @@ const TONES: Record<string, string> = {
   present: "bg-green-soft text-paid",
   enrolled: "bg-green-soft text-paid",
   active: "bg-green-soft text-paid",
+  on_track: "bg-green-soft text-paid",
+  done: "bg-green-soft text-paid",
+  reading: "bg-green-soft text-paid",
+  memorization: "bg-green-soft text-paid",
+  review: "bg-gold-soft text-due",
+  written: "bg-gold-soft text-due",
   due: "bg-gold-soft text-due",
   pending: "bg-gold-soft text-due",
+  accepted: "bg-gold-soft text-due",
+  waiting_assessment: "bg-gold-soft text-due",
+  invited: "bg-gold-soft text-due",
+  needs_practice: "bg-gold-soft text-due",
+  declined: "bg-red-50 text-late",
+  unenrolled: "bg-red-50 text-late",
   late: "bg-red-50 text-late",
   absent: "bg-red-50 text-late",
+  contact_parent: "bg-red-50 text-late",
+  needs_support: "bg-red-50 text-late",
+  needs_help: "bg-red-50 text-late",
+  assigned: "bg-gold-soft text-due",
+  no_record: "bg-gold-soft text-due",
+};
+
+const LABELS: Record<string, string> = {
+  on_track: "On track",
+  needs_practice: "Needs practice",
+  contact_parent: "Contact parent",
+  done: "Done",
+  needs_help: "Needs help",
+  assigned: "Assigned",
+  reading: "Reading",
+  memorization: "Memorization",
+  review: "Review",
+  written: "Written work",
+  no_record: "No record yet",
+  needs_support: "Needs support",
+  waiting_assessment: "Waiting for assessment",
+  accepted: "Waiting for assessment",
 };
 
 export function StatusBadge({ status }: { status: string }) {
@@ -16,7 +50,7 @@ export function StatusBadge({ status }: { status: string }) {
         TONES[status] ?? "bg-green-soft text-green"
       }`}
     >
-      {status}
+      {LABELS[status] ?? status.replaceAll("_", " ")}
     </span>
   );
 }

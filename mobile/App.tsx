@@ -63,7 +63,7 @@ export default function App() {
     user?.role === "TEACHER"
       ? "Teacher Portal"
       : user?.role === "PARENT"
-        ? "Parent Portal"
+        ? "Parent"
         : "Dugsi Management";
 
   return (

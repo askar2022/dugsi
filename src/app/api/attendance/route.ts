@@ -1,47 +1,48 @@
 import { NextRequest } from "next/server";
-import {
-  ApiError,
-  getTenantClass,
-  handleApiError,
-  requireRoles,
-  tenantWhere,
-} from "@/lib/guard";
+import { ApiError, getTenantClass, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
-import { prisma } from "@/lib/prisma";
+import { attachChildrenToParent } from "@/lib/parent-link";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 import { attendanceSchema } from "@/lib/validators";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireRoles(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
+    const { supabase, session } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
     const url = new URL(request.url);
-    const classId = url.searchParams.get("classId") ?? undefined;
-    const date = url.searchParams.get("date") ?? undefined;
-    const studentId = url.searchParams.get("studentId") ?? undefined;
-
-    const where = {
-      ...tenantWhere(session),
-      ...(classId ? { classId } : {}),
-      ...(date ? { date } : {}),
-      ...(studentId ? { studentId } : {}),
-    };
-
+    const reader = session.role === "PARENT" || session.role === "ADMIN" || session.role === "STAFF"
+      ? createAdminClient()
+      : supabase;
+    let childIds: string[] | null = null;
     if (session.role === "PARENT") {
-      Object.assign(where, { student: { parentId: session.userId, tenantId: session.tenantId } });
+      await attachChildrenToParent(reader, session.tenantId, session.userId, session.email);
+      const { data: kids } = await reader
+        .from("Student")
+        .select("id")
+        .eq("tenantId", session.tenantId)
+        .eq("parentId", session.userId);
+      childIds = (kids ?? []).map((item) => item.id);
+      if (childIds.length === 0) return json({ attendance: [] });
     }
-    if (session.role === "TEACHER") {
-      Object.assign(where, { class: { teacherId: session.userId, tenantId: session.tenantId } });
+    let query = reader
+      .from("Attendance")
+      .select("*, student:Student(id, firstName, lastName), class:Class(id, name)")
+      .eq("tenantId", session.tenantId)
+      .order("date", { ascending: false });
+    const classId = url.searchParams.get("classId");
+    const date = url.searchParams.get("date");
+    const studentId = url.searchParams.get("studentId");
+    if (classId) query = query.eq("classId", classId);
+    if (date) query = query.eq("date", date);
+    if (studentId) {
+      if (childIds && !childIds.includes(studentId)) return json({ attendance: [] });
+      query = query.eq("studentId", studentId);
+    } else if (childIds) {
+      query = query.in("studentId", childIds);
     }
-
-    const attendance = await prisma.attendance.findMany({
-      where,
-      include: {
-        student: { select: { id: true, firstName: true, lastName: true } },
-        class: { select: { id: true, name: true } },
-      },
-      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-    });
-
-    return json({ attendance });
+    const { data: attendance, error } = await query;
+    throwIfError(error, "Could not load attendance.");
+    return json({ attendance: attendance ?? [] });
   } catch (err) {
     return handleApiError(err);
   }
@@ -49,46 +50,33 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireRoles(request, ["ADMIN", "STAFF", "TEACHER"]);
+    const { supabase, session } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "TEACHER"]);
     const parsed = attendanceSchema.safeParse(await request.json());
     if (!parsed.success) {
       throw new ApiError("Choose a class, date, and attendance marks.");
     }
-
-    const schoolClass = await getTenantClass(session, parsed.data.classId);
-    const results = [];
-
+    const { schoolClass } = await getTenantClass(request, parsed.data.classId);
+    const rows = [];
     for (const mark of parsed.data.marks) {
-      const student = await prisma.student.findFirst({
-        where: { id: mark.studentId, tenantId: session.tenantId, classId: schoolClass.id },
-      });
-      if (!student) {
-        throw new ApiError("One of the students is not in this class.", 404);
-      }
-
-      const row = await prisma.attendance.upsert({
-        where: {
-          tenantId_studentId_classId_date: {
+      const { data, error } = await supabase
+        .from("Attendance")
+        .upsert(
+          {
             tenantId: session.tenantId,
-            studentId: student.id,
+            studentId: mark.studentId,
             classId: schoolClass.id,
             date: parsed.data.date,
+            status: mark.status,
+            markedById: session.userId,
           },
-        },
-        update: { status: mark.status, markedById: session.userId },
-        create: {
-          tenantId: session.tenantId,
-          studentId: student.id,
-          classId: schoolClass.id,
-          date: parsed.data.date,
-          status: mark.status,
-          markedById: session.userId,
-        },
-      });
-      results.push(row);
+          { onConflict: "tenantId,studentId,classId,date" },
+        )
+        .select("*")
+        .single();
+      throwIfError(error, "Could not save attendance.");
+      if (data) rows.push(data);
     }
-
-    return json({ attendance: results });
+    return json({ attendance: rows });
   } catch (err) {
     return handleApiError(err);
   }

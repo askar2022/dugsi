@@ -7,48 +7,127 @@ import {
   BookOpen,
   CalendarDays,
   ClipboardList,
+  Contact,
+  FileBarChart,
+  GraduationCap,
   Home,
   LogOut,
+  Menu,
   Receipt,
   Settings,
+  UserPlus,
   Users,
   Wallet,
-  GraduationCap,
-  FileBarChart,
+  X,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { roleLoginPath } from "@/lib/login-path";
 import type { Role, Session } from "@/lib/types";
 
 type NavItem = { href: string; label: string; icon: typeof Home };
+type NavSection = { label: string; items: NavItem[] };
 
-const NAV: Record<string, NavItem[]> = {
+const NAV: Record<string, NavSection[]> = {
   ADMIN: [
-    { href: "/admin", label: "Overview", icon: Home },
-    { href: "/admin/students", label: "Enrollment", icon: Users },
-    { href: "/admin/teachers", label: "Teachers", icon: GraduationCap },
-    { href: "/admin/classes", label: "Classes", icon: BookOpen },
-    { href: "/admin/staff", label: "Staff", icon: ClipboardList },
-    { href: "/admin/billing", label: "Tuition", icon: Receipt },
-    { href: "/admin/expenses", label: "Expenses", icon: Wallet },
-    { href: "/admin/reports", label: "Reports", icon: FileBarChart },
-    { href: "/admin/settings", label: "Settings", icon: Settings },
+    {
+      label: "School",
+      items: [
+        { href: "/admin", label: "Overview", icon: Home },
+        { href: "/admin/enrollment", label: "Enrollment", icon: UserPlus },
+      ],
+    },
+    {
+      label: "People",
+      items: [
+        { href: "/admin/students", label: "Students", icon: Users },
+        { href: "/admin/parents", label: "Parents", icon: Contact },
+        { href: "/admin/teachers", label: "Teachers", icon: GraduationCap },
+        { href: "/admin/classes", label: "Classes", icon: BookOpen },
+        { href: "/admin/staff", label: "Staff", icon: ClipboardList },
+      ],
+    },
+    {
+      label: "Finance",
+      items: [
+        { href: "/admin/billing", label: "Tuition", icon: Receipt },
+        { href: "/admin/expenses", label: "Expenses", icon: Wallet },
+      ],
+    },
+    {
+      label: "Reports & Settings",
+      items: [
+        { href: "/admin/reports", label: "Reports", icon: FileBarChart },
+        { href: "/admin/progress", label: "Quran Progress", icon: BookOpen },
+        { href: "/admin/settings", label: "Settings", icon: Settings },
+      ],
+    },
   ],
   TEACHER: [
-    { href: "/teacher", label: "My Class", icon: Home },
-    { href: "/teacher/attendance", label: "Attendance", icon: CalendarDays },
-    { href: "/teacher/progress", label: "Quran Progress", icon: BookOpen },
-    { href: "/teacher/homework", label: "Homework", icon: ClipboardList },
+    {
+      label: "Classroom",
+      items: [
+        { href: "/teacher", label: "Class Roster", icon: Users },
+        { href: "/teacher/attendance", label: "Attendance", icon: CalendarDays },
+        { href: "/teacher/progress", label: "Quran Progress", icon: BookOpen },
+        { href: "/teacher/homework", label: "Homework", icon: ClipboardList },
+      ],
+    },
   ],
   PARENT: [
-    { href: "/parent", label: "Home", icon: Home },
-    { href: "/parent/enroll", label: "Enroll", icon: Users },
-    { href: "/parent/attendance", label: "Attendance", icon: CalendarDays },
-    { href: "/parent/homework", label: "Homework", icon: ClipboardList },
-    { href: "/parent/progress", label: "Progress", icon: BookOpen },
-    { href: "/parent/billing", label: "Tuition", icon: Receipt },
+    {
+      label: "Family",
+      items: [
+        { href: "/parent", label: "Home", icon: Home },
+        { href: "/parent/students", label: "Enrolled students", icon: Users },
+        { href: "/parent/attendance", label: "Attendance", icon: CalendarDays },
+        { href: "/parent/homework", label: "Homework", icon: ClipboardList },
+        { href: "/parent/progress", label: "Child Progress", icon: BookOpen },
+        { href: "/parent/billing", label: "Tuition", icon: Receipt },
+      ],
+    },
   ],
-  PLATFORM: [{ href: "/platform", label: "Schools", icon: Home }],
+  PLATFORM: [{ label: "Platform", items: [{ href: "/platform", label: "Schools", icon: Home }] }],
 };
+
+function itemActive(href: string, pathname: string) {
+  const root = href === "/admin" || href === "/teacher" || href === "/parent" || href === "/platform";
+  return pathname === href || (!root && pathname.startsWith(`${href}/`));
+}
+
+function NavLinks({
+  sections,
+  pathname,
+  onNavigate,
+}: {
+  sections: NavSection[];
+  pathname: string;
+  onNavigate?: () => void;
+}) {
+  return (
+    <nav className="portal-nav">
+      {sections.map((section) => (
+        <div key={section.label} className="nav-section">
+          <p className="nav-section-label">{section.label}</p>
+          {section.items.map((item) => {
+            const Icon = item.icon;
+            const current = itemActive(item.href, pathname);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onNavigate}
+                className={`portal-nav-link${current ? " is-active" : ""}`}
+              >
+                <Icon size={18} />
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      ))}
+    </nav>
+  );
+}
 
 export function PortalShell({
   role,
@@ -62,73 +141,120 @@ export function PortalShell({
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<Session | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     api<{ user: Session }>("/api/auth/me")
       .then((data) => setUser(data.user))
-      .catch(() => router.replace("/login"));
+      .catch(() => router.replace(roleLoginPath(role)));
   }, [router]);
 
-  const items = NAV[role === "STAFF" ? "ADMIN" : role] ?? [];
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
+
+  const sections = NAV[role === "STAFF" ? "ADMIN" : role] ?? [];
+  const schoolName = user?.tenantName ?? title;
+  const greeting = user?.name ? `Assalamu alaikum, ${user.name}` : "Assalamu alaikum";
 
   async function logout() {
     await api("/api/auth/logout", { method: "POST" });
-    router.replace("/login");
+    router.replace(roleLoginPath(role, user?.tenantSlug));
   }
 
-  return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[260px_1fr]">
-      <aside className="hidden border-r border-line bg-green text-white lg:flex lg:flex-col">
-        <div className="px-6 py-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-gold">Dugsi</p>
-          <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-2xl">{title}</h1>
-          <p className="mt-2 text-sm text-white/70">{user?.tenantName ?? "Loading school..."}</p>
-        </div>
-        <nav className="flex-1 space-y-1 px-3">
-          {items.map((item) => {
-            const active = pathname === item.href;
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm ${
-                  active ? "bg-white/15 text-white" : "text-white/75 hover:bg-white/10"
-                }`}
-              >
-                <Icon size={18} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-        <button onClick={logout} className="m-4 flex items-center gap-2 rounded-2xl px-4 py-3 text-sm text-white/80 hover:bg-white/10">
+  const teacherDock = [
+    { href: "/teacher", label: "Class", icon: Users },
+    { href: "/teacher/attendance", label: "Attend", icon: CalendarDays },
+    { href: "/teacher/progress", label: "Quran", icon: BookOpen },
+    { href: "/teacher/homework", label: "Homework", icon: ClipboardList },
+  ];
+
+  const sidebarBody = (
+    <>
+      <div className="portal-brand">
+        <p className="portal-brand-kicker">OurDugsi</p>
+        <p className="portal-brand-name">{schoolName}</p>
+      </div>
+      <div className="portal-nav-scroll">
+        <NavLinks sections={sections} pathname={pathname} onNavigate={() => setMenuOpen(false)} />
+      </div>
+      <div className="portal-side-foot">
+        <button onClick={logout} className="portal-nav-link portal-signout">
           <LogOut size={18} />
           Sign out
         </button>
-      </aside>
+      </div>
+    </>
+  );
 
-      <div>
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-cream/90 px-4 py-4 backdrop-blur lg:px-8">
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-muted">{user?.tenantSlug ?? "dugsi"}</p>
-            <h2 className="font-[family-name:var(--font-fraunces)] text-xl text-green">{title}</h2>
-          </div>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="hidden rounded-full bg-gold-soft px-3 py-1 text-green sm:inline">{user?.name}</span>
-            <button onClick={logout} className="btn btn-ghost px-3 py-2 text-sm lg:hidden">
-              Sign out
-            </button>
+  return (
+    <div className={`portal${role === "TEACHER" ? " is-teacher" : ""}`}>
+      <aside className="portal-sidebar">{sidebarBody}</aside>
+
+      {menuOpen ? (
+        <div className="portal-drawer" onClick={() => setMenuOpen(false)}>
+          <aside className="portal-drawer-panel" onClick={(event) => event.stopPropagation()}>
+            <div className="portal-brand portal-brand-row">
+              <div>
+                <p className="portal-brand-kicker">OurDugsi</p>
+                <p className="portal-brand-name">{schoolName}</p>
+              </div>
+              <button className="portal-close-btn" onClick={() => setMenuOpen(false)} aria-label="Close">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="portal-nav-scroll">
+              <NavLinks sections={sections} pathname={pathname} onNavigate={() => setMenuOpen(false)} />
+            </div>
+            <div className="portal-side-foot">
+              <button onClick={logout} className="portal-nav-link portal-signout">
+                <LogOut size={18} />
+                Sign out
+              </button>
+            </div>
+          </aside>
+          <button className="portal-drawer-mask" onClick={() => setMenuOpen(false)} aria-label="Close menu" />
+        </div>
+      ) : null}
+
+      <div className="portal-main">
+        <header className="portal-header">
+          <button className="portal-menu-btn" onClick={() => setMenuOpen(true)} aria-label="Open menu">
+            <Menu size={20} />
+          </button>
+          <div className="portal-hello">
+            <p className="portal-hello-title">{greeting}</p>
+            <p className="portal-hello-school">{schoolName}</p>
           </div>
         </header>
-        <main className="px-4 py-6 lg:px-8">{children}</main>
-        <nav className="sticky bottom-0 grid grid-cols-4 gap-1 border-t border-line bg-white px-2 py-2 lg:hidden">
-          {items.slice(0, 4).map((item) => (
-            <Link key={item.href} href={item.href} className="rounded-xl px-2 py-2 text-center text-[11px] text-green">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <main className="portal-content">{children}</main>
+        {role === "TEACHER" ? (
+          <nav className="teacher-dock" aria-label="Teacher pages">
+            {teacherDock.map((item) => {
+              const Icon = item.icon;
+              const current = itemActive(item.href, pathname);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`teacher-dock-link${current ? " is-active" : ""}`}
+                >
+                  <Icon size={18} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        ) : null}
       </div>
     </div>
   );
