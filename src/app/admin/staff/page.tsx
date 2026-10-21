@@ -40,21 +40,27 @@ export default function StaffPage() {
       setError("To open the Teacher Portal, add an email and a password of at least 8 characters.");
       return;
     }
-    await api("/api/staff", {
-      method: "POST",
-      body: JSON.stringify({
-        ...raw,
-        salary: raw.salary ? Number(raw.salary) : undefined,
-        createLogin,
-      }),
-    });
-    form.reset();
-    setMessage(
-      createLogin
-        ? "Staff saved and a Teacher Portal login was created. They can sign in with that email and password."
-        : "Staff record saved. Use Give login if they should open the Teacher Portal.",
-    );
-    await load();
+    try {
+      await api("/api/staff", {
+        method: "POST",
+        body: JSON.stringify({
+          ...raw,
+          email: raw.email || undefined,
+          startDate: raw.startDate || undefined,
+          salary: raw.salary ? Number(raw.salary) : undefined,
+          createLogin,
+        }),
+      });
+      form.reset();
+      setMessage(
+        createLogin
+          ? "Teacher saved. They can sign in with that new email and password."
+          : "Staff record saved. Use Give Teacher login if they should open the Teacher Portal.",
+      );
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save that teacher.");
+    }
   }
 
   async function giveLogin(person: Staff) {
@@ -80,12 +86,12 @@ export default function StaffPage() {
     <div className="page-stack">
       <PageHeader
         title="Staff"
-        description="Do not add Abdimalik again. Use the same email. Type a password on his row and click Give Teacher login."
+        description="Each teacher needs their own email. Do not use admin@noor.dugsi. Example: farah@noor.dugsi and password Dugsi123!."
       />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Name"><input className="input" name="name" required /></FormField>
         <FormField label="Title"><input className="input" name="title" placeholder="Teacher" required /></FormField>
-        <FormField label="Email"><input className="input" name="email" type="email" /></FormField>
+        <FormField label="Email"><input className="input" name="email" type="email" placeholder="farah@noor.dugsi" /></FormField>
         <FormField label="Phone"><input className="input" name="phone" /></FormField>
         <FormField label="Start date"><input className="input" name="startDate" type="date" /></FormField>
         <FormField label="Salary record"><input className="input" name="salary" type="number" step="0.01" /></FormField>

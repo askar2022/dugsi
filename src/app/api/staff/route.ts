@@ -34,10 +34,21 @@ export async function POST(request: NextRequest) {
       throw new ApiError("Enter the staff member's name and title.");
     }
 
+    const email = parsed.data.email?.trim().toLowerCase() || null;
     let userId: string | undefined;
-    if (parsed.data.createLogin && parsed.data.email && parsed.data.password) {
-      const email = parsed.data.email.trim().toLowerCase();
+    if (parsed.data.createLogin && email && parsed.data.password) {
       const admin = createAdminClient();
+      const { data: existing } = await admin
+        .from("User")
+        .select("id, name, role, email")
+        .eq("tenantId", session.tenantId)
+        .eq("email", email)
+        .maybeSingle();
+      if (existing) {
+        throw new ApiError(
+          `${email} already belongs to ${existing.name} (${existing.role}). Use a new email for this teacher, such as farah@${session.tenantSlug}.dugsi.`,
+        );
+      }
       const { data: created, error: authError } = await admin.auth.admin.createUser({
         email,
         password: parsed.data.password,
@@ -50,14 +61,21 @@ export async function POST(request: NextRequest) {
           tenant_name: session.tenantName,
         },
       });
-      throwIfError(authError, "Could not create that login.");
+      if (authError) {
+        const taken = /already|registered|exists/i.test(authError.message);
+        throw new ApiError(
+          taken
+            ? `${email} is already used. Give Farah her own email, for example farah@${session.tenantSlug}.dugsi.`
+            : authError.message || "Could not create that login.",
+        );
+      }
       if (created.user) {
         await admin.from("User").insert({
           id: created.user.id,
           tenantId: session.tenantId,
           email,
           name: parsed.data.name,
-          phone: parsed.data.phone,
+          phone: parsed.data.phone || null,
           role: parsed.data.role ?? "TEACHER",
           status: "active",
         });
@@ -65,24 +83,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { data: staff, error } = await supabase
+    const writer = createAdminClient();
+    const { data: staff, error } = await writer
       .from("Staff")
       .insert({
         tenantId: session.tenantId,
         userId,
         name: parsed.data.name,
-        email: parsed.data.email,
-        phone: parsed.data.phone,
+        email,
+        phone: parsed.data.phone || null,
         title: parsed.data.title,
-        startDate: parsed.data.startDate,
+        startDate: parsed.data.startDate || null,
         salary: parsed.data.salary,
-        notes: parsed.data.notes,
+        notes: parsed.data.notes || null,
       })
       .select("*")
       .single();
     throwIfError(error, "Could not save the staff member.");
 
-    if (parsed.data.email) {
+    if (email) {
       const copy = teacherWelcomeEmail({
         schoolName: session.tenantName ?? "your school",
         teacherName: parsed.data.name,
@@ -90,7 +109,7 @@ export async function POST(request: NextRequest) {
       });
       await sendTenantEmail({
         tenantId: session.tenantId,
-        toEmail: parsed.data.email,
+        toEmail: email,
         subject: copy.subject,
         body: copy.body,
         event: "staff_onboarded",
