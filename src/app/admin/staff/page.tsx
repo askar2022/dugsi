@@ -19,6 +19,7 @@ export default function StaffPage() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [passwords, setPasswords] = useState<Record<string, string>>({});
 
   async function load() {
     const data = await api<{ staff: Staff[] }>("/api/staff");
@@ -57,15 +58,18 @@ export default function StaffPage() {
   }
 
   async function giveLogin(person: Staff) {
-    const password = window.prompt(`Temporary password for ${person.name} (at least 8 characters)`, "Dugsi123!");
-    if (!password) return;
+    const password = passwords[person.id] || "Dugsi123!";
+    if (password.length < 8) {
+      setError("Type a password with at least 8 characters next to their name.");
+      return;
+    }
     setError("");
     try {
       await api(`/api/staff/${person.id}`, {
         method: "PATCH",
         body: JSON.stringify({ password, role: "TEACHER" }),
       });
-      setMessage(`${person.name} can now sign in to the Teacher Portal with ${person.email}.`);
+      setMessage(`${person.name} can now sign in with ${person.email} and that password.`);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create that login.");
@@ -76,7 +80,7 @@ export default function StaffPage() {
     <div className="page-stack">
       <PageHeader
         title="Staff"
-        description="A staff record is only a name on the list. Check Create a login so they can open the Teacher Portal."
+        description="Do not add Abdimalik again. Use the same email. Type a password on his row and click Give Teacher login."
       />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Name"><input className="input" name="name" required /></FormField>
@@ -112,8 +116,8 @@ export default function StaffPage() {
               <th>Name</th>
               <th>Title</th>
               <th>Email</th>
-              <th>Portal</th>
-              <th></th>
+              <th>Can sign in?</th>
+              <th>Password</th>
             </tr>
           </thead>
           <tbody>
@@ -122,13 +126,26 @@ export default function StaffPage() {
                 <td>{person.name}</td>
                 <td>{person.title}</td>
                 <td>{person.email ?? "—"}</td>
-                <td>{person.userId ? person.user?.role ?? "Has login" : "No login yet"}</td>
+                <td>{person.userId ? "Yes" : "Not yet"}</td>
                 <td>
-                  {!person.userId && person.email ? (
-                    <button className="btn btn-ghost py-1 text-xs" onClick={() => giveLogin(person)}>
-                      Give login
-                    </button>
-                  ) : null}
+                  {person.userId ? (
+                    "Ready"
+                  ) : person.email ? (
+                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                      <input
+                        className="input"
+                        type="password"
+                        placeholder="Dugsi123!"
+                        value={passwords[person.id] ?? ""}
+                        onChange={(event) => setPasswords((current) => ({ ...current, [person.id]: event.target.value }))}
+                      />
+                      <button className="btn btn-primary py-2 text-sm" type="button" onClick={() => giveLogin(person)}>
+                        Give Teacher login
+                      </button>
+                    </div>
+                  ) : (
+                    "Add an email first"
+                  )}
                 </td>
               </tr>
             ))}
