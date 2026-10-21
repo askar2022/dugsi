@@ -83,6 +83,10 @@ export async function POST(request: Request) {
       await supabase.auth.signOut();
       return error("This page is for the office and teachers. Use Parent sign in.");
     }
+    if (parsed.data.portal === "admin" && profile.role !== "ADMIN" && profile.role !== "STAFF") {
+      await supabase.auth.signOut();
+      return error("This page is for the school office. Teachers and parents use the school page.");
+    }
   }
 
   const app = data.user.app_metadata ?? {};
