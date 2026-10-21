@@ -2,29 +2,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendTenantEmail } from "@/lib/email";
 import { tuitionDueEmail, weekendHomeworkEmail } from "@/lib/email-messages";
 
-type InvoiceRow = {
-  id: string;
-  tenantId: string;
-  amount: number;
-  dueDate: string;
-  status: string;
-  paidDate: string | null;
-  student?: {
-    firstName: string;
-    lastName: string;
-    parent?: { name: string | null; email: string | null } | null;
-  } | null;
-  tenant?: { name: string } | null;
-};
-
-type HomeworkRow = {
-  id: string;
-  tenantId: string;
-  title: string;
-  dueDate: string | null;
-  classId: string;
-  tenant?: { name: string } | null;
-};
+function one<T>(value: T | T[] | null | undefined): T | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
 
 function chicagoToday() {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -75,18 +56,20 @@ export async function runSchoolReminders() {
     .is("paidDate", null)
     .neq("status", "paid");
 
-  for (const invoice of (invoices ?? []) as InvoiceRow[]) {
+  for (const invoice of invoices ?? []) {
     if (invoice.dueDate >= today.date) continue;
     if (invoice.status !== "late") {
       await admin.from("Invoice").update({ status: "late" }).eq("id", invoice.id).eq("tenantId", invoice.tenantId);
     }
-    const parent = invoice.student?.parent;
+    const student = one(invoice.student);
+    const parent = one(student?.parent);
+    const tenant = one(invoice.tenant);
     if (!parent?.email) continue;
     if (await alreadySent(admin, invoice.tenantId, "invoice_late", invoice.id)) continue;
     const copy = tuitionDueEmail({
-      schoolName: invoice.tenant?.name ?? "your school",
+      schoolName: tenant?.name ?? "your school",
       parentName: parent.name,
-      childName: `${invoice.student?.firstName ?? "your child"} ${invoice.student?.lastName ?? ""}`.trim(),
+      childName: `${student?.firstName ?? "your child"} ${student?.lastName ?? ""}`.trim(),
       amount: Number(invoice.amount),
       dueDate: invoice.dueDate,
       recordId: invoice.id,
@@ -111,8 +94,9 @@ export async function runSchoolReminders() {
       .gte("dueDate", today.date)
       .lte("dueDate", windowEnd);
 
-    for (const item of (homework ?? []) as HomeworkRow[]) {
+    for (const item of homework ?? []) {
       if (await alreadySent(admin, item.tenantId, "homework_reminder", item.id)) continue;
+      const tenant = one(item.tenant);
       const { data: students } = await admin
         .from("Student")
         .select("firstName, lastName, parent:User!parentId(name, email)")
@@ -121,12 +105,12 @@ export async function runSchoolReminders() {
 
       const sent = new Set<string>();
       for (const student of students ?? []) {
-        const parent = Array.isArray(student.parent) ? student.parent[0] : student.parent;
+        const parent = one(student.parent);
         const email = parent?.email;
         if (!email || sent.has(email)) continue;
         sent.add(email);
         const copy = weekendHomeworkEmail({
-          schoolName: item.tenant?.name ?? "your school",
+          schoolName: tenant?.name ?? "your school",
           parentName: parent?.name,
           childName: `${student.firstName} ${student.lastName}`.trim(),
           title: item.title,
