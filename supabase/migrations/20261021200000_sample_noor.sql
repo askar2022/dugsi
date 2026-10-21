@@ -1,7 +1,9 @@
 -- Public sample school for ourdugsi.com/s/noor. Paste in the production SQL Editor.
 -- Counts only. No student names appear on the school page. No demo logins.
 
-INSERT INTO "Tenant" (id, name, slug, status, city, welcomeNote)
+ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "welcomeNote" TEXT;
+
+INSERT INTO "Tenant" (id, name, slug, status, city, "welcomeNote")
 SELECT
   'sample-noor',
   'Masjid Al-Noor Weekend Dugsi',
