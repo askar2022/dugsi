@@ -75,7 +75,7 @@ export default function PublicEnrollPage() {
       setChild(emptyChild);
       setAgreed(false);
       setStep(1);
-      setMessage("Application sent. The school will review it. You do not need an account yet.");
+      setMessage("Application sent. The child is waiting for assessment. You do not need an account yet.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send that application.");
     } finally {

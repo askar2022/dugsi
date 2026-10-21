@@ -22,7 +22,7 @@ const TASKS = [
   {
     href: "/admin/enrollment",
     label: "Enrollment",
-    text: "Accept a child for assessment, then place them in a class.",
+    text: "New children wait for assessment. Then place them in a class.",
     icon: Users,
   },
   {

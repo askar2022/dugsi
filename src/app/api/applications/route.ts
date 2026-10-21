@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { ensureAssessmentClass, needsClassPlacement } from "@/lib/assessment-class";
+import { ensureAssessmentClass, ensureWaitingStudent, needsClassPlacement } from "@/lib/assessment-class";
 import { handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -93,13 +93,46 @@ export async function GET(request: NextRequest) {
     }
 
     const holding = await ensureAssessmentClass(admin, session.tenantId);
+
+    for (const item of rows ?? []) {
+      if (item.status !== "pending" && item.status !== "accepted") continue;
+      if (item.status === "accepted" && item.studentId) continue;
+      const extra = guardianFromNotes(item.notes);
+      const placed = await ensureWaitingStudent(admin, session.tenantId, {
+        studentId: item.studentId,
+        firstName: item.firstName,
+        lastName: item.lastName,
+        age: item.age ?? extra.age ?? null,
+        address: item.address ?? extra.address ?? null,
+        gender: item.gender || null,
+        notes: item.notes,
+      });
+      await admin
+        .from("EnrollmentApplication")
+        .update({ status: "waiting_assessment", studentId: placed.studentId })
+        .eq("id", item.id);
+      item.studentId = placed.studentId;
+      item.status = "waiting_assessment";
+    }
+
     const { data: students } = await admin
       .from("Student")
       .select("id, firstName, lastName, notes, status, classId, class:Class(id, name, level), parent:User!parentId(name, email, phone)")
       .eq("tenantId", session.tenantId)
       .order("createdAt", { ascending: false });
 
-    const linkedIds = new Set((rows ?? []).map((item) => item.studentId).filter(Boolean));
+    for (const item of students ?? []) {
+      if (item.status !== "pending") continue;
+      await ensureWaitingStudent(admin, session.tenantId, {
+        studentId: item.id,
+        firstName: item.firstName,
+        lastName: item.lastName,
+        notes: item.notes,
+      });
+      item.status = "waiting_assessment";
+      item.classId = holding.id;
+    }
+
     const applicationByStudent = new Map(
       (rows ?? []).filter((item) => item.studentId).map((item) => [item.studentId as string, item]),
     );
@@ -109,24 +142,6 @@ export async function GET(request: NextRequest) {
       const klass = one(item.class);
       const parent = one(item.parent);
       const extra = guardianFromNotes(item.notes);
-      if (!linkedIds.has(item.id) && item.status === "pending") {
-        applications.push({
-          id: item.id,
-          source: "student",
-          studentId: item.id,
-          parentName: extra.guardianName ?? parent?.name ?? "—",
-          parentEmail: extra.guardianEmail ?? parent?.email ?? "",
-          parentPhone: extra.guardianPhone ?? parent?.phone ?? null,
-          address: extra.address ?? null,
-          firstName: item.firstName,
-          lastName: item.lastName,
-          age: extra.age ?? null,
-          agreedFeeAndEnroll: extra.agreedFeeAndEnroll === true,
-          notes: extra.notes ?? (extra.guardianName ? null : item.notes),
-          status: item.status,
-        });
-        continue;
-      }
       if (!needsClassPlacement({ status: item.status, classId: item.classId, class: klass }, holding.id)) {
         continue;
       }

@@ -1,3 +1,4 @@
+import { ensureWaitingStudent } from "@/lib/assessment-class";
 import { sendTenantEmail } from "@/lib/email";
 import { enrollmentReceivedEmail } from "@/lib/email-messages";
 import { error, json } from "@/lib/http";
@@ -34,55 +35,56 @@ export async function POST(request: Request) {
     agreedFeeAndEnroll: true,
     notes: parsed.data.notes?.trim() || undefined,
   };
+  const address = [extras.address, extras.city, extras.state, extras.zip].filter(Boolean).join(", ");
+  const notes = JSON.stringify(extras);
 
-  const row = {
+  const { studentId } = await ensureWaitingStudent(admin, tenant.id, {
+    firstName: parsed.data.firstName.trim(),
+    lastName: parsed.data.lastName.trim(),
+    age: extras.age,
+    address,
+    gender: parsed.data.gender || null,
+    notes,
+  });
+
+  const application = {
     tenantId: tenant.id,
     parentName: extras.guardianName,
     parentEmail: extras.guardianEmail,
     parentPhone: extras.guardianPhone,
-    address: [extras.address, extras.city, extras.state, extras.zip].filter(Boolean).join(", "),
+    address,
     firstName: parsed.data.firstName.trim(),
     lastName: parsed.data.lastName.trim(),
     age: extras.age,
     gender: parsed.data.gender || null,
-    notes: JSON.stringify(extras),
-    status: "pending",
+    notes,
+    studentId,
+    status: "waiting_assessment",
   };
 
-  const { error: applicationError } = await admin.from("EnrollmentApplication").insert(row);
+  const { error: applicationError } = await admin.from("EnrollmentApplication").insert(application);
   if (applicationError) {
-    const { error: withoutColumns } = await admin.from("EnrollmentApplication").insert({
-      tenantId: row.tenantId,
-      parentName: row.parentName,
-      parentEmail: row.parentEmail,
-      parentPhone: row.parentPhone,
-      firstName: row.firstName,
-      lastName: row.lastName,
-      notes: JSON.stringify(extras),
-      status: "pending",
+    await admin.from("EnrollmentApplication").insert({
+      tenantId: application.tenantId,
+      parentName: application.parentName,
+      parentEmail: application.parentEmail,
+      parentPhone: application.parentPhone,
+      firstName: application.firstName,
+      lastName: application.lastName,
+      notes,
+      studentId,
+      status: "waiting_assessment",
     });
-    if (withoutColumns) {
-      const { error: studentError } = await admin.from("Student").insert({
-        tenantId: tenant.id,
-        firstName: row.firstName,
-        lastName: row.lastName,
-        notes: JSON.stringify(extras),
-        status: "pending",
-      });
-      if (studentError) {
-        return error(studentError.message || "Could not send that application.");
-      }
-    }
   }
 
   const copy = enrollmentReceivedEmail({
     schoolName: tenant.name,
-    parentName: row.parentName,
-    childName: `${row.firstName} ${row.lastName}`,
+    parentName: extras.guardianName,
+    childName: `${application.firstName} ${application.lastName}`,
   });
   await sendTenantEmail({
     tenantId: tenant.id,
-    toEmail: row.parentEmail,
+    toEmail: extras.guardianEmail,
     subject: copy.subject,
     body: copy.body,
     event: "student_enrolled",

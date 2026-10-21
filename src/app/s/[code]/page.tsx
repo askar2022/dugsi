@@ -81,7 +81,7 @@ export default async function SchoolLandingPage({ params }: { params: Promise<{ 
           <ol className="mt-4 grid gap-2 text-sm text-muted">
             <li>1. Open Enroll your child on this school page.</li>
             <li>2. Enter the parent and child details. No login and no password.</li>
-            <li>3. This school reviews the application and enrolls or declines the child.</li>
+            <li>3. The child waits for assessment. This school then places them in a class.</li>
           </ol>
         </section>
 

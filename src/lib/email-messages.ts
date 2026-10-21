@@ -15,8 +15,8 @@ export function enrollmentReceivedEmail(input: {
       greeting(input.parentName),
       "",
       `${input.schoolName} received your application for ${input.childName}.`,
-      "The school will review it. You do not need a portal account yet.",
-      "If the child is enrolled, you will receive an email to create your own login.",
+      "The child is waiting for assessment. The office will place them in a class after that.",
+      "You do not need a portal account yet.",
     ].join("\n"),
   };
 }

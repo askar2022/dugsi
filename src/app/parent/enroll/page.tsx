@@ -30,7 +30,7 @@ export default function EnrollPage() {
         }),
       });
       form.reset();
-      setMessage("Application sent. The school will review it.");
+      setMessage("Child added. They are waiting for assessment.");
       router.push("/parent");
       router.refresh();
     } catch (err) {
@@ -44,7 +44,7 @@ export default function EnrollPage() {
     <div className="page-stack">
       <PageHeader
         title="Add another child"
-        description="If you already have a parent login, you can request another child for this school. The office reviews it on Enrollment."
+        description="If you already have a parent login, you can add another child. They wait for assessment until the office places them in a class."
       />
       <form onSubmit={onSubmit} className="card parent-form">
         <FormField label="First name"><input className="input" name="firstName" autoComplete="given-name" required /></FormField>
@@ -52,7 +52,7 @@ export default function EnrollPage() {
         <FormField label="Date of birth"><input className="input" name="dateOfBirth" type="date" /></FormField>
         <FormField label="Notes"><textarea className="input parent-notes" name="notes" rows={3} placeholder="Allergies, pickup notes, or anything the school should know." /></FormField>
         <button className="btn btn-primary parent-form-submit" disabled={pending}>
-          {pending ? "Sending..." : "Submit for review"}
+          {pending ? "Sending..." : "Add child"}
         </button>
         {error ? <p className="text-sm text-late">{error}</p> : null}
         {message ? <p className="text-sm text-paid">{message}</p> : null}

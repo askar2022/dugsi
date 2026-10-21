@@ -47,8 +47,6 @@ export async function PATCH(
   try {
     const { session } = await requireAuthedTenant(request, ["ADMIN", "STAFF"]);
     const { id } = await context.params;
-    const body = await request.json().catch(() => ({}));
-    const action = body.action === "decline" ? "decline" : "enroll";
     const admin = createAdminClient();
 
     const { data: application } = await admin
@@ -81,15 +79,6 @@ export async function PATCH(
     const firstName = application?.firstName ?? studentRow?.firstName ?? "";
     const lastName = application?.lastName ?? studentRow?.lastName ?? "";
     const notes = extra.notes ?? (application?.notes && !application?.address ? application.notes : extra.notes) ?? null;
-
-    if (action === "decline") {
-      if (application) {
-        await admin.from("EnrollmentApplication").update({ status: "declined" }).eq("id", id);
-      } else {
-        await admin.from("Student").update({ status: "declined" }).eq("id", id);
-      }
-      return json({ ok: true, status: "declined" });
-    }
 
     let parentId = studentRow?.parentId ?? null;
     if (!parentId && parentEmail) {

@@ -35,6 +35,80 @@ export function classPlaceLabel(student: {
   return student.class?.name ?? "Waiting for assessment";
 }
 
+export async function ensureWaitingStudent(
+  admin: SupabaseClient,
+  tenantId: string,
+  input: {
+    studentId?: string | null;
+    firstName: string;
+    lastName: string;
+    age?: number | null;
+    address?: string | null;
+    gender?: string | null;
+    parentId?: string | null;
+    notes?: string | null;
+  },
+) {
+  const holding = await ensureAssessmentClass(admin, tenantId);
+  if (input.studentId) {
+    const { error } = await admin
+      .from("Student")
+      .update({
+        classId: holding.id,
+        status: "waiting_assessment",
+        age: input.age ?? undefined,
+        address: input.address ?? undefined,
+        gender: input.gender ?? undefined,
+        parentId: input.parentId ?? undefined,
+        notes: input.notes ?? undefined,
+      })
+      .eq("id", input.studentId)
+      .eq("tenantId", tenantId);
+    if (error) {
+      await admin
+        .from("Student")
+        .update({ classId: holding.id, status: "waiting_assessment" })
+        .eq("id", input.studentId)
+        .eq("tenantId", tenantId);
+    }
+    return { studentId: input.studentId, holding };
+  }
+
+  const { data: student, error } = await admin
+    .from("Student")
+    .insert({
+      tenantId,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      age: input.age ?? null,
+      address: input.address ?? null,
+      gender: input.gender ?? null,
+      parentId: input.parentId ?? null,
+      notes: input.notes ?? null,
+      classId: holding.id,
+      status: "waiting_assessment",
+    })
+    .select("id")
+    .single();
+  if (!error && student) return { studentId: student.id, holding };
+
+  const { data: basic, error: basicError } = await admin
+    .from("Student")
+    .insert({
+      tenantId,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      notes: input.notes ?? null,
+      parentId: input.parentId ?? null,
+      classId: holding.id,
+      status: "waiting_assessment",
+    })
+    .select("id")
+    .single();
+  throwIfError(basicError ?? error, "Could not save that child.");
+  return { studentId: basic!.id, holding };
+}
+
 export async function ensureAssessmentClass(
   admin: SupabaseClient,
   tenantId: string,
