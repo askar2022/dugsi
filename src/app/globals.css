@@ -673,6 +673,14 @@ tbody tr:hover td {
   background: #f7f3ea;
 }
 
+@media (max-width: 799px) {
+  .login-welcome-image {
+    max-height: 14rem;
+    object-fit: cover;
+    object-position: top center;
+  }
+}
+
 .login-choose {
   width: 100%;
 }
@@ -715,7 +723,7 @@ tbody tr:hover td {
 
 @media (min-width: 800px) {
   .login-shell.has-welcome {
-    grid-template-columns: 1.05fr 0.95fr;
+    grid-template-columns: 0.95fr 1.05fr;
     align-items: start;
   }
 
