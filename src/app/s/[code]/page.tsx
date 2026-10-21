@@ -47,7 +47,7 @@ export default async function SchoolLandingPage({ params }: { params: Promise<{ 
         <section className="grid items-center gap-10 py-8 lg:grid-cols-2">
           <div>
             <p className="text-sm uppercase tracking-[0.2em] text-gold">
-              {school.city || "Your school"}
+              {school.city || "Dugsi"}
             </p>
             <h1 className="mt-3 font-[family-name:var(--font-fraunces)] text-5xl leading-tight text-green md:text-6xl">
               {school.name}

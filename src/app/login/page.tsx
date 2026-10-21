@@ -66,7 +66,7 @@ function LoginForm() {
       await api("/api/tenants/register", {
         method: "POST",
         body: JSON.stringify({
-          dugsiName: "Masjid Al-Noor Weekend Dugsi",
+          dugsiName: "Masjid Al-Noor Dugsi",
           schoolCode: NOOR.schoolCode,
           adminName: "Imam Yusuf",
           email: NOOR.admin,

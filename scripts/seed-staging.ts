@@ -352,10 +352,10 @@ async function main() {
   });
 
   await seedTenant(admin, {
-    name: "Masjid Al-Noor Weekend Dugsi",
+    name: "Masjid Al-Noor Dugsi",
     slug: "noor",
     city: "Minneapolis",
-    welcomeNote: "Assalamu alaikum. Welcome to Masjid Al-Noor Weekend Dugsi. Saturday class is 9:00–11:00 AM.",
+    welcomeNote: "Assalamu alaikum. Welcome to Masjid Al-Noor Dugsi.",
     adminName: "Imam Yusuf",
     teacherName: "Sister Maryam",
     parentName: "Amina Hassan",
