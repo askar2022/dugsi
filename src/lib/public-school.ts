@@ -29,6 +29,6 @@ export async function getPublicSchool(code: string): Promise<PublicSchool | null
     phone: tenant.phone,
     welcomeNote: tenant.welcomeNote,
     code: slug,
-    imageUrl,
+    imageUrl: imageUrl ?? (slug === "noor" ? "/ourdugsi-landing.jpg" : null),
   };
 }
