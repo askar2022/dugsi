@@ -8,7 +8,8 @@ export type EmailEvent =
   | "invoice_late"
   | "staff_onboarded"
   | "homework_assigned"
-  | "homework_reminder";
+  | "homework_reminder"
+  | "progress_contact";
 
 function fromAddress() {
   const raw = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || "fariin@ourdugsi.com";

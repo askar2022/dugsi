@@ -92,6 +92,7 @@ export const progressSchema = z.object({
   juz: z.number().int().optional(),
   notes: z.string().optional(),
   date: z.string(),
+  status: z.enum(["on_track", "needs_practice", "contact_parent"]).default("on_track"),
 });
 
 export const invoiceSchema = z.object({

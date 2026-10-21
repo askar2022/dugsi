@@ -123,6 +123,30 @@ export function homeworkAssignedEmail(input: {
   };
 }
 
+export function progressContactEmail(input: {
+  schoolName: string;
+  parentName?: string | null;
+  childName: string;
+  surah: string;
+  ayahFrom: number;
+  ayahTo: number;
+  date: string;
+  progressId: string;
+}) {
+  return {
+    subject: `Please contact ${input.schoolName} about ${input.childName}'s Quran progress`,
+    body: [
+      greeting(input.parentName),
+      "",
+      `The teacher at ${input.schoolName} marked ${input.childName}'s Quran progress as red: please contact the school.`,
+      `Latest record: Surah ${input.surah}, Ayah ${input.ayahFrom}–${input.ayahTo}, ${input.date}.`,
+      "Please reach out to the office or teacher so you can review this together.",
+      "",
+      `Progress ${input.progressId}`,
+    ].join("\n"),
+  };
+}
+
 export function weekendHomeworkEmail(input: {
   schoolName: string;
   parentName?: string | null;

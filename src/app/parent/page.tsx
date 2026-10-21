@@ -29,7 +29,7 @@ type Attendance = {
 const ACTIONS = [
   { href: "/parent/attendance", label: "Attendance", text: "See who was present after each class.", icon: CalendarDays },
   { href: "/parent/homework", label: "Homework", text: "Work assigned to your child.", icon: ClipboardList },
-  { href: "/parent/progress", label: "Child Progress", text: "Surah, Ayah, Juz, and level.", icon: BookOpen },
+  { href: "/parent/progress", label: "Child Progress", text: "Green is on track, yellow needs practice, red means contact the school.", icon: BookOpen },
   { href: "/parent/billing", label: "Tuition", text: "Green is paid, yellow is due, red is late.", icon: Receipt },
 ];
 

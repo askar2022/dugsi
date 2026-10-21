@@ -22,13 +22,14 @@ type Progress = {
   ayahFrom: number;
   ayahTo: number;
   juz?: number | null;
+  status?: string | null;
   student?: { id: string };
 };
 
 const TASKS = [
   { href: "/teacher", label: "Class Roster", text: "See every student in your class.", icon: Users },
   { href: "/teacher/attendance", label: "Attendance", text: "Mark who is present today.", icon: CalendarDays },
-  { href: "/teacher/progress", label: "Quran Progress", text: "Record the verses a student has reached.", icon: BookOpen },
+  { href: "/teacher/progress", label: "Quran Progress", text: "Green, yellow, or red. Red emails the parent.", icon: BookOpen },
   { href: "/teacher/homework", label: "Homework", text: "Assign work and remind families.", icon: ClipboardList },
 ];
 
@@ -119,7 +120,10 @@ export default function TeacherHomePage() {
                         : " · No Quran progress yet"}
                     </p>
                   </div>
-                  {mark ? <StatusBadge status={mark.status} /> : <span className="record-meta">Not marked</span>}
+                  <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    {quran?.status ? <StatusBadge status={quran.status} /> : null}
+                    {mark ? <StatusBadge status={mark.status} /> : <span className="record-meta">Not marked</span>}
+                  </div>
                 </article>
               );
             })}

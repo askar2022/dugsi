@@ -4,7 +4,9 @@ import { FormEvent, useEffect, useState } from "react";
 import { EmptyState } from "@/components/portal/EmptyState";
 import { FormField } from "@/components/forms/FormField";
 import { PageHeader } from "@/components/portal/PageHeader";
+import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api";
+import { PROGRESS_LABELS, PROGRESS_STATUSES, normalizeProgressStatus, type ProgressStatus } from "@/lib/progress-status";
 
 type Student = { id: string; firstName: string; lastName: string };
 type Progress = {
@@ -14,12 +16,20 @@ type Progress = {
   ayahTo: number;
   juz: number | null;
   date: string;
-  student: { firstName: string; lastName: string };
+  status?: string | null;
+  student: { firstName: string; lastName: string } | { firstName: string; lastName: string }[] | null;
 };
+
+function studentOf(item: Progress) {
+  const value = item.student;
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
 
 export default function ProgressPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [progress, setProgress] = useState<Progress[]>([]);
+  const [status, setStatus] = useState<ProgressStatus>("on_track");
+  const [busyId, setBusyId] = useState("");
 
   async function load() {
     const [studentData, progressData] = await Promise.all([
@@ -45,15 +55,33 @@ export default function ProgressPage() {
         ayahFrom: Number(raw.ayahFrom),
         ayahTo: Number(raw.ayahTo),
         juz: raw.juz ? Number(raw.juz) : undefined,
+        status,
       }),
     });
     form.reset();
+    setStatus("on_track");
     await load();
+  }
+
+  async function setRowStatus(id: string, next: ProgressStatus) {
+    setBusyId(id);
+    try {
+      await api(`/api/progress/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: next }),
+      });
+      await load();
+    } finally {
+      setBusyId("");
+    }
   }
 
   return (
     <div className="page-stack">
-      <PageHeader title="Quran progress" description="Record the Surah, Juz, and Ayah range a student has reached." />
+      <PageHeader
+        title="Quran progress"
+        description="Green is on track, yellow needs practice, red means contact the parent. Red sends an email."
+      />
       {students.length === 0 ? (
         <EmptyState
           title="No students in your class"
@@ -76,28 +104,62 @@ export default function ProgressPage() {
           <FormField label="Ayah from"><input className="input" name="ayahFrom" type="number" required /></FormField>
           <FormField label="Ayah to"><input className="input" name="ayahTo" type="number" required /></FormField>
           <FormField label="Date"><input className="input" name="date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} /></FormField>
+          <div className="progress-tone">
+          <FormField label="Progress">
+            <div className="mark-group">
+              {PROGRESS_STATUSES.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`mark-btn is-${value}${status === value ? " is-active" : ""}`}
+                  onClick={() => setStatus(value)}
+                >
+                  {PROGRESS_LABELS[value]}
+                </button>
+              ))}
+            </div>
+          </FormField>
+          </div>
           <button className="btn btn-primary parent-form-submit">Save progress</button>
         </form>
       )}
       {progress.length === 0 ? (
         <EmptyState
           title="No Quran progress yet"
-          text="Saved records will show Surah, Juz, and Ayah range here."
+          text="Saved records will show Surah, Juz, Ayah range, and color here."
         />
       ) : (
         <>
           <div className="record-list progress-mobile">
-            {progress.map((item) => (
-              <article key={item.id} className="card record-card-stack">
-                <p className="record-title">{item.student.firstName} {item.student.lastName}</p>
-                <p className="record-meta">
-                  Surah {item.surah}
-                  {item.juz ? ` · Juz ${item.juz}` : ""}
-                  {` · Ayah ${item.ayahFrom}–${item.ayahTo}`}
-                  {` · ${item.date}`}
-                </p>
-              </article>
-            ))}
+            {progress.map((item) => {
+              const student = studentOf(item);
+              const tone = normalizeProgressStatus(item.status);
+              return (
+                <article key={item.id} className={`card record-card-stack progress-row is-${tone}`}>
+                  <p className="record-title">{student ? `${student.firstName} ${student.lastName}` : "Student"}</p>
+                  <p className="record-meta">
+                    Surah {item.surah}
+                    {item.juz ? ` · Juz ${item.juz}` : ""}
+                    {` · Ayah ${item.ayahFrom}–${item.ayahTo}`}
+                    {` · ${item.date}`}
+                  </p>
+                  <StatusBadge status={tone} />
+                  <div className="mark-group" style={{ marginTop: "0.7rem" }}>
+                    {PROGRESS_STATUSES.map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`mark-btn is-${value}${tone === value ? " is-active" : ""}`}
+                        disabled={busyId === item.id}
+                        onClick={() => setRowStatus(item.id, value)}
+                      >
+                        {PROGRESS_LABELS[value]}
+                      </button>
+                    ))}
+                  </div>
+                </article>
+              );
+            })}
           </div>
           <div className="card table-wrap p-2 progress-desktop">
             <table>
@@ -108,18 +170,38 @@ export default function ProgressPage() {
                   <th>Juz</th>
                   <th>Ayah</th>
                   <th>Date</th>
+                  <th>Progress</th>
                 </tr>
               </thead>
               <tbody>
-                {progress.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.student.firstName} {item.student.lastName}</td>
-                    <td>{item.surah}</td>
-                    <td>{item.juz ?? "—"}</td>
-                    <td>{item.ayahFrom}–{item.ayahTo}</td>
-                    <td>{item.date}</td>
-                  </tr>
-                ))}
+                {progress.map((item) => {
+                  const student = studentOf(item);
+                  const tone = normalizeProgressStatus(item.status);
+                  return (
+                    <tr key={item.id} className={`progress-row is-${tone}`}>
+                      <td>{student ? `${student.firstName} ${student.lastName}` : "Student"}</td>
+                      <td>{item.surah}</td>
+                      <td>{item.juz ?? "—"}</td>
+                      <td>{item.ayahFrom}–{item.ayahTo}</td>
+                      <td>{item.date}</td>
+                      <td>
+                        <div className="mark-group">
+                          {PROGRESS_STATUSES.map((value) => (
+                            <button
+                              key={value}
+                              type="button"
+                              className={`mark-btn is-${value}${tone === value ? " is-active" : ""}`}
+                              disabled={busyId === item.id}
+                              onClick={() => setRowStatus(item.id, value)}
+                            >
+                              {PROGRESS_LABELS[value]}
+                            </button>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

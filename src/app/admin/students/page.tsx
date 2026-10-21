@@ -28,6 +28,7 @@ type Progress = {
   surah: string;
   juz: number | null;
   date: string;
+  status?: string | null;
 };
 
 type SchoolClass = {
@@ -274,7 +275,14 @@ export default function StudentsRosterPage() {
                   <td>{student.firstName} {student.lastName}</td>
                   <td>{student.class?.name ?? "—"}</td>
                   <td>{student.class?.teacher?.name ?? "—"}</td>
-                  <td>{quranLabel(latestProgress.get(student.id))}</td>
+                  <td>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", flexWrap: "wrap" }}>
+                      <span>{quranLabel(latestProgress.get(student.id))}</span>
+                      {latestProgress.get(student.id)?.status ? (
+                        <StatusBadge status={latestProgress.get(student.id)?.status ?? "on_track"} />
+                      ) : null}
+                    </div>
+                  </td>
                   <td>{enrollmentYear(student.createdAt) || "—"}</td>
                   <td><StatusBadge status={student.status} /></td>
                 </tr>

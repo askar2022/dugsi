@@ -5,8 +5,10 @@ import { ChildSwitcher } from "@/components/portal/ChildSwitcher";
 import { EmptyState } from "@/components/portal/EmptyState";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { useParentFamily } from "@/components/portal/useParentFamily";
+import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api";
 import { childName } from "@/lib/parent-family";
+import { normalizeProgressStatus } from "@/lib/progress-status";
 
 type Progress = {
   id: string;
@@ -15,6 +17,7 @@ type Progress = {
   ayahTo: number;
   juz: number | null;
   date: string;
+  status?: string | null;
   student?: {
     firstName: string;
     lastName: string;
@@ -48,7 +51,7 @@ export default function ParentProgressPage() {
     <div className="page-stack">
       <PageHeader
         title="Child Progress"
-        description={child ? `The Quran verses ${child.firstName} has reached.` : "The Quran verses your child has reached."}
+        description={child ? `Green is on track, yellow needs practice, red means contact the school.` : "Green is on track, yellow needs practice, red means contact the school."}
       />
       <ChildSwitcher children={children} childId={childId} onSelect={selectChild} />
       {!ready ? (
@@ -65,9 +68,12 @@ export default function ParentProgressPage() {
         />
       ) : (
         <>
-          <section className="card progress-latest">
+          <section className={`card progress-latest is-${normalizeProgressStatus(latest.status)}`}>
             <p className="progress-latest-kicker">{child ? childName(child) : "Latest"}</p>
             <h2 className="progress-latest-title">Current Quran place</h2>
+            <div style={{ margin: "-0.35rem 0 0.9rem" }}>
+              <StatusBadge status={normalizeProgressStatus(latest.status)} />
+            </div>
             <div className="progress-stats">
               <div className="stat">
                 <p className="stat-label">Surah</p>
@@ -89,7 +95,7 @@ export default function ParentProgressPage() {
           </section>
           <div className="record-list">
             {progress.map((item) => (
-              <article key={item.id} className="card record-card record-card-stack">
+              <article key={item.id} className={`card record-card record-card-stack progress-row is-${normalizeProgressStatus(item.status)}`}>
                 <p className="record-title">{item.surah}</p>
                 <p className="record-meta">
                   Ayah {item.ayahFrom}–{item.ayahTo}
@@ -97,6 +103,7 @@ export default function ParentProgressPage() {
                   {level ? ` · ${level}` : ""}
                   {` · ${item.date}`}
                 </p>
+                <StatusBadge status={normalizeProgressStatus(item.status)} />
               </article>
             ))}
           </div>

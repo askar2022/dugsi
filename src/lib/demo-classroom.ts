@@ -249,6 +249,7 @@ export async function fillDemoClassroom() {
         ayahTo: 25,
         juz: 1,
         date: today,
+        status: "on_track",
         recordedById: teacherId,
       },
       {
@@ -259,6 +260,7 @@ export async function fillDemoClassroom() {
         ayahTo: 7,
         juz: 1,
         date: today,
+        status: "needs_practice",
         recordedById: teacherId,
       },
     ]);

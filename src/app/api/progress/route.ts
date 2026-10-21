@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server";
 import { ApiError, getTenantStudent, handleApiError, teacherAssignedClassIds } from "@/lib/guard";
 import { json } from "@/lib/http";
+import { emailParentIfContactNeeded } from "@/lib/progress-email";
+import { normalizeProgressStatus } from "@/lib/progress-status";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 import { progressSchema } from "@/lib/validators";
 
@@ -39,6 +41,7 @@ export async function POST(request: NextRequest) {
       throw new ApiError("Enter the student, surah, and ayah range.");
     }
     const { student } = await getTenantStudent(request, parsed.data.studentId);
+    const status = normalizeProgressStatus(parsed.data.status);
     const { data: progress, error } = await supabase
       .from("QuranProgress")
       .insert({
@@ -50,11 +53,23 @@ export async function POST(request: NextRequest) {
         juz: parsed.data.juz,
         notes: parsed.data.notes,
         date: parsed.data.date,
+        status,
         recordedById: session.userId,
       })
       .select("*")
       .single();
     throwIfError(error, "Could not save progress.");
+    await emailParentIfContactNeeded({
+      tenantId: session.tenantId,
+      tenantName: session.tenantName,
+      studentId: student.id,
+      surah: progress.surah,
+      ayahFrom: progress.ayahFrom,
+      ayahTo: progress.ayahTo,
+      date: progress.date,
+      progressId: progress.id,
+      status,
+    });
     return json({ progress }, 201);
   } catch (err) {
     return handleApiError(err);

@@ -3,13 +3,22 @@ const TONES: Record<string, string> = {
   present: "bg-green-soft text-paid",
   enrolled: "bg-green-soft text-paid",
   active: "bg-green-soft text-paid",
+  on_track: "bg-green-soft text-paid",
   due: "bg-gold-soft text-due",
   pending: "bg-gold-soft text-due",
   invited: "bg-gold-soft text-due",
+  needs_practice: "bg-gold-soft text-due",
   declined: "bg-red-50 text-late",
   unenrolled: "bg-red-50 text-late",
   late: "bg-red-50 text-late",
   absent: "bg-red-50 text-late",
+  contact_parent: "bg-red-50 text-late",
+};
+
+const LABELS: Record<string, string> = {
+  on_track: "On track",
+  needs_practice: "Needs practice",
+  contact_parent: "Contact parent",
 };
 
 export function StatusBadge({ status }: { status: string }) {
@@ -19,7 +28,7 @@ export function StatusBadge({ status }: { status: string }) {
         TONES[status] ?? "bg-green-soft text-green"
       }`}
     >
-      {status}
+      {LABELS[status] ?? status.replaceAll("_", " ")}
     </span>
   );
 }

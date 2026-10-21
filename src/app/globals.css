@@ -950,10 +950,38 @@ tbody tr:hover td {
 }
 
 .mark-btn.is-late.is-active,
-.mark-btn.is-excused.is-active {
+.mark-btn.is-excused.is-active,
+.mark-btn.is-needs_practice.is-active {
   background: var(--gold-soft);
   border-color: var(--gold);
   color: var(--green);
+}
+
+.mark-btn.is-on_track.is-active {
+  background: var(--paid);
+  border-color: var(--paid);
+  color: white;
+}
+
+.mark-btn.is-contact_parent.is-active {
+  background: var(--late);
+  border-color: var(--late);
+  color: white;
+}
+
+.progress-row.is-on_track,
+.progress-latest.is-on_track {
+  background: var(--green-soft);
+}
+
+.progress-row.is-needs_practice,
+.progress-latest.is-needs_practice {
+  background: var(--gold-soft);
+}
+
+.progress-row.is-contact_parent,
+.progress-latest.is-contact_parent {
+  background: #fdecec;
 }
 
 .progress-desktop {
@@ -1006,8 +1034,13 @@ tbody tr:hover td {
   }
 
   .teacher-form .parent-form-submit,
-  .teacher-form .parent-notes {
+  .teacher-form .parent-notes,
+  .teacher-form .progress-tone {
     grid-column: 1 / -1;
+  }
+
+  .progress-desktop .mark-group {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .mark-group {
