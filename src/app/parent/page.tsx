@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { BookOpen, CalendarDays, ClipboardList, Receipt } from "lucide-react";
 import { SchoolImage } from "@/components/portal/SchoolImage";
 import { useParentFamily } from "@/components/portal/useParentFamily";
+import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api";
 import { childName, type ParentChild } from "@/lib/parent-family";
 import type { Session } from "@/lib/types";
@@ -50,10 +51,11 @@ function childSummary(student: ParentChild, homework: Homework[], attendance: At
 
 export default function ParentHomePage() {
   const router = useRouter();
-  const { children, selectChild, ready } = useParentFamily();
+  const { children, selectChild, ready, reload } = useParentFamily();
   const [homework, setHomework] = useState<Homework[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [user, setUser] = useState<Session | null>(null);
+  const [busy, setBusy] = useState("");
   const [welcomeNote, setWelcomeNote] = useState<string | null>(null);
   const [schoolImageUrl, setSchoolImageUrl] = useState<string | null>(null);
 
@@ -130,21 +132,53 @@ export default function ParentHomePage() {
           </div>
         ) : (
           children.map((student) => (
-            <button
-              key={student.id}
-              type="button"
-              className="child-card child-card-btn"
-              onClick={() => {
-                selectChild(student.id);
-                router.push("/parent/progress");
-              }}
-            >
-              <span className="child-mark">{student.firstName.charAt(0)}</span>
-              <div>
-                <p className="menu-row-title">{childName(student)}</p>
-                <p className="menu-row-meta">{childSummary(student, homework, attendance)}</p>
-              </div>
-            </button>
+            <div key={student.id} className="child-card">
+              <button
+                type="button"
+                className="child-card-btn"
+                style={{ display: "flex", alignItems: "center", gap: "0.9rem", flex: 1, padding: 0 }}
+                onClick={() => {
+                  selectChild(student.id);
+                  router.push("/parent/progress");
+                }}
+              >
+                <span className="child-mark">{student.firstName.charAt(0)}</span>
+                <div>
+                  <p className="menu-row-title">{childName(student)}</p>
+                  <p className="menu-row-meta">
+                    {student.status === "unenrolled"
+                      ? "Unenrolled"
+                      : childSummary(student, homework, attendance)}
+                  </p>
+                </div>
+              </button>
+              {student.status === "unenrolled" ? (
+                <StatusBadge status="unenrolled" />
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-ghost py-2 text-sm"
+                  disabled={busy === student.id}
+                  onClick={async (event) => {
+                    event.stopPropagation();
+                    const ok = window.confirm(`Unenroll ${childName(student)} from this dugsi? The school keeps the record.`);
+                    if (!ok) return;
+                    setBusy(student.id);
+                    try {
+                      await api(`/api/students/${student.id}`, {
+                        method: "PATCH",
+                        body: JSON.stringify({ action: "unenroll" }),
+                      });
+                      await reload();
+                    } finally {
+                      setBusy("");
+                    }
+                  }}
+                >
+                  {busy === student.id ? "Unenrolling..." : "Unenroll"}
+                </button>
+              )}
+            </div>
           ))
         )}
       </section>

@@ -11,25 +11,24 @@ export function useParentFamily() {
   const [childId, setChildId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
+  async function reload() {
+    const data = await api<{ students: Array<Parameters<typeof normalizeParentChild>[0]> }>("/api/students");
+    const list = data.students.map(normalizeParentChild);
+    setChildren(list);
+    const fromUrl = new URLSearchParams(window.location.search).get("child");
+    const fromStore = window.sessionStorage.getItem(STORAGE_KEY);
+    const next =
+      list.find((child) => child.id === fromUrl)?.id ??
+      list.find((child) => child.id === fromStore)?.id ??
+      list[0]?.id ??
+      null;
+    setChildId(next);
+    if (next) window.sessionStorage.setItem(STORAGE_KEY, next);
+    return list;
+  }
+
   useEffect(() => {
-    api<{ students: Array<Parameters<typeof normalizeParentChild>[0]> }>("/api/students")
-      .then((data) => {
-        const list = data.students.map(normalizeParentChild);
-        setChildren(list);
-        const fromUrl = new URLSearchParams(window.location.search).get("child");
-        const fromStore = window.sessionStorage.getItem(STORAGE_KEY);
-        const next =
-          list.find((child) => child.id === fromUrl)?.id ??
-          list.find((child) => child.id === fromStore)?.id ??
-          list[0]?.id ??
-          null;
-        setChildId(next);
-        if (next) {
-          window.sessionStorage.setItem(STORAGE_KEY, next);
-        }
-      })
-      .catch(() => undefined)
-      .finally(() => setReady(true));
+    reload().catch(() => undefined).finally(() => setReady(true));
   }, []);
 
   function selectChild(id: string) {
@@ -45,5 +44,5 @@ export function useParentFamily() {
     [childId, children],
   );
 
-  return { children, child, childId, selectChild, ready };
+  return { children, child, childId, selectChild, ready, reload };
 }

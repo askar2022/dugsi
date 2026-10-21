@@ -7,6 +7,7 @@ const TONES: Record<string, string> = {
   pending: "bg-gold-soft text-due",
   invited: "bg-gold-soft text-due",
   declined: "bg-red-50 text-late",
+  unenrolled: "bg-red-50 text-late",
   late: "bg-red-50 text-late",
   absent: "bg-red-50 text-late",
 };
