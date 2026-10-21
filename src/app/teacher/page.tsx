@@ -30,7 +30,7 @@ const TASKS = [
   { href: "/teacher", label: "Class Roster", text: "See every student in your class.", icon: Users },
   { href: "/teacher/attendance", label: "Attendance", text: "Mark who is present today.", icon: CalendarDays },
   { href: "/teacher/progress", label: "Quran Progress", text: "Green, yellow, or red. Red emails the parent.", icon: BookOpen },
-  { href: "/teacher/homework", label: "Homework", text: "Assign work and remind families.", icon: ClipboardList },
+  { href: "/teacher/homework", label: "Homework", text: "Assign Quran work and see Done or Needs help.", icon: ClipboardList },
 ];
 
 export default function TeacherHomePage() {

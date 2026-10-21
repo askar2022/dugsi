@@ -2,7 +2,9 @@ import { NextRequest } from "next/server";
 import { sendTenantEmail } from "@/lib/email";
 import { homeworkAssignedEmail } from "@/lib/email-messages";
 import { ApiError, getTenantClass, getTenantStudent, handleApiError, teacherAssignedClassIds } from "@/lib/guard";
+import { homeworkTitle } from "@/lib/homework";
 import { json } from "@/lib/http";
+import { juzFor, quranPortion, surahByName } from "@/lib/quran";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 import { homeworkSchema } from "@/lib/validators";
@@ -24,22 +26,13 @@ export async function GET(request: NextRequest) {
     let rows = homework ?? [];
     if (session.role === "PARENT") {
       const admin = createAdminClient();
-      const ids = rows.map((item) => item.id);
-      const { data: kids } = await admin.from("Student").select("id").eq("parentId", session.userId).eq("tenantId", session.tenantId);
-      const { data: completions } = ids.length
-        ? await admin.from("HomeworkCompletion").select("homeworkId, studentId").in("homeworkId", ids)
-        : { data: [] };
+      const { data: kids } = await admin
+        .from("Student")
+        .select("id")
+        .eq("parentId", session.userId)
+        .eq("tenantId", session.tenantId);
       const kidIds = new Set((kids ?? []).map((kid) => kid.id));
-      const assigned = new Map<string, string[]>();
-      for (const row of completions ?? []) {
-        const list = assigned.get(row.homeworkId) ?? [];
-        list.push(row.studentId);
-        assigned.set(row.homeworkId, list);
-      }
-      rows = rows.filter((item) => {
-        const targets = assigned.get(item.id) ?? [];
-        return targets.length === 0 || targets.some((studentId) => kidIds.has(studentId));
-      });
+      rows = rows.filter((item) => !item.studentId || kidIds.has(item.studentId));
     }
     return json({ homework: rows });
   } catch (err) {
@@ -52,7 +45,7 @@ export async function POST(request: NextRequest) {
     const { supabase, session } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "TEACHER"]);
     const parsed = homeworkSchema.safeParse(await request.json());
     if (!parsed.success) {
-      throw new ApiError("Enter a homework title and class.");
+      throw new ApiError("Enter the class, homework type, Surah, and ayah range.");
     }
     const { schoolClass } = await getTenantClass(request, parsed.data.classId);
     let targetStudent: { id: string; firstName: string; lastName: string } | null = null;
@@ -67,12 +60,28 @@ export async function POST(request: NextRequest) {
       targetStudent = student;
     }
 
+    const matched = surahByName(parsed.data.surah);
+    const juz = parsed.data.juz ?? (matched ? juzFor(matched.number, parsed.data.ayahFrom) : undefined);
+    const title = homeworkTitle({
+      kind: parsed.data.kind,
+      surah: parsed.data.surah,
+      ayahFrom: parsed.data.ayahFrom,
+      ayahTo: parsed.data.ayahTo,
+      fallback: parsed.data.title,
+    });
+
     const { data: homework, error } = await supabase
       .from("Homework")
       .insert({
         tenantId: session.tenantId,
         classId: schoolClass.id,
-        title: parsed.data.title,
+        studentId: targetStudent?.id ?? null,
+        kind: parsed.data.kind,
+        surah: parsed.data.surah,
+        ayahFrom: parsed.data.ayahFrom,
+        ayahTo: parsed.data.ayahTo,
+        juz: juz ?? null,
+        title,
         description: parsed.data.description,
         assignedDate: parsed.data.assignedDate,
         dueDate: parsed.data.dueDate,
@@ -82,21 +91,34 @@ export async function POST(request: NextRequest) {
       .single();
     throwIfError(error, "Could not assign homework.");
 
-    if (targetStudent) {
-      const { error: completionError } = await supabase.from("HomeworkCompletion").insert({
-        homeworkId: homework.id,
-        studentId: targetStudent.id,
-        status: "assigned",
-      });
-      throwIfError(completionError, "Could not assign homework to that student.");
-    }
-
-    let studentsQuery = supabase
+    const admin = createAdminClient();
+    let studentsQuery = admin
       .from("Student")
       .select("id, firstName, lastName, parent:User!parentId(name, email)")
-      .eq("classId", schoolClass.id);
+      .eq("tenantId", session.tenantId)
+      .eq("classId", schoolClass.id)
+      .neq("status", "unenrolled")
+      .neq("status", "declined");
     if (targetStudent) studentsQuery = studentsQuery.eq("id", targetStudent.id);
     const { data: students } = await studentsQuery;
+
+    if (students?.length) {
+      const { error: completionError } = await admin.from("HomeworkCompletion").insert(
+        students.map((student) => ({
+          homeworkId: homework.id,
+          studentId: student.id,
+          status: "assigned",
+        })),
+      );
+      throwIfError(completionError, "Could not assign homework to those students.");
+    }
+
+    const portion = quranPortion({
+      surah: homework.surah,
+      ayahFrom: homework.ayahFrom,
+      ayahTo: homework.ayahTo,
+      juz: homework.juz,
+    });
     const sent = new Set<string>();
     for (const student of students ?? []) {
       const parent = Array.isArray(student.parent) ? student.parent[0] : student.parent;
@@ -107,6 +129,8 @@ export async function POST(request: NextRequest) {
         parentName: parent.name,
         childName: `${student.firstName} ${student.lastName}`,
         title: homework.title,
+        portion,
+        instructions: homework.description,
         dueDate: homework.dueDate,
         homeworkId: homework.id,
       });

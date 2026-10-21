@@ -957,10 +957,19 @@ tbody tr:hover td {
   color: var(--green);
 }
 
-.mark-btn.is-on_track.is-active {
+.mark-btn.is-on_track.is-active,
+.mark-btn.is-reading.is-active,
+.mark-btn.is-memorization.is-active {
   background: var(--paid);
   border-color: var(--paid);
   color: white;
+}
+
+.mark-btn.is-review.is-active,
+.mark-btn.is-written.is-active {
+  background: var(--gold-soft);
+  border-color: var(--gold);
+  color: var(--green);
 }
 
 .mark-btn.is-contact_parent.is-active {
@@ -982,6 +991,37 @@ tbody tr:hover td {
 .progress-row.is-contact_parent,
 .progress-latest.is-contact_parent {
   background: #fdecec;
+}
+
+.homework-card-top,
+.homework-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.homework-portion {
+  margin: 0.35rem 0 0;
+  color: var(--green);
+  font-weight: 700;
+}
+
+.homework-status-list {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
+
+.homework-status-row {
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.homework-actions {
+  margin-top: 0.85rem;
 }
 
 .progress-desktop {
@@ -1035,7 +1075,8 @@ tbody tr:hover td {
 
   .teacher-form .parent-form-submit,
   .teacher-form .parent-notes,
-  .teacher-form .progress-tone {
+  .teacher-form .progress-tone,
+  .homework-form .homework-actions {
     grid-column: 1 / -1;
   }
 

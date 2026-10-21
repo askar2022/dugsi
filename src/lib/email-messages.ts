@@ -106,6 +106,8 @@ export function homeworkAssignedEmail(input: {
   parentName?: string | null;
   childName: string;
   title: string;
+  portion?: string | null;
+  instructions?: string | null;
   dueDate?: string | null;
   homeworkId: string;
 }) {
@@ -115,11 +117,13 @@ export function homeworkAssignedEmail(input: {
     body: [
       greeting(input.parentName),
       "",
-      `${input.schoolName} assigned homework for ${input.childName}: ${input.title}.${due}`,
-      "Please help them finish it.",
+      `${input.schoolName} assigned Quran homework for ${input.childName}: ${input.title}.${due}`,
+      input.portion ? `Portion: ${input.portion}.` : "",
+      input.instructions ? input.instructions : "Please help them finish it at home.",
+      "In the parent portal you can mark it Done or Needs help.",
       "",
       `Homework ${input.homeworkId}`,
-    ].join("\n"),
+    ].filter(Boolean).join("\n"),
   };
 }
 
