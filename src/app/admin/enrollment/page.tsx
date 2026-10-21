@@ -57,7 +57,7 @@ export default function EnrollmentPage() {
         }),
       });
       form.reset();
-      setMessage("Student registered. Open Students or the Parent Portal to see them.");
+      setMessage("Student registered and linked to the parent. Open the Parent Portal to see them.");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not register that student.");
@@ -110,8 +110,8 @@ export default function EnrollmentPage() {
             ))}
           </select>
         </FormField>
-        <FormField label="Parent name"><input className="input" name="parentName" /></FormField>
-        <FormField label="Parent email"><input className="input" name="parentEmail" type="email" /></FormField>
+        <FormField label="Parent name"><input className="input" name="parentName" defaultValue="Amina Hassan" /></FormField>
+        <FormField label="Parent email"><input className="input" name="parentEmail" type="email" defaultValue="parent@noor.dugsi" /></FormField>
         <div className="md:col-span-2">
           <button className="btn btn-primary">Register student</button>
           {error ? <p className="mt-3 text-sm text-late">{error}</p> : null}

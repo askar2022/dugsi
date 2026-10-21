@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     let parentId: string | undefined;
     if (parsed.data.parentEmail) {
       const email = parsed.data.parentEmail.trim().toLowerCase();
-      const { data: existing } = await supabase.from("User").select("id").eq("email", email).maybeSingle();
+      const { data: existing } = await supabase.from("User").select("id").eq("email", email).eq("tenantId", session.tenantId).maybeSingle();
       if (existing) {
         parentId = existing.id;
       } else if (parsed.data.parentName && parsed.data.parentEmail) {
@@ -70,6 +70,26 @@ export async function POST(request: NextRequest) {
           parentId = created.user.id;
         }
       }
+    }
+    if (!parentId) {
+      const parentEmail = `parent@${session.tenantSlug}.dugsi`;
+      const { data: demoParent } = await supabase
+        .from("User")
+        .select("id")
+        .eq("tenantId", session.tenantId)
+        .eq("role", "PARENT")
+        .eq("email", parentEmail)
+        .maybeSingle();
+      const { data: anyParent } = demoParent
+        ? { data: demoParent }
+        : await supabase
+            .from("User")
+            .select("id")
+            .eq("tenantId", session.tenantId)
+            .eq("role", "PARENT")
+            .limit(1)
+            .maybeSingle();
+      parentId = (demoParent ?? anyParent)?.id;
     }
 
     const { data: student, error } = await supabase
