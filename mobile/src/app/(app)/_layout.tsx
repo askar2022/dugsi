@@ -1,12 +1,14 @@
 import { Redirect, Tabs } from "expo-router";
 import { useAuth } from "@/context/Auth";
 import { FamilyProvider } from "@/context/Family";
+import { homeHref } from "@/lib/roles";
 import { colors } from "@/lib/theme";
 
 export default function AppLayout() {
   const { user, ready } = useAuth();
   if (!ready) return null;
   if (!user) return <Redirect href="/" />;
+  if (user.role !== "PARENT") return <Redirect href={homeHref(user.role)} />;
 
   return (
     <FamilyProvider>

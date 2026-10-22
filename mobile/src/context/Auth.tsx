@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, loadStoredSession, rememberSchool, setToken } from "@/lib/api";
+import { isSchoolRole } from "@/lib/roles";
 
-export type ParentUser = {
+export type SchoolUser = {
   id: string;
   name: string;
   email: string;
@@ -11,7 +12,7 @@ export type ParentUser = {
 };
 
 type AuthContextValue = {
-  user: ParentUser | null;
+  user: SchoolUser | null;
   ready: boolean;
   schoolCode: string;
   setSchoolCode: (value: string) => void;
@@ -22,7 +23,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<ParentUser | null>(null);
+  const [user, setUser] = useState<SchoolUser | null>(null);
   const [ready, setReady] = useState(false);
   const [schoolCode, setSchoolCode] = useState("");
 
@@ -31,8 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(async ({ token, school }) => {
         setSchoolCode(school);
         if (!token) return;
-        const data = await api<{ user: ParentUser }>("/api/auth/me");
-        if (data.user.role !== "PARENT") {
+        const data = await api<{ user: SchoolUser }>("/api/auth/me");
+        if (!isSchoolRole(data.user.role)) {
           setToken(null);
           return;
         }
@@ -44,18 +45,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(input: { schoolCode: string; email: string; password: string }) {
     const code = input.schoolCode.trim().toLowerCase();
-    const data = await api<{ token: string; user: ParentUser }>("/api/auth/login", {
+    const data = await api<{ token: string; user: SchoolUser }>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({
         schoolCode: code,
         email: input.email.trim().toLowerCase(),
         password: input.password,
-        portal: "parent",
       }),
     });
-    if (data.user.role !== "PARENT") {
+    if (!isSchoolRole(data.user.role)) {
       setToken(null);
-      throw new Error("This app is for parents. Use the school website for Teacher or Admin.");
+      throw new Error("This app is for this school’s parents, teachers, and office.");
     }
     setToken(data.token);
     rememberSchool(code);

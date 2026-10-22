@@ -126,7 +126,7 @@ Copy keys from each Supabase project: **Project Settings → API**.
 
 ## Mobile
 
-The Expo Parent app in `mobile/` uses the same `/api` routes and is for parents only.
+The Expo app in `mobile/` uses the same `/api` routes. Parents, teachers, and the office can sign in. Parents are the main users.
 
 ```bash
 cd mobile

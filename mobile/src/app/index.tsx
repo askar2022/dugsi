@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, Card, Copy, Field, Kicker, Title } from "@/components/Ui";
 import { useAuth } from "@/context/Auth";
+import { homeHref } from "@/lib/roles";
 import { colors } from "@/lib/theme";
 
 export default function LoginScreen() {
@@ -13,7 +14,7 @@ export default function LoginScreen() {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
-  if (ready && user) return <Redirect href="/(app)" />;
+  if (ready && user) return <Redirect href={homeHref(user.role)} />;
 
   async function onSubmit() {
     setError("");
@@ -33,8 +34,8 @@ export default function LoginScreen() {
         <ScrollView contentContainerStyle={styles.page}>
           <Card>
             <Kicker>Welcome</Kicker>
-            <Title>Parent</Title>
-            <Copy>Assalamu alaikum. Sign in to see your children.</Copy>
+            <Title>Dugsi</Title>
+            <Copy>Assalamu alaikum. Parents, teachers, and the office can sign in here.</Copy>
             <Field
               value={schoolCode}
               onChangeText={setSchoolCode}
