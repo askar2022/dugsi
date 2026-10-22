@@ -2,8 +2,9 @@
   "expo": {
     "name": "Dugsi",
     "slug": "dugsi",
+    "owner": "askar101",
     "scheme": "ourdugsi",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -36,7 +37,15 @@
       "typedRoutes": true
     },
     "extra": {
-      "apiUrl": "https://ourdugsi.com"
+      "apiUrl": "https://ourdugsi.com",
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "735dfeb6-6e25-4b80-b9bd-0708a8126a68"
+      }
     }
   }
 }
