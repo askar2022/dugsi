@@ -138,11 +138,12 @@ Install Expo Go on iPhone or Android, then scan the QR code. Sign in with the sc
 
 The app talks to `https://ourdugsi.com` unless you set `EXPO_PUBLIC_API_URL`.
 
-To put Parent on the App Store and Google Play later:
+To put Dugsi on the App Store and Google Play later, work from `mobile/` (not the website root):
 
 ```bash
+cd mobile
 npx eas-cli@latest login
-npx eas-cli@latest build --platform all --profile production
+npx eas-cli@latest build --platform android --profile preview
 ```
 
-That needs an Apple Developer account and a Google Play Developer account.
+That makes an Android file families can install. iPhone and store upload need an Apple Developer account and a Google Play Developer account. Do not connect this GitHub repo to Expo yet — Expo would build the website, not the phone app.
