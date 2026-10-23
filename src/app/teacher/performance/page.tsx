@@ -5,7 +5,7 @@ import { ClassPerformanceCard, type ClassCard } from "@/components/portal/Perfor
 import { PageHeader } from "@/components/portal/PageHeader";
 import { api } from "@/lib/api";
 
-type Report = { classes: ClassCard[]; window: { start: string; end: string } };
+type Report = { classes: ClassCard[] };
 
 export default function TeacherPerformancePage() {
   const [report, setReport] = useState<Report | null>(null);
@@ -18,11 +18,11 @@ export default function TeacherPerformancePage() {
     <div className="page-stack">
       <PageHeader
         title="Your class"
-        description="This is only your class, scored against each child’s own Qur’an goal over four weeks. You will not see other teachers."
+        description="This is only your class. You will not see other teachers."
       />
-      <section className="record-list">
+      <section className="perf-grid">
         {(report?.classes ?? []).map((item) => (
-          <ClassPerformanceCard key={item.id} item={item} />
+          <ClassPerformanceCard key={item.id} item={item} studentsHref={`/teacher/performance/${item.id}`} />
         ))}
         {report && report.classes.length === 0 ? (
           <div className="card empty-state">

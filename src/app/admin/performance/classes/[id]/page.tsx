@@ -38,24 +38,34 @@ export default function ClassPerformanceDetailPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        title={klass ? `${klass.teacherName} — ${klass.name}` : "Class performance"}
-        description="This class is scored from each child’s own Qur’an path, plus homework follow-up and attendance in the last four weeks."
+        title={klass ? klass.name : "Class performance"}
+        description="Each child is scored against their own Qur’an path, plus homework and attendance."
       />
       <Link href="/admin/performance" className="btn btn-ghost">Back to Performance</Link>
       {klass ? <ClassPerformanceCard item={klass} /> : null}
-      <section className="record-list">
+      <section className="perf-grid">
         {(report?.students ?? []).map((student) => (
-          <article key={student.id} className={`card record-card-stack progress-row is-${student.rating === "support_needed" ? "contact_parent" : student.rating === "on_track" ? "on_track" : "needs_practice"}`}>
-            <div className="homework-card-top">
-              <p className="record-title">{student.firstName} {student.lastName}</p>
+          <article key={student.id} className="card perf-card">
+            <div className="perf-card-top">
+              <div>
+                <h2 className="perf-title">{student.firstName} {student.lastName}</h2>
+              </div>
               <StatusBadge status={student.rating === "none" ? "needs_attention" : student.rating} />
             </div>
-            <p className="record-meta">Own Qur’an goal: {student.quranScore == null ? "—" : `${student.quranScore}%`}</p>
-            <p className="record-meta">Attendance: {student.attendanceScore == null ? "—" : `${student.attendanceScore}%`}</p>
-            <p className="record-meta">
-              Homework: {student.homeworkReviewed}/{student.homeworkAssigned} reviewed
-              {student.homeworkScore != null ? ` · ${student.homeworkScore}%` : ""}
-            </p>
+            <div className="perf-stats">
+              <div className="perf-stat is-paid">
+                <p className="perf-stat-value">{student.quranScore == null ? "—" : `${student.quranScore}%`}</p>
+                <p className="perf-stat-label">Own Qur’an goal</p>
+              </div>
+              <div className="perf-stat is-due">
+                <p className="perf-stat-value">{student.attendanceScore == null ? "—" : `${student.attendanceScore}%`}</p>
+                <p className="perf-stat-label">Attendance</p>
+              </div>
+              <div className="perf-stat">
+                <p className="perf-stat-value">{student.homeworkAssigned ? `${student.homeworkReviewed} of ${student.homeworkAssigned}` : "—"}</p>
+                <p className="perf-stat-label">Homework</p>
+              </div>
+            </div>
           </article>
         ))}
       </section>

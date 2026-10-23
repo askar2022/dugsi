@@ -37,22 +37,31 @@ export default function FamilyPerformanceDetailPage() {
     <div className="page-stack">
       <PageHeader
         title={family?.name ?? "Family engagement"}
-        description="Only actions this family recorded in the app count: on-time arrival and homework follow-up. Pickup stays hidden until the app records it."
+        description="Only actions this family recorded in the app count."
       />
       <Link href="/admin/performance" className="btn btn-ghost">Back to Performance</Link>
       {family ? <FamilyPerformanceCard item={family} /> : null}
-      <section className="record-list">
+      <section className="perf-grid">
         {(report?.students ?? []).map((student) => (
-          <article key={student.id} className={`card record-card-stack progress-row is-${student.rating === "support_needed" ? "contact_parent" : student.rating === "on_track" ? "on_track" : "needs_practice"}`}>
-            <div className="homework-card-top">
-              <p className="record-title">{student.firstName} {student.lastName}</p>
+          <article key={student.id} className="card perf-card">
+            <div className="perf-card-top">
+              <h2 className="perf-title">{student.firstName} {student.lastName}</h2>
               <StatusBadge status={student.rating === "none" ? "needs_attention" : student.rating} />
             </div>
-            <p className="record-meta">On-time arrival: {student.onTimeArrival == null ? "—" : `${student.onTimeArrival}%`}</p>
-            <p className="record-meta">
-              Homework follow-up: {student.homeworkReviewed}/{student.homeworkAssigned}
-              {student.homeworkScore != null ? ` · ${student.homeworkScore}%` : ""}
-            </p>
+            <div className="perf-stats">
+              <div className="perf-stat is-paid">
+                <p className="perf-stat-value">{student.onTimeArrival == null ? "—" : `${student.onTimeArrival}%`}</p>
+                <p className="perf-stat-label">On-time arrival</p>
+              </div>
+              <div className="perf-stat is-due">
+                <p className="perf-stat-value">{student.homeworkAssigned ? `${student.homeworkReviewed} of ${student.homeworkAssigned}` : "—"}</p>
+                <p className="perf-stat-label">Homework follow-up</p>
+              </div>
+              <div className="perf-stat">
+                <p className="perf-stat-value">—</p>
+                <p className="perf-stat-label">On-time pickup</p>
+              </div>
+            </div>
           </article>
         ))}
       </section>

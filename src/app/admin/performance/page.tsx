@@ -1,25 +1,22 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ClassPerformanceCard, FamilyPerformanceCard, type ClassCard, type FamilyCard } from "@/components/portal/PerformanceCards";
+import {
+  ClassPerformanceCard,
+  FamilyPerformanceCard,
+  SchoolPerformanceCard,
+  type ClassCard,
+  type FamilyCard,
+  type SchoolCard,
+} from "@/components/portal/PerformanceCards";
 import { PageHeader } from "@/components/portal/PageHeader";
-import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api";
-import { CLASS_RATING_LABELS, type RatingKey } from "@/lib/performance";
 
 type Tab = "classes" | "families";
 
 type Report = {
   window: { start: string; end: string; days: number };
-  school: {
-    students: number;
-    onTrackPct: number | null;
-    needsSupportPct: number | null;
-    supportCount: number;
-    score: number | null;
-    rating: RatingKey | "none";
-  } | null;
+  school: SchoolCard | null;
   classes: ClassCard[];
   families: FamilyCard[];
 };
@@ -32,36 +29,23 @@ export default function AdminPerformancePage() {
     api<Report>("/api/performance").then(setReport).catch(() => setReport(null));
   }, []);
 
-  const school = report?.school;
-  const schoolRating = school?.rating && school.rating !== "none" ? school.rating : "needs_attention";
-
   return (
     <div className="page-stack">
       <PageHeader
         title="Performance"
-        description="Each child is measured against their own Qur’an goal over the last four weeks — not against other students. Ratings stay in the office. Teachers never see another teacher’s card, and families never see another family."
+        description="Each child is scored against their own Qur’an goal. Class counts add up to the whole dugsi."
       />
 
-      {!report || !school ? (
+      {!report || !report.school ? (
         <div className="card empty-state">
           <p className="empty-state-title">Loading performance</p>
           <p className="empty-state-text">Gathering the last four weeks of attendance, homework, and Qur’an records.</p>
         </div>
       ) : (
-        <section className={`card record-card-stack progress-row is-${school.rating === "support_needed" ? "contact_parent" : school.rating === "on_track" ? "on_track" : "needs_practice"}`}>
-          <div className="homework-card-top">
-            <p className="record-title">Whole dugsi</p>
-            <StatusBadge status={schoolRating} />
-          </div>
-          <p className="record-meta">
-            {school.students} student{school.students === 1 ? "" : "s"}
-            {school.onTrackPct != null ? ` | ${school.onTrackPct}% On Track` : ""}
-            {school.rating !== "none" ? ` | ${CLASS_RATING_LABELS[school.rating]}` : ""}
-          </p>
-          <p className="record-meta">
-            {school.supportCount} student{school.supportCount === 1 ? "" : "s"} need additional support · {report.window.start} to {report.window.end}
-          </p>
-        </section>
+        <SchoolPerformanceCard
+          item={report.school}
+          windowLabel={`${report.window.start} to ${report.window.end}`}
+        />
       )}
 
       <div className="performance-tabs">
@@ -74,9 +58,9 @@ export default function AdminPerformancePage() {
       </div>
 
       {tab === "classes" ? (
-        <section className="record-list">
+        <section className="perf-grid">
           {(report?.classes ?? []).map((item) => (
-            <ClassPerformanceCard key={item.id} item={item} href={`/admin/performance/classes/${item.id}`} />
+            <ClassPerformanceCard key={item.id} item={item} studentsHref={`/admin/performance/classes/${item.id}`} />
           ))}
           {report && report.classes.length === 0 ? (
             <div className="card empty-state">
@@ -86,7 +70,7 @@ export default function AdminPerformancePage() {
           ) : null}
         </section>
       ) : (
-        <section className="record-list">
+        <section className="perf-grid">
           {(report?.families ?? []).map((item) => (
             <FamilyPerformanceCard key={item.id} item={item} href={`/admin/performance/families/${item.id}`} />
           ))}
@@ -98,11 +82,6 @@ export default function AdminPerformancePage() {
           ) : null}
         </section>
       )}
-
-      <p className="page-copy">
-        Open a card for student details. Pickup and announcements stay off these cards until the app records them.{" "}
-        <Link href="/admin/progress">Quran Progress</Link> still lists each child’s Surah and Ayah.
-      </p>
     </div>
   );
 }

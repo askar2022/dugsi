@@ -1,96 +1,149 @@
 import Link from "next/link";
 import { StatusBadge } from "@/components/StatusBadge";
-import {
-  CLASS_RATING_LABELS,
-  FAMILY_RATING_LABELS,
-  type RatingKey,
-} from "@/lib/performance";
+import { FAMILY_RATING_LABELS, type RatingKey } from "@/lib/performance";
 
 export type ClassCard = {
   id: string;
   name: string;
   teacherName: string;
   students: number;
+  onTrackCount: number;
+  attentionCount: number;
+  supportCount: number;
   onTrackPct: number | null;
   needsSupportPct: number | null;
-  supportCount: number;
   score: number | null;
   rating: RatingKey | "none";
   homeworkAssigned: number;
   homeworkReviewed: number;
   attendanceDays: number;
-  trend: Array<{ start: string; end: string; onTrackPct: number | null }>;
+  trend: Array<{ start: string; end: string; onTrackCount?: number; total?: number; onTrackPct: number | null }>;
 };
 
 export type FamilyCard = {
   id: string;
   name: string;
   students: number;
+  onTimeCount?: number;
+  arrivalCount?: number;
   onTimeArrival: number | null;
+  homeworkAssigned?: number;
+  homeworkReviewed?: number;
   homeworkFollowUp: number | null;
   pickupRecorded: boolean;
   score: number | null;
   rating: RatingKey | "none";
 };
 
-function tone(rating: RatingKey | "none") {
-  if (rating === "on_track") return "on_track";
-  if (rating === "needs_attention") return "needs_practice";
-  if (rating === "support_needed") return "contact_parent";
-  return "needs_practice";
+export type SchoolCard = {
+  students: number;
+  onTrackCount: number;
+  attentionCount: number;
+  supportCount: number;
+  onTrackPct: number | null;
+  rating: RatingKey | "none";
+};
+
+function badge(rating: RatingKey | "none") {
+  return rating === "none" ? "needs_attention" : rating;
 }
 
-function pct(value: number | null) {
-  return value == null ? "—" : `${value}%`;
+function of(part: number, whole: number) {
+  return `${part} of ${whole}`;
 }
 
-export function Trend({ points }: { points: ClassCard["trend"] }) {
+function Bar({ value, max, tone }: { value: number; max: number; tone: "paid" | "due" | "late" }) {
+  const width = max ? Math.min(100, Math.round((value / max) * 100)) : 0;
   return (
-    <div className="performance-trend" aria-label="Four-week on-track trend">
-      {points.map((point, index) => (
-        <span key={`${point.start}-${index}`} className="performance-trend-item">
-          <span className="record-meta">W{index + 1}</span>
-          <strong>{pct(point.onTrackPct)}</strong>
-        </span>
-      ))}
+    <div className="perf-bar" aria-hidden="true">
+      <span className={`perf-bar-fill is-${tone}`} style={{ width: `${width}%` }} />
     </div>
+  );
+}
+
+function Stat({
+  value,
+  label,
+  tone,
+}: {
+  value: string;
+  label: string;
+  tone: "paid" | "due" | "late" | "muted";
+}) {
+  return (
+    <div className={`perf-stat is-${tone}`}>
+      <p className="perf-stat-value">{value}</p>
+      <p className="perf-stat-label">{label}</p>
+    </div>
+  );
+}
+
+export function SchoolPerformanceCard({
+  item,
+  windowLabel,
+}: {
+  item: SchoolCard;
+  windowLabel?: string;
+}) {
+  return (
+    <article className="card perf-card">
+      <div className="perf-card-top">
+        <div>
+          <p className="perf-kicker">Last four weeks</p>
+          <h2 className="perf-title">Whole dugsi</h2>
+          <p className="perf-sub">{item.students} students{windowLabel ? ` · ${windowLabel}` : ""}</p>
+        </div>
+        <StatusBadge status={badge(item.rating)} />
+      </div>
+      <p className="perf-lead">{of(item.onTrackCount, item.students)} on track</p>
+      <Bar value={item.onTrackCount} max={item.students} tone="paid" />
+      <div className="perf-stats">
+        <Stat value={of(item.onTrackCount, item.students)} label="On Track" tone="paid" />
+        <Stat value={of(item.attentionCount, item.students)} label="Needs Attention" tone="due" />
+        <Stat value={of(item.supportCount, item.students)} label="Support Needed" tone="late" />
+      </div>
+    </article>
   );
 }
 
 export function ClassPerformanceCard({
   item,
-  href,
+  studentsHref,
 }: {
   item: ClassCard;
-  href?: string;
+  studentsHref?: string;
 }) {
-  const rating = item.rating === "none" ? "needs_attention" : item.rating;
-  const body = (
-    <article className={`card record-card-stack progress-row is-${tone(item.rating)}`}>
-      <div className="homework-card-top">
-        <p className="record-title">{item.teacherName} — {item.name}</p>
-        <StatusBadge status={rating} />
+  return (
+    <article className="card perf-card">
+      <div className="perf-card-top">
+        <div>
+          <p className="perf-kicker">{item.teacherName}</p>
+          <h2 className="perf-title">{item.name}</h2>
+          <p className="perf-sub">{item.students} students</p>
+        </div>
+        <StatusBadge status={badge(item.rating)} />
       </div>
-      <p className="record-meta">
-        {item.students} student{item.students === 1 ? "" : "s"}
-        {item.onTrackPct != null ? ` | ${item.onTrackPct}% On Track` : ""}
-        {item.rating !== "none" ? ` | ${CLASS_RATING_LABELS[item.rating]}` : ""}
-      </p>
-      {item.supportCount > 0 ? (
-        <p className="record-meta">{item.supportCount} student{item.supportCount === 1 ? "" : "s"} need additional support</p>
-      ) : (
-        <p className="record-meta">No students below 60% this window.</p>
-      )}
-      <p className="record-meta">
-        Homework {item.homeworkAssigned} assigned · {item.homeworkReviewed} reviewed
-      </p>
-      <p className="record-meta">
-        Attendance recorded {item.attendanceDays} class day{item.attendanceDays === 1 ? "" : "s"}
-      </p>
-      <Trend points={item.trend} />
+      <p className="perf-lead">{of(item.onTrackCount, item.students)} on track</p>
+      <Bar value={item.onTrackCount} max={item.students} tone={item.rating === "support_needed" ? "late" : item.rating === "needs_attention" ? "due" : "paid"} />
+      <div className="perf-stats">
+        <Stat value={of(item.onTrackCount, item.students)} label="On Track" tone="paid" />
+        <Stat value={of(item.attentionCount, item.students)} label="Needs Attention" tone="due" />
+        <Stat value={of(item.supportCount, item.students)} label="Support Needed" tone="late" />
+      </div>
+      <div className="perf-stats">
+        <Stat value={item.homeworkAssigned ? of(item.homeworkReviewed, item.homeworkAssigned) : "—"} label="Homework reviewed" tone="muted" />
+        <Stat value={`${item.attendanceDays} of 4`} label="Days recorded" tone="muted" />
+        <Stat
+          value={item.trend.map((week) => (week.total ? of(week.onTrackCount ?? 0, week.total) : "—")).join(" · ")}
+          label="Weekly on track"
+          tone="muted"
+        />
+      </div>
+      {studentsHref ? (
+        <Link href={studentsHref} className="btn btn-primary perf-card-btn">View Students</Link>
+      ) : null}
     </article>
   );
-  return href ? <Link href={href} className="performance-link">{body}</Link> : body;
 }
 
 export function FamilyPerformanceCard({
@@ -100,21 +153,29 @@ export function FamilyPerformanceCard({
   item: FamilyCard;
   href?: string;
 }) {
-  const rating = item.rating === "none" ? "needs_attention" : item.rating;
-  const body = (
-    <article className={`card record-card-stack progress-row is-${tone(item.rating)}`}>
-      <div className="homework-card-top">
-        <p className="record-title">{item.name}</p>
-        <StatusBadge status={rating} />
+  const arrivals = item.arrivalCount ?? 0;
+  const assigned = item.homeworkAssigned ?? 0;
+  return (
+    <article className="card perf-card">
+      <div className="perf-card-top">
+        <div>
+          <p className="perf-kicker">{item.students} students</p>
+          <h2 className="perf-title">{item.name}</h2>
+          <p className="perf-sub">
+            {item.rating === "none" ? "Not enough records yet" : FAMILY_RATING_LABELS[item.rating]}
+          </p>
+        </div>
+        <StatusBadge status={badge(item.rating)} />
       </div>
-      <p className="record-meta">{item.students} student{item.students === 1 ? "" : "s"}</p>
-      <p className="record-meta">On-time arrival: {pct(item.onTimeArrival)}</p>
-      <p className="record-meta">On-time pickup: not recorded yet</p>
-      <p className="record-meta">Homework follow-up: {pct(item.homeworkFollowUp)}</p>
-      <p className="record-meta">
-        Overall: {item.rating === "none" ? "Not enough records yet" : FAMILY_RATING_LABELS[item.rating]}
-      </p>
+      <Bar value={item.onTimeCount ?? 0} max={arrivals} tone={item.rating === "support_needed" ? "late" : item.rating === "needs_attention" ? "due" : "paid"} />
+      <div className="perf-stats">
+        <Stat value={arrivals ? of(item.onTimeCount ?? 0, arrivals) : "—"} label="On-time arrival" tone="paid" />
+        <Stat value={assigned ? of(item.homeworkReviewed ?? 0, assigned) : "—"} label="Homework follow-up" tone="due" />
+        <Stat value="—" label="On-time pickup" tone="muted" />
+      </div>
+      {href ? (
+        <Link href={href} className="btn btn-primary perf-card-btn">View Students</Link>
+      ) : null}
     </article>
   );
-  return href ? <Link href={href} className="performance-link">{body}</Link> : body;
 }
