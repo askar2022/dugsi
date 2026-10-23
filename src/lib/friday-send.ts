@@ -1,8 +1,20 @@
 import { sendTenantEmail } from "@/lib/email";
 import { fridayAdminEmail, fridayAdminMonthEmail, fridayParentEmail, fridayTeacherEmail } from "@/lib/friday-emails";
-import { loadTenantFridayData } from "@/lib/friday-snapshot";
+import { loadTenantFridayData, type Person } from "@/lib/friday-snapshot";
 import { chicagoNow, fridayWindows, isFirstFriday, previousMonth } from "@/lib/friday-weeks";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+const NOOR_WATCH: Person = {
+  id: "noor-watch",
+  name: "Abdimalik",
+  email: "aabdimalik@hotmail.com",
+};
+
+function adminRecipients(slug: string, admins: Person[]) {
+  if (slug !== "noor") return admins;
+  if (admins.some((office) => office.email.toLowerCase() === NOOR_WATCH.email)) return admins;
+  return [...admins, NOOR_WATCH];
+}
 
 async function alreadySent(
   admin: ReturnType<typeof createAdminClient>,
@@ -93,7 +105,7 @@ export async function runFridaySnapshots(asOf = chicagoNow()) {
       teacherEmails += 1;
     }
 
-    for (const office of data.admins) {
+    for (const office of adminRecipients(tenant.slug, data.admins)) {
       if (!(await alreadySent(admin, tenant.id, "friday_admin", office.email, weekMarker))) {
         const copy = fridayAdminEmail({
           schoolName: tenant.name,
