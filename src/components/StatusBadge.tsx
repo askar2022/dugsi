@@ -21,6 +21,8 @@ const TONES: Record<string, string> = {
   absent: "bg-red-50 text-late",
   contact_parent: "bg-red-50 text-late",
   needs_support: "bg-red-50 text-late",
+  needs_attention: "bg-gold-soft text-due",
+  support_needed: "bg-red-50 text-late",
   needs_help: "bg-red-50 text-late",
   assigned: "bg-gold-soft text-due",
   no_record: "bg-gold-soft text-due",
@@ -39,6 +41,9 @@ const LABELS: Record<string, string> = {
   written: "Written work",
   no_record: "No record yet",
   needs_support: "Needs support",
+  needs_attention: "Needs Attention",
+  support_needed: "Support Needed",
+  strong_support: "Strong Support",
   waiting_assessment: "Waiting for assessment",
   accepted: "Waiting for assessment",
 };

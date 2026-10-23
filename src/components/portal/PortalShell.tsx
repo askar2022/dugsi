@@ -8,6 +8,7 @@ import {
   CalendarDays,
   ClipboardList,
   Contact,
+  Activity,
   FileBarChart,
   GraduationCap,
   Home,
@@ -56,6 +57,7 @@ const NAV: Record<string, NavSection[]> = {
     {
       label: "Reports & Settings",
       items: [
+        { href: "/admin/performance", label: "Performance", icon: Activity },
         { href: "/admin/reports", label: "Reports", icon: FileBarChart },
         { href: "/admin/progress", label: "Quran Progress", icon: BookOpen },
         { href: "/admin/settings", label: "Settings", icon: Settings },
@@ -70,6 +72,7 @@ const NAV: Record<string, NavSection[]> = {
         { href: "/teacher/attendance", label: "Attendance", icon: CalendarDays },
         { href: "/teacher/progress", label: "Quran Progress", icon: BookOpen },
         { href: "/teacher/homework", label: "Homework", icon: ClipboardList },
+        { href: "/teacher/performance", label: "Your class", icon: Activity },
       ],
     },
   ],

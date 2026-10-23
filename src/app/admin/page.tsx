@@ -44,6 +44,12 @@ const TASKS = [
     icon: ClipboardList,
   },
   {
+    href: "/admin/performance",
+    label: "Performance",
+    text: "Classes, teachers, and family follow-up over four weeks.",
+    icon: BookOpen,
+  },
+  {
     href: "/admin/progress",
     label: "Quran Progress",
     text: "See which classes are on track and which need support.",

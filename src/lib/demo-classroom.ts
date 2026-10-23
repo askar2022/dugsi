@@ -114,15 +114,268 @@ export async function ensureNoorDemoLogins() {
     role: "PARENT",
   });
 
-  await admin.from("Class").update({ teacherId }).eq("tenantId", tenant.id);
-  await admin.from("Student").update({ parentId }).eq("tenantId", tenant.id).like("id", "sample-noor-%");
+  const aminaId = await ensureUser({
+    tenantId: tenant.id,
+    tenantSlug: tenant.slug,
+    tenantName: tenant.name,
+    email: "amina@noor.dugsi",
+    name: "Sister Amina",
+    role: "TEACHER",
+  });
+  const hodanId = await ensureUser({
+    tenantId: tenant.id,
+    tenantSlug: tenant.slug,
+    tenantName: tenant.name,
+    email: "hodan@noor.dugsi",
+    name: "Hodan Ali",
+    role: "PARENT",
+  });
+  const farahId = await ensureUser({
+    tenantId: tenant.id,
+    tenantSlug: tenant.slug,
+    tenantName: tenant.name,
+    email: "farah@noor.dugsi",
+    name: "Yusuf Farah",
+    role: "PARENT",
+  });
+
+  await ensureNoorDemoPerformance({
+    tenantId: tenant.id,
+    maryamId: teacherId,
+    aminaId,
+    hassanId: parentId,
+    hodanId,
+    farahId,
+  });
 
   return {
     password: PASSWORD,
     admin: { email: "admin@noor.dugsi", userId: adminId },
     teacher: { email: "teacher@noor.dugsi", userId: teacherId },
-    parent: { email: "parent@noor.dugsi", userId: parentId },
+    class2: { email: "amina@noor.dugsi", name: "Sister Amina" },
+    parent: { email: "parent@noor.dugsi", userId: parentId, family: "Hassan Family" },
+    hodan: { email: "hodan@noor.dugsi", family: "Hodan Family" },
   };
+}
+
+function lastSaturdays(count: number) {
+  const dates: string[] = [];
+  const day = new Date();
+  day.setHours(12, 0, 0, 0);
+  while (dates.length < count) {
+    if (day.getDay() === 6) dates.unshift(day.toISOString().slice(0, 10));
+    day.setDate(day.getDate() - 1);
+  }
+  return dates;
+}
+
+async function upsertNamedStudent(input: {
+  id: string;
+  tenantId: string;
+  parentId: string;
+  classId: string;
+  firstName: string;
+  lastName: string;
+  gender: string;
+}) {
+  const admin = createAdminClient();
+  const { data: byId } = await admin.from("Student").select("id").eq("id", input.id).maybeSingle();
+  const { data: byName } = await admin
+    .from("Student")
+    .select("id")
+    .eq("tenantId", input.tenantId)
+    .eq("firstName", input.firstName)
+    .eq("lastName", input.lastName)
+    .maybeSingle();
+  const id = byId?.id ?? byName?.id ?? input.id;
+  const row = {
+    id,
+    tenantId: input.tenantId,
+    firstName: input.firstName,
+    lastName: input.lastName,
+    gender: input.gender,
+    parentId: input.parentId,
+    classId: input.classId,
+    status: "enrolled",
+  };
+  const { error } = await admin.from("Student").upsert(row);
+  throwIfError(error, `Could not save ${input.firstName} ${input.lastName}.`);
+  return id;
+}
+
+async function ensureNoorDemoPerformance(input: {
+  tenantId: string;
+  maryamId: string;
+  aminaId: string;
+  hassanId: string;
+  hodanId: string;
+  farahId: string;
+}) {
+  const admin = createAdminClient();
+  const saturdays = lastSaturdays(4);
+
+  await admin.from("Class").upsert({
+    id: "sample-noor-class",
+    tenantId: input.tenantId,
+    name: "Weekend Quran",
+    level: "Mixed",
+    dayOfWeek: "Saturday",
+    startTime: "09:00",
+    endTime: "11:30",
+    room: "Main hall",
+    teacherId: input.maryamId,
+  });
+  await admin.from("Class").upsert({
+    id: "sample-noor-class-2",
+    tenantId: input.tenantId,
+    name: "Class 2",
+    level: "Year 2",
+    dayOfWeek: "Saturday",
+    startTime: "09:00",
+    endTime: "11:30",
+    room: "Room B",
+    teacherId: input.aminaId,
+  });
+
+  const { data: aminaStaff } = await admin.from("Staff").select("id").eq("tenantId", input.tenantId).eq("userId", input.aminaId).maybeSingle();
+  if (!aminaStaff) {
+    await admin.from("Staff").insert({
+      tenantId: input.tenantId,
+      userId: input.aminaId,
+      name: "Sister Amina",
+      email: "amina@noor.dugsi",
+      title: "Class 2 Teacher",
+    });
+  }
+
+  const class2 = "sample-noor-class-2";
+  const class1 = "sample-noor-class";
+
+  await admin.from("Student").update({ parentId: null }).eq("tenantId", input.tenantId).like("id", "sample-noor-%");
+  for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
+    await admin.from("Student").update({ classId: class2, status: "enrolled" }).eq("id", `sample-noor-${n}`).eq("tenantId", input.tenantId);
+  }
+  for (const n of [10, 11, 12]) {
+    await admin.from("Student").update({ classId: class1, parentId: input.farahId, status: "enrolled" }).eq("id", `sample-noor-${n}`).eq("tenantId", input.tenantId);
+  }
+
+  const hodanKids = await Promise.all([
+    upsertNamedStudent({ id: "sample-noor-hodan-1", tenantId: input.tenantId, parentId: input.hodanId, classId: class2, firstName: "Layla", lastName: "Hodan", gender: "girl" }),
+    upsertNamedStudent({ id: "sample-noor-hodan-2", tenantId: input.tenantId, parentId: input.hodanId, classId: class2, firstName: "Bilal", lastName: "Hodan", gender: "boy" }),
+    upsertNamedStudent({ id: "sample-noor-hodan-3", tenantId: input.tenantId, parentId: input.hodanId, classId: class2, firstName: "Safa", lastName: "Hodan", gender: "girl" }),
+  ]);
+  const hassanKids = await Promise.all([
+    upsertNamedStudent({ id: "sample-noor-hassan-1", tenantId: input.tenantId, parentId: input.hassanId, classId: class1, firstName: "Aisha", lastName: "Hassan", gender: "girl" }),
+    upsertNamedStudent({ id: "sample-noor-hassan-2", tenantId: input.tenantId, parentId: input.hassanId, classId: class1, firstName: "Omar", lastName: "Hassan", gender: "boy" }),
+    upsertNamedStudent({ id: "sample-noor-hassan-3", tenantId: input.tenantId, parentId: input.hassanId, classId: class1, firstName: "Maryam", lastName: "Hassan", gender: "girl" }),
+  ]);
+
+  const class2Strong = ["sample-noor-1", "sample-noor-2", "sample-noor-3", "sample-noor-4", "sample-noor-5", "sample-noor-6", "sample-noor-7", hodanKids[0], hodanKids[2]];
+  const class2Medium = ["sample-noor-8", hodanKids[1]];
+  const class2Support = ["sample-noor-9"];
+  const class1Strong = hassanKids;
+  const class1Support = ["sample-noor-10", "sample-noor-11", "sample-noor-12"];
+
+  const profileOf = (studentId: string) => {
+    if (class2Support.includes(studentId) || class1Support.includes(studentId)) return "support" as const;
+    if (class2Medium.includes(studentId)) return "medium" as const;
+    return "strong" as const;
+  };
+
+  const allClass2 = [...class2Strong, ...class2Medium, ...class2Support];
+  const allClass1 = [...class1Strong, ...class1Support];
+
+  for (const [week, date] of saturdays.entries()) {
+    for (const studentId of allClass2) {
+      const profile = profileOf(studentId);
+      const status = profile === "support"
+        ? week === 3 ? "absent" : "late"
+        : profile === "medium"
+          ? week === 1 ? "late" : "present"
+          : "present";
+      const { error } = await admin.from("Attendance").upsert({
+        tenantId: input.tenantId,
+        studentId,
+        classId: class2,
+        date,
+        status,
+        markedById: input.aminaId,
+      }, { onConflict: "tenantId,studentId,classId,date" });
+      throwIfError(error, "Could not save demo attendance.");
+    }
+    for (const studentId of allClass1) {
+      const profile = profileOf(studentId);
+      const status = profile === "support" ? (week % 2 === 0 ? "late" : "present") : "present";
+      const { error } = await admin.from("Attendance").upsert({
+        tenantId: input.tenantId,
+        studentId,
+        classId: class1,
+        date,
+        status,
+        markedById: input.maryamId,
+      }, { onConflict: "tenantId,studentId,classId,date" });
+      throwIfError(error, "Could not save demo attendance.");
+    }
+  }
+
+  await admin.from("Homework").delete().eq("tenantId", input.tenantId).like("id", "sample-noor-hw-%");
+  for (const [week, date] of saturdays.entries()) {
+    const ayahTo = 5 + week * 2;
+    for (const [classId, assignedById, prefix] of [
+      [class2, input.aminaId, "c2"],
+      [class1, input.maryamId, "c1"],
+    ] as const) {
+      const homeworkId = `sample-noor-hw-${prefix}-w${week + 1}`;
+      await admin.from("Homework").upsert({
+        id: homeworkId,
+        tenantId: input.tenantId,
+        classId,
+        kind: "reading",
+        surah: "Al-Baqarah",
+        ayahFrom: 1,
+        ayahTo,
+        juz: 1,
+        title: `Reading · Al-Baqarah 1–${ayahTo}`,
+        description: "Recite at home with a parent before next class.",
+        assignedDate: date,
+        dueDate: date,
+        assignedById,
+      });
+      const students = classId === class2 ? allClass2 : allClass1;
+      await admin.from("HomeworkCompletion").insert(
+        students.map((studentId) => {
+          const profile = profileOf(studentId);
+          const status = profile === "strong"
+            ? "done"
+            : profile === "medium"
+              ? week === 0 ? "assigned" : "needs_help"
+              : week === 3 ? "needs_help" : "assigned";
+          return { homeworkId, studentId, status };
+        }),
+      );
+    }
+  }
+
+  await admin.from("QuranProgress").delete().eq("tenantId", input.tenantId).like("id", "sample-noor-perf-%");
+  for (const [week, date] of saturdays.entries()) {
+    for (const studentId of [...allClass2, ...allClass1]) {
+      const profile = profileOf(studentId);
+      const status = profile === "support" ? "contact_parent" : profile === "medium" ? "needs_practice" : "on_track";
+      await admin.from("QuranProgress").insert({
+        id: `sample-noor-perf-${studentId}-${week + 1}`,
+        tenantId: input.tenantId,
+        studentId,
+        surah: "Al-Baqarah",
+        ayahFrom: 1,
+        ayahTo: 10 + week * 8,
+        juz: 1,
+        date,
+        status,
+        notes: "Demo progress for Performance",
+        recordedById: allClass2.includes(studentId) ? input.aminaId : input.maryamId,
+      });
+    }
+  }
 }
 
 async function ensureStudent(input: {

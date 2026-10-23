@@ -126,7 +126,7 @@ Copy keys from each Supabase project: **Project Settings → API**.
 
 ## Mobile
 
-The Expo app in `mobile/` uses the same `/api` routes.
+The Expo app in `mobile/` uses the same `/api` routes. Parents, teachers, and the office can sign in. Parents are the main users.
 
 ```bash
 cd mobile
@@ -134,4 +134,16 @@ npm install
 npx expo start
 ```
 
-Set `EXPO_PUBLIC_API_URL` to `https://staging.ourdugsi.com` or `https://ourdugsi.com`.
+Install Expo Go on iPhone or Android, then scan the QR code. Sign in with the school code, parent email, and password.
+
+The app talks to `https://ourdugsi.com` unless you set `EXPO_PUBLIC_API_URL`.
+
+To put Dugsi on the App Store and Google Play later, work from `mobile/` (not the website root):
+
+```bash
+cd mobile
+npx eas-cli@latest login
+npx eas-cli@latest build --platform android --profile preview
+```
+
+That makes an Android file families can install. iPhone and store upload need an Apple Developer account and a Google Play Developer account. Do not connect this GitHub repo to Expo yet — Expo would build the website, not the phone app.

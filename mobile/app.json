@@ -1,25 +1,51 @@
 {
   "expo": {
-    "name": "Parent",
-    "slug": "parent",
-    "version": "1.0.0",
+    "name": "Dugsi",
+    "slug": "dugsi",
+    "owner": "askar101",
+    "scheme": "ourdugsi",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#F7F3EB"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ourdugsi.parent",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.ourdugsi.parent",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#F7F3EB",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "apiUrl": "https://ourdugsi.com",
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "735dfeb6-6e25-4b80-b9bd-0708a8126a68"
+      }
     }
   }
 }
