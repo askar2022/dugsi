@@ -21,6 +21,7 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import { SchoolTheme } from "@/components/SchoolTheme";
 import { api } from "@/lib/api";
 import { roleLoginPath } from "@/lib/login-path";
 import type { Role, Session } from "@/lib/types";
@@ -144,13 +145,30 @@ export function PortalShell({
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<Session | null>(null);
+  const [pageColor, setPageColor] = useState("green");
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     api<{ user: Session }>("/api/auth/me")
       .then((data) => setUser(data.user))
       .catch(() => router.replace(roleLoginPath(role)));
-  }, [router]);
+  }, [router, role]);
+
+  useEffect(() => {
+    if (role === "PLATFORM") return;
+    api<{ tenant: { pageColor?: string } }>("/api/settings")
+      .then((data) => setPageColor(data.tenant.pageColor ?? "green"))
+      .catch(() => setPageColor("green"));
+  }, [role]);
+
+  useEffect(() => {
+    function onColor(event: Event) {
+      const color = (event as CustomEvent<string>).detail;
+      if (color) setPageColor(color);
+    }
+    window.addEventListener("dugsi-page-color", onColor);
+    return () => window.removeEventListener("dugsi-page-color", onColor);
+  }, []);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -200,6 +218,7 @@ export function PortalShell({
   );
 
   return (
+    <SchoolTheme pageColor={role === "PLATFORM" ? "green" : pageColor}>
     <div className={`portal${role === "TEACHER" ? " is-teacher" : ""}`}>
       <aside className="portal-sidebar">{sidebarBody}</aside>
 
@@ -260,5 +279,6 @@ export function PortalShell({
         ) : null}
       </div>
     </div>
+    </SchoolTheme>
   );
 }
