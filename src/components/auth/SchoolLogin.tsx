@@ -4,10 +4,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
 import { PublicHeader } from "@/components/PublicHeader";
+import { SchoolTheme } from "@/components/SchoolTheme";
 import { api } from "@/lib/api";
 import { portalForRole, type Session } from "@/lib/types";
 
-type School = { name: string; code: string; imageUrl?: string | null };
+type School = { name: string; code: string; imageUrl?: string | null; pageColor?: string | null };
 type LoginPortal = "parent" | "teacher" | "admin" | "staff";
 
 const COPY = {
@@ -104,6 +105,7 @@ function SchoolLoginForm({
   }
 
   return (
+    <SchoolTheme pageColor={school?.pageColor}>
     <div className="min-h-screen">
       {school || schoolCode ? (
         <PublicHeader
@@ -147,6 +149,7 @@ function SchoolLoginForm({
         </form>
       </div>
     </div>
+    </SchoolTheme>
   );
 }
 

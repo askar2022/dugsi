@@ -5,6 +5,7 @@ import { FormField } from "@/components/forms/FormField";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { SchoolImage } from "@/components/portal/SchoolImage";
 import { api } from "@/lib/api";
+import { PAGE_COLOR_IDS, PAGE_COLORS, type PageColorId } from "@/lib/page-color";
 
 type Tenant = {
   name: string;
@@ -12,11 +13,13 @@ type Tenant = {
   address: string | null;
   city: string | null;
   welcomeNote: string | null;
+  pageColor?: string | null;
   schoolImageUrl: string | null;
 };
 
 export default function SettingsPage() {
   const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [pageColor, setPageColor] = useState<PageColorId>("green");
   const [enrollUrl, setEnrollUrl] = useState("");
   const [message, setMessage] = useState("");
   const [imageError, setImageError] = useState("");
@@ -27,6 +30,11 @@ export default function SettingsPage() {
   async function load() {
     const data = await api<{ tenant: Tenant; enrollUrl: string | null }>("/api/settings");
     setTenant(data.tenant);
+    setPageColor(
+      data.tenant.pageColor && PAGE_COLOR_IDS.includes(data.tenant.pageColor as PageColorId)
+        ? (data.tenant.pageColor as PageColorId)
+        : "green",
+    );
     setEnrollUrl(data.enrollUrl ? `${window.location.origin}${data.enrollUrl}` : "");
     setPreview(null);
   }
@@ -44,7 +52,8 @@ export default function SettingsPage() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(event.currentTarget).entries());
-    await api("/api/settings", { method: "PATCH", body: JSON.stringify(data) });
+    await api("/api/settings", { method: "PATCH", body: JSON.stringify({ ...data, pageColor }) });
+    window.dispatchEvent(new CustomEvent("dugsi-page-color", { detail: pageColor }));
     setMessage("School settings saved.");
   }
 
@@ -91,7 +100,7 @@ export default function SettingsPage() {
 
   return (
     <div className="page-stack">
-      <PageHeader title="Settings" description="Your school name, photo, contact details, welcome note, and public enrollment link." />
+      <PageHeader title="Settings" description="Your school name, photo, page color, contact details, welcome note, and public enrollment link." />
 
       {enrollUrl ? (
         <section className="card max-w-2xl space-y-2 p-6">
@@ -137,6 +146,32 @@ export default function SettingsPage() {
         <FormField label="Welcome note">
           <textarea className="input min-h-32" name="welcomeNote" defaultValue={tenant.welcomeNote ?? ""} />
         </FormField>
+        <div>
+          <p className="text-sm font-medium text-green">Page color</p>
+          <p className="page-copy">This color is used on this dugsi’s pages. Green is the same as Noor.</p>
+          <div className="color-swatches" role="list">
+            {PAGE_COLOR_IDS.map((id) => {
+              const color = PAGE_COLORS[id];
+              const selected = pageColor === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="listitem"
+                  className={`color-swatch${selected ? " is-on" : ""}`}
+                  style={selected ? { borderColor: color.swatch, boxShadow: `0 0 0 2px ${color.soft}` } : undefined}
+                  onClick={() => {
+                    setPageColor(id);
+                    window.dispatchEvent(new CustomEvent("dugsi-page-color", { detail: id }));
+                  }}
+                >
+                  <span className="color-swatch-dot" style={{ background: color.swatch }} />
+                  <span>{color.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <button className="btn btn-primary">Save settings</button>
         {message ? <p className="text-sm text-paid">{message}</p> : null}
       </form>

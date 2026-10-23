@@ -3,6 +3,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { RememberSchool } from "@/components/public/RememberSchool";
 import { SchoolHopeStrip } from "@/components/public/SchoolHope";
 import { SchoolImage } from "@/components/portal/SchoolImage";
+import { SchoolTheme } from "@/components/SchoolTheme";
 import { getPublicSchoolHope } from "@/lib/public-hope";
 import { getPublicSchool } from "@/lib/public-school";
 
@@ -21,6 +22,7 @@ export default async function SchoolLandingPage({ params }: { params: Promise<{ 
   if (!school) notFound();
 
   return (
+    <SchoolTheme pageColor={school.pageColor}>
     <div className="min-h-screen">
       <RememberSchool code={school.code} />
       <PublicHeader variant="school" schoolName={school.name} schoolCode={school.code} />
@@ -46,5 +48,6 @@ export default async function SchoolLandingPage({ params }: { params: Promise<{ 
         </section>
       </main>
     </div>
+    </SchoolTheme>
   );
 }

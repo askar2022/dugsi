@@ -4,9 +4,10 @@ import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { FormField } from "@/components/forms/FormField";
 import { PublicHeader } from "@/components/PublicHeader";
+import { SchoolTheme } from "@/components/SchoolTheme";
 import { api } from "@/lib/api";
 
-type School = { name: string; city: string | null; code: string };
+type School = { name: string; city: string | null; code: string; pageColor?: string | null };
 
 const emptyParent = {
   firstName: "",
@@ -85,6 +86,7 @@ export default function PublicEnrollPage() {
 
   if (missing) {
     return (
+      <SchoolTheme>
       <div className="min-h-screen">
         <PublicHeader />
         <div className="flex justify-center px-4 pb-16">
@@ -94,19 +96,23 @@ export default function PublicEnrollPage() {
           </div>
         </div>
       </div>
+      </SchoolTheme>
     );
   }
 
   if (!school) {
     return (
+      <SchoolTheme>
       <div className="min-h-screen">
         <PublicHeader />
         <p className="px-6 py-10 text-muted">Loading enrollment…</p>
       </div>
+      </SchoolTheme>
     );
   }
 
   return (
+    <SchoolTheme pageColor={school.pageColor}>
     <div className="min-h-screen">
       <PublicHeader variant="school" schoolName={school.name} schoolCode={school.code} />
       <div className="flex justify-center px-4 pb-16">
@@ -185,5 +191,6 @@ export default function PublicEnrollPage() {
         </div>
       </div>
     </div>
+    </SchoolTheme>
   );
 }

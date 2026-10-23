@@ -66,6 +66,45 @@ textarea {
   font-family: var(--font-fraunces), serif;
 }
 
+.school-theme {
+  min-height: 100vh;
+}
+
+.color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.color-swatch {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  min-width: 4.4rem;
+  padding: 0.45rem 0.4rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: white;
+  color: var(--green);
+  cursor: pointer;
+}
+
+.color-swatch.is-on {
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px var(--green-soft);
+}
+
+.color-swatch-dot {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 999px;
+}
+
+.color-swatch span {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
 .pattern-bg {
   background-color: var(--cream);
   background-image:

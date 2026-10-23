@@ -154,4 +154,5 @@ export const settingsSchema = z.object({
   address: z.string().optional(),
   city: z.string().optional(),
   welcomeNote: z.string().optional(),
+  pageColor: z.enum(["green", "navy", "teal", "burgundy", "brown"]).optional(),
 });
