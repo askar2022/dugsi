@@ -9,7 +9,11 @@ export type EmailEvent =
   | "staff_onboarded"
   | "homework_assigned"
   | "homework_reminder"
-  | "progress_contact";
+  | "progress_contact"
+  | "friday_parent"
+  | "friday_teacher"
+  | "friday_admin"
+  | "friday_admin_month";
 
 function fromAddress() {
   const raw = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || "fariin@ourdugsi.com";
