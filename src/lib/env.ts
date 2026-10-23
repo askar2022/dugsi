@@ -1,6 +1,9 @@
+import { applySupabaseEnv } from "./supabase-env";
+
 export type AppEnv = "development" | "staging" | "production";
 
 export function getAppEnv(): AppEnv {
+  applySupabaseEnv();
   const value = (process.env.APP_ENV ?? "development").toLowerCase();
   if (value === "staging" || value === "production" || value === "development") {
     return value;
@@ -9,6 +12,7 @@ export function getAppEnv(): AppEnv {
 }
 
 export function getAppUrl() {
+  applySupabaseEnv();
   return process.env.APP_URL ?? "http://localhost:3000";
 }
 
