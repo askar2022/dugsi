@@ -140,9 +140,10 @@ export async function GET(request: NextRequest) {
       const rated = kids.filter((row) => row.classScore != null);
       const onTrack = rated.filter((row) => (row.classScore ?? 0) >= 80).length;
       const support = rated.filter((row) => (row.classScore ?? 0) < 60).length;
-      const onTrackPct = percent(onTrack, rated.length);
-      const needsSupportPct = percent(support, rated.length);
-      const score = average(rated.map((row) => row.classScore));
+      const attention = Math.max(0, kids.length - onTrack - support);
+      const onTrackPct = percent(onTrack, kids.length);
+      const needsSupportPct = percent(support, kids.length);
+      const score = onTrackPct;
       const homeworkAssigned = kids.reduce((sum, row) => sum + row.work.assigned, 0);
       const homeworkReviewed = kids.reduce((sum, row) => sum + row.work.reviewed, 0);
       const attendanceDays = new Set(
@@ -151,7 +152,13 @@ export async function GET(request: NextRequest) {
       const trend = weeks.map((week) => {
         const weekKids = kids.map((row) => studentScore(row.student, week.start, week.end)).filter((row) => row.classScore != null);
         const weekOnTrack = weekKids.filter((row) => (row.classScore ?? 0) >= 80).length;
-        return { start: week.start, end: week.end, onTrackPct: percent(weekOnTrack, weekKids.length) };
+        return {
+          start: week.start,
+          end: week.end,
+          onTrackCount: weekOnTrack,
+          total: weekKids.length,
+          onTrackPct: percent(weekOnTrack, weekKids.length),
+        };
       });
       const teacher = Array.isArray(klass.teacher) ? klass.teacher[0] : klass.teacher;
       return {
@@ -160,9 +167,11 @@ export async function GET(request: NextRequest) {
         teacherId: klass.teacherId,
         teacherName: teacher?.name ?? "No teacher yet",
         students: kids.length,
+        onTrackCount: onTrack,
+        attentionCount: attention,
+        supportCount: support,
         onTrackPct,
         needsSupportPct,
-        supportCount: support,
         score,
         rating: ratingFromScore(score),
         homeworkAssigned,
@@ -176,7 +185,8 @@ export async function GET(request: NextRequest) {
       ? []
       : [...new Set(visibleStudents.map((student) => student.parentId).filter((id): id is string => Boolean(id)))].map((id) => {
         const kids = scored.filter((row) => row.student.parentId === id);
-        const arrive = arrivalScore(kids.flatMap((row) => attendanceByStudent.get(row.student.id) ?? []));
+        const marks = kids.flatMap((row) => attendanceByStudent.get(row.student.id) ?? []);
+        const arrive = arrivalScore(marks);
         const assigned = kids.reduce((sum, row) => sum + row.work.assigned, 0);
         const reviewed = kids.reduce((sum, row) => sum + row.work.reviewed, 0);
         const work = homeworkFollowUp(assigned, reviewed);
@@ -186,7 +196,11 @@ export async function GET(request: NextRequest) {
           id,
           name: parentName.endsWith("Family") ? parentName : `${parentName} Family`,
           students: kids.length,
+          onTimeCount: arrive.onTime,
+          arrivalCount: arrive.onTime + arrive.late,
           onTimeArrival: arrive.score,
+          homeworkAssigned: assigned,
+          homeworkReviewed: reviewed,
           homeworkFollowUp: work.score,
           pickupRecorded: false,
           score,
@@ -194,10 +208,11 @@ export async function GET(request: NextRequest) {
         };
       }).sort((a, b) => (a.score ?? 101) - (b.score ?? 101));
 
-    const schoolRated = scored.filter((row) => row.classScore != null);
-    const schoolOnTrack = schoolRated.filter((row) => (row.classScore ?? 0) >= 80).length;
-    const schoolSupport = schoolRated.filter((row) => (row.classScore ?? 0) < 60).length;
-    const schoolScore = average(schoolRated.map((row) => row.classScore));
+    const schoolStudents = classCards.reduce((sum, item) => sum + item.students, 0);
+    const schoolOnTrack = classCards.reduce((sum, item) => sum + item.onTrackCount, 0);
+    const schoolAttention = classCards.reduce((sum, item) => sum + item.attentionCount, 0);
+    const schoolSupport = classCards.reduce((sum, item) => sum + item.supportCount, 0);
+    const schoolScore = percent(schoolOnTrack, schoolStudents);
 
     const detailStudents = scored
       .filter((row) => (classId && row.student.classId === classId) || (parentId && row.student.parentId === parentId))
@@ -219,10 +234,12 @@ export async function GET(request: NextRequest) {
     return json({
       window: { start, end, days: 28 },
       school: {
-        students: visibleStudents.length,
-        onTrackPct: percent(schoolOnTrack, schoolRated.length),
-        needsSupportPct: percent(schoolSupport, schoolRated.length),
+        students: schoolStudents,
+        onTrackCount: schoolOnTrack,
+        attentionCount: schoolAttention,
         supportCount: schoolSupport,
+        onTrackPct: schoolScore,
+        needsSupportPct: percent(schoolSupport, schoolStudents),
         score: schoolScore,
         rating: ratingFromScore(schoolScore),
       },
