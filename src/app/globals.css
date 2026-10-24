@@ -1166,6 +1166,120 @@ body:has(.teacher-dock) .site-footer {
   line-height: 1.6;
 }
 
+.report-page {
+  gap: 1rem;
+}
+
+.report-section {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.05rem 1.15rem 1.1rem;
+}
+
+.report-section-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem 1rem;
+}
+
+.report-section-title {
+  margin: 0;
+  color: var(--green);
+  font-size: 1.2rem;
+}
+
+.report-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem 1.75rem;
+}
+
+.report-metric {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 6.5rem;
+}
+
+.report-metric-value {
+  margin: 0;
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.65rem;
+  line-height: 1.1;
+  color: var(--green);
+}
+
+.report-metric-value.is-paid {
+  color: var(--paid);
+}
+
+.report-metric-value.is-due {
+  color: var(--due);
+}
+
+.report-metric-value.is-late {
+  color: var(--late);
+}
+
+.report-metric-value.is-muted {
+  color: #6b7280;
+}
+
+.report-metric-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.report-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.report-note a {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.report-official {
+  display: grid;
+}
+
+.report-official-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.report-official-row:first-child {
+  padding-top: 0;
+}
+
+.report-official-row:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.report-official-label {
+  margin: 0;
+  color: var(--green);
+  font-weight: 700;
+}
+
+.report-official-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
 .menu-list {
   overflow: hidden;
 }
@@ -2204,6 +2318,10 @@ body:has(.teacher-dock) .site-footer {
 
 .progress-table tbody tr {
   cursor: pointer;
+}
+
+.progress-table.is-records tbody tr {
+  cursor: default;
 }
 
 .progress-table tbody tr:last-child td {

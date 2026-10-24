@@ -19,6 +19,12 @@ export function addDays(date: string, days: number) {
   return next.toISOString().slice(0, 10);
 }
 
+export function mostRecentFriday(date: string) {
+  const current = new Date(`${date}T12:00:00`);
+  const back = (current.getDay() + 2) % 7;
+  return addDays(date, -back);
+}
+
 export function fridayWindows(friday: string) {
   return {
     thisWeek: { start: addDays(friday, -6), end: friday },

@@ -37,7 +37,12 @@ export async function GET(request: NextRequest) {
     else if (childIds) query = query.in("studentId", childIds);
     const { data: invoices, error } = await query;
     throwIfError(error, "Could not load invoices.");
-    return json({ invoices: invoices ?? [] });
+    return json({
+      invoices: (invoices ?? []).map((item) => ({
+        ...item,
+        status: computeInvoiceStatus({ paidDate: item.paidDate, dueDate: item.dueDate }),
+      })),
+    });
   } catch (err) {
     return handleApiError(err);
   }

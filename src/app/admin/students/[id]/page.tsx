@@ -4,9 +4,7 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/portal/PageHeader";
-import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api";
-import { normalizeProgressStatus } from "@/lib/progress-status";
 import { completedJuzes, quranPortion } from "@/lib/quran";
 
 type Student = {
@@ -123,8 +121,18 @@ export default function AdminStudentPage() {
         <p className="record-meta" style={{ marginTop: "0.45rem" }}>
           {latest ? quranPortion(latest) || latest.surah : "No Quran record yet"}
         </p>
-        {latest ? <div style={{ marginTop: "0.7rem" }}><StatusBadge status={normalizeProgressStatus(latest.status)} /></div> : <div style={{ marginTop: "0.7rem" }}><StatusBadge status="no_record" /></div>}
         {student.parent?.name ? <p className="record-meta" style={{ marginTop: "0.8rem" }}>Parent: {student.parent.name}</p> : null}
+        {progress.length ? (
+          <div className="record-list" style={{ marginTop: "1rem" }}>
+            {progress.map((item, index) => (
+              <article key={`${item.date}-${item.surah}-${index}`} className="record-meta">
+                {new Date(`${item.date}T12:00:00`).toLocaleString("en-US", { month: "short", day: "numeric" })}
+                {" · "}
+                {quranPortion(item) || item.surah}
+              </article>
+            ))}
+          </div>
+        ) : null}
       </section>
     </div>
   );

@@ -33,7 +33,7 @@ export default function AdminPerformancePage() {
     <div className="page-stack">
       <PageHeader
         title="Performance"
-        description="Each child is scored against their own Qur’an goal. Class counts add up to the whole dugsi."
+        description="How well students, classes, teachers, and families are doing. On Track, Needs Practice, and Needs Support come from Qur’an progress, attendance, and homework."
       />
 
       {!report || !report.school ? (
