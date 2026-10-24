@@ -16,10 +16,11 @@ export async function GET(request: NextRequest) {
     if (assignedClassIds && assignedClassIds.length === 0) {
       return json({ students: [] });
     }
-    const reader = createAdminClient();
+    const admin = createAdminClient();
     if (session.role === "PARENT") {
-      await attachChildrenToParent(reader, session.tenantId, session.userId, session.email);
+      await attachChildrenToParent(admin, session.tenantId, session.userId, session.email);
     }
+    const reader = session.role === "PARENT" ? supabase : admin;
     let query = reader
       .from("Student")
       .select("*, class:Class(*, teacher:User!teacherId(id, name)), parent:User!parentId(id, name, email, phone)")

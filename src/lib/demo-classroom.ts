@@ -513,12 +513,6 @@ export async function fillDemoClassroom() {
   }
   if (!classId) throw new ApiError("Could not find or create a class.");
 
-  await admin
-    .from("Student")
-    .update({ parentId, classId, status: "enrolled" })
-    .eq("tenantId", tenant.id)
-    .is("parentId", null);
-
   const aishaId = await ensureStudent({
     tenantId: tenant.id,
     parentId,

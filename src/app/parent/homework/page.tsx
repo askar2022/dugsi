@@ -3,12 +3,11 @@
 import { useEffect, useState } from "react";
 import { ChildSwitcher } from "@/components/portal/ChildSwitcher";
 import { EmptyState } from "@/components/portal/EmptyState";
-import { PageHeader } from "@/components/portal/PageHeader";
-import { StatusBadge } from "@/components/StatusBadge";
 import { useParentFamily } from "@/components/portal/useParentFamily";
 import { isAssessmentClass } from "@/lib/assessment-class";
 import { api } from "@/lib/api";
-import { quranPortion } from "@/lib/quran";
+import { HOMEWORK_KIND_LABELS, normalizeHomeworkKind } from "@/lib/homework";
+import { childName } from "@/lib/parent-family";
 
 type Completion = { studentId: string; status: string };
 type Homework = {
@@ -22,17 +21,34 @@ type Homework = {
   description: string | null;
   dueDate: string | null;
   studentId?: string | null;
+  classId?: string;
   class: { id: string; name: string } | { id: string; name: string }[] | null;
   completions?: Completion[];
 };
 
-function classOf(item: Homework) {
-  const value = item.class;
-  return Array.isArray(value) ? value[0] ?? null : value;
+function longDue(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 }
 
-function assignedToChild(item: Homework, childId: string) {
-  return !item.studentId || item.studentId === childId;
+function assignmentTitle(item: Homework) {
+  const kind = HOMEWORK_KIND_LABELS[normalizeHomeworkKind(item.kind)];
+  if (item.surah) return `${kind}: Surah ${item.surah}`;
+  return item.title || kind;
+}
+
+function quranLine(item: Homework) {
+  const juz = item.juz ? `Juz ${item.juz}` : "";
+  const ayah = item.ayahFrom && item.ayahTo ? `Ayah ${item.ayahFrom}–${item.ayahTo}` : "";
+  return [juz, ayah].filter(Boolean).join(" · ");
+}
+
+function statusView(status: string) {
+  if (status === "done") return { label: "✅ Completed", className: "is-done" };
+  if (status === "needs_help") return { label: "🟠 Help Requested", className: "is-help" };
+  return { label: "⏳ Not Completed", className: "is-wait" };
 }
 
 export default function ParentHomeworkPage() {
@@ -51,8 +67,12 @@ export default function ParentHomeworkPage() {
 
   const classId = isAssessmentClass(child?.class) ? null : child?.classId ?? child?.class?.id ?? null;
   const waiting = child?.status === "waiting_assessment" || child?.status === "pending" || !classId;
-  const rows = classId && childId && !waiting
-    ? homework.filter((item) => classOf(item)?.id === classId && assignedToChild(item, childId))
+  const rows = child && classId && !waiting
+    ? homework.filter((item) =>
+        item.studentId
+          ? item.studentId === child.id
+          : Boolean(item.completions?.some((row) => row.studentId === child.id)),
+      )
     : [];
 
   async function mark(homeworkId: string, status: "done" | "needs_help") {
@@ -71,14 +91,14 @@ export default function ParentHomeworkPage() {
 
   return (
     <div className="page-stack">
-      <PageHeader
-        title="Homework"
-        description={
-          child
-            ? `Quran work for ${child.firstName}. Choose a child from the dropdown, then mark Done or Needs help.`
-            : "Choose a child from the dropdown, then mark Done or Needs help."
-        }
-      />
+      <div>
+        <h1 className="page-title">Homework</h1>
+        {child ? (
+          <p className="page-copy">{childName(child)} — {child.class?.name ?? "Class"}</p>
+        ) : (
+          <p className="page-copy">Qur’an work for your child.</p>
+        )}
+      </div>
       <ChildSwitcher children={children} childId={childId} onSelect={selectChild} />
       {!ready ? (
         <EmptyState title="Loading" text="Loading your family record." />
@@ -95,46 +115,43 @@ export default function ParentHomeworkPage() {
       ) : rows.length === 0 ? (
         <EmptyState
           title="No homework yet"
-          text="Homework will appear when the teacher assigns Quran work to your child."
+          text="Homework will appear when the teacher assigns Qur’an work to your child."
         />
       ) : (
         <div className="record-list">
           {rows.map((item) => {
-            const klass = classOf(item);
-            const portion = quranPortion(item);
             const completion = item.completions?.find((row) => row.studentId === childId);
             const status = completion?.status ?? "assigned";
+            const marked = status === "done" || status === "needs_help";
+            const view = statusView(status);
             return (
-              <article key={item.id} className="card record-card-stack homework-card">
-                <div className="homework-card-top">
-                  <StatusBadge status={item.kind || "reading"} />
-                  <StatusBadge status={status} />
-                </div>
-                <p className="record-title">{item.title}</p>
-                {portion ? <p className="homework-portion">{portion}</p> : null}
-                <p className="record-meta">
-                  {klass?.name ?? "Class"}
-                  {item.dueDate ? ` · due ${item.dueDate}` : ""}
-                </p>
+              <article key={item.id} className="card parent-hw-card">
+                <p className="record-title">{assignmentTitle(item)}</p>
+                {quranLine(item) ? <p className="homework-portion">{quranLine(item)}</p> : null}
+                {item.dueDate ? <p className="record-meta">Due {longDue(item.dueDate)}</p> : null}
                 {item.description ? <p className="record-body">{item.description}</p> : null}
-                <div className="mark-group homework-actions">
-                  <button
-                    type="button"
-                    className={`mark-btn is-on_track${status === "done" ? " is-active" : ""}`}
-                    disabled={Boolean(busy)}
-                    onClick={() => mark(item.id, "done")}
-                  >
-                    {busy === `${item.id}:done` ? "Saving..." : "Done"}
-                  </button>
-                  <button
-                    type="button"
-                    className={`mark-btn is-contact_parent${status === "needs_help" ? " is-active" : ""}`}
-                    disabled={Boolean(busy)}
-                    onClick={() => mark(item.id, "needs_help")}
-                  >
-                    {busy === `${item.id}:needs_help` ? "Saving..." : "Needs help"}
-                  </button>
-                </div>
+                {marked ? (
+                  <p className={`parent-hw-status ${view.className}`}>{view.label}</p>
+                ) : (
+                  <div className="parent-hw-actions">
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={Boolean(busy)}
+                      onClick={() => mark(item.id, "done")}
+                    >
+                      {busy === `${item.id}:done` ? "Saving..." : "Mark Done"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      disabled={Boolean(busy)}
+                      onClick={() => mark(item.id, "needs_help")}
+                    >
+                      {busy === `${item.id}:needs_help` ? "Saving..." : "Need Help"}
+                    </button>
+                  </div>
+                )}
               </article>
             );
           })}

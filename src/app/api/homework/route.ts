@@ -25,19 +25,27 @@ export async function GET(request: NextRequest) {
     throwIfError(error, "Could not load homework.");
     let rows = homework ?? [];
     if (session.role === "PARENT") {
-      const admin = createAdminClient();
-      const { data: kids } = await admin
+      const { data: kids } = await supabase
         .from("Student")
         .select("id")
         .eq("parentId", session.userId)
         .eq("tenantId", session.tenantId);
       const kidIds = new Set((kids ?? []).map((kid) => kid.id));
-      rows = rows.filter((item) => {
-        if (item.studentId) return kidIds.has(item.studentId);
-        const assigned = (item.completions ?? []).map((row: { studentId: string }) => row.studentId);
-        if (assigned.length) return assigned.some((id: string) => kidIds.has(id));
-        return true;
-      });
+      rows = rows
+        .filter((item) => {
+          if (item.studentId) return kidIds.has(item.studentId);
+          const assigned = (item.completions ?? []).map((row: { studentId: string }) => row.studentId);
+          return assigned.some((id: string) => kidIds.has(id));
+        })
+        .map((item) => ({
+          ...item,
+          completions: (item.completions ?? [])
+            .filter((row: { studentId: string }) => kidIds.has(row.studentId))
+            .map((row: { studentId: string; status: string }) => ({
+              studentId: row.studentId,
+              status: row.status,
+            })),
+        }));
     }
     return json({ homework: rows });
   } catch (err) {

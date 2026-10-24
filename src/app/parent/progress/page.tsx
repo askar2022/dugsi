@@ -41,7 +41,7 @@ export default function ParentProgressPage() {
     <div className="page-stack">
       <PageHeader
         title="Child Progress"
-        description="Choose a child from the dropdown. This page uses the same Juz, Surah, and ayah the teacher recorded. Green is on track, yellow needs practice, red means contact the school."
+        description="This page uses the same Juz, Surah, and ayah the teacher recorded. Green is on track, yellow needs practice, red means contact the school."
       />
       <ChildSwitcher children={children} childId={childId} onSelect={selectChild} />
       {!ready ? (

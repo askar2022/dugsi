@@ -33,7 +33,7 @@ const LABELS: Record<string, string> = {
   needs_practice: "Needs Attention",
   contact_parent: "Needs Support",
   done: "Done",
-  needs_help: "Needs help",
+  needs_help: "Need Help",
   assigned: "Assigned",
   reading: "Reading",
   memorization: "Memorization",

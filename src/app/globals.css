@@ -1272,6 +1272,59 @@ body:has(.teacher-dock) .site-footer {
   background-position: right 1rem center;
 }
 
+.child-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.child-tab {
+  min-height: 2.5rem;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: white;
+  color: var(--muted);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.child-tab.is-on {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+
+.parent-hw-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.1rem 1.15rem 1.2rem;
+}
+
+.parent-hw-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+}
+
+.parent-hw-status {
+  margin: 0.7rem 0 0;
+  font-weight: 750;
+}
+
+.parent-hw-status.is-done {
+  color: var(--paid);
+}
+
+.parent-hw-status.is-help {
+  color: var(--due);
+}
+
+.parent-hw-status.is-wait {
+  color: var(--muted);
+}
+
 .child-chip {
   display: flex;
   min-width: 0;
