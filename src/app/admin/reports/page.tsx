@@ -132,7 +132,7 @@ export default function ReportsPage() {
           <section className="card report-section">
             <div className="report-section-top">
               <h2 className="report-section-title">Qur’an Progress</h2>
-              <Link href="/admin/performance" className="btn btn-primary">View Progress Report</Link>
+              <Link href="/admin/progress" className="btn btn-primary">View Qur’an Report</Link>
             </div>
             <div className="report-metrics">
               <div className="report-metric">
@@ -153,8 +153,7 @@ export default function ReportsPage() {
               </div>
             </div>
             <p className="report-note">
-              These are official counts. Open Performance for trends, or{" "}
-              <Link href="/admin/progress">Qur’an Progress</Link> for exact Juz, Surah, and ayah records.
+              These are official counts. Open Performance if you need trends over time.
             </p>
           </section>
 
