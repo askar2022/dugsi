@@ -268,7 +268,14 @@ async function ensureNoorDemoPerformance(input: {
     upsertNamedStudent({ id: "sample-noor-hassan-1", tenantId: input.tenantId, parentId: input.hassanId, classId: class1, firstName: "Aisha", lastName: "Hassan", gender: "girl" }),
     upsertNamedStudent({ id: "sample-noor-hassan-2", tenantId: input.tenantId, parentId: input.hassanId, classId: class1, firstName: "Omar", lastName: "Hassan", gender: "boy" }),
     upsertNamedStudent({ id: "sample-noor-hassan-3", tenantId: input.tenantId, parentId: input.hassanId, classId: class1, firstName: "Maryam", lastName: "Hassan", gender: "girl" }),
+    upsertNamedStudent({ id: "sample-noor-hassan-4", tenantId: input.tenantId, parentId: input.hassanId, classId: class1, firstName: "Ibrahim", lastName: "Hassan", gender: "boy" }),
   ]);
+  await admin
+    .from("Student")
+    .update({ parentId: null })
+    .eq("tenantId", input.tenantId)
+    .eq("parentId", input.hassanId)
+    .not("id", "in", `(${hassanKids.join(",")})`);
 
   const class2Strong = ["sample-noor-1", "sample-noor-2", "sample-noor-3", "sample-noor-4", "sample-noor-5", "sample-noor-6", "sample-noor-7", hodanKids[0], hodanKids[2]];
   const class2Medium = ["sample-noor-8", hodanKids[1]];
@@ -521,6 +528,14 @@ export async function fillDemoClassroom() {
     lastName: "Hassan",
     gender: "girl",
   });
+  const ibrahimId = await ensureStudent({
+    tenantId: tenant.id,
+    parentId,
+    classId,
+    firstName: "Ibrahim",
+    lastName: "Hassan",
+    gender: "boy",
+  });
   const omarId = await ensureStudent({
     tenantId: tenant.id,
     parentId,
@@ -529,11 +544,26 @@ export async function fillDemoClassroom() {
     lastName: "Hassan",
     gender: "boy",
   });
+  const maryamId = await ensureStudent({
+    tenantId: tenant.id,
+    parentId,
+    classId,
+    firstName: "Maryam",
+    lastName: "Hassan",
+    gender: "girl",
+  });
+  await admin
+    .from("Student")
+    .update({ parentId: null })
+    .eq("parentId", parentId)
+    .not("id", "in", `(${[aishaId, ibrahimId, omarId, maryamId].join(",")})`);
 
   const today = new Date().toISOString().slice(0, 10);
   for (const student of [
     { id: aishaId, status: "present" as const },
+    { id: ibrahimId, status: "present" as const },
     { id: omarId, status: "absent" as const },
+    { id: maryamId, status: "late" as const },
   ]) {
     await admin.from("Attendance").upsert(
       {
@@ -564,6 +594,17 @@ export async function fillDemoClassroom() {
       },
       {
         tenantId: tenant.id,
+        studentId: ibrahimId,
+        surah: "Al-Baqarah",
+        ayahFrom: 1,
+        ayahTo: 15,
+        juz: 1,
+        date: today,
+        status: "on_track",
+        recordedById: teacherId,
+      },
+      {
+        tenantId: tenant.id,
         studentId: omarId,
         surah: "Al-Fatiha",
         ayahFrom: 1,
@@ -571,6 +612,17 @@ export async function fillDemoClassroom() {
         juz: 1,
         date: today,
         status: "needs_practice",
+        recordedById: teacherId,
+      },
+      {
+        tenantId: tenant.id,
+        studentId: maryamId,
+        surah: "Al-Baqarah",
+        ayahFrom: 1,
+        ayahTo: 10,
+        juz: 1,
+        date: today,
+        status: "on_track",
         recordedById: teacherId,
       },
     ]);
@@ -640,6 +692,6 @@ export async function fillDemoClassroom() {
     teacherEmail: "teacher@noor.dugsi",
     parentEmail: "parent@noor.dugsi",
     password: PASSWORD,
-    students: ["Aisha Hassan", "Omar Hassan"],
+    students: ["Aisha Hassan", "Ibrahim Hassan", "Omar Hassan", "Maryam Hassan"],
   };
 }

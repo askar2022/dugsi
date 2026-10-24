@@ -27,7 +27,8 @@ CROSS JOIN (
     ('sample-noor-hodan-3', 'Safa', 'Hodan', 'girl', 'sample-noor-class-2'),
     ('sample-noor-hassan-1', 'Aisha', 'Hassan', 'girl', 'sample-noor-class'),
     ('sample-noor-hassan-2', 'Omar', 'Hassan', 'boy', 'sample-noor-class'),
-    ('sample-noor-hassan-3', 'Maryam', 'Hassan', 'girl', 'sample-noor-class')
+    ('sample-noor-hassan-3', 'Maryam', 'Hassan', 'girl', 'sample-noor-class'),
+    ('sample-noor-hassan-4', 'Ibrahim', 'Hassan', 'boy', 'sample-noor-class')
 ) AS v(id, first, last, gender, class_id)
 WHERE t.slug = 'noor'
   AND NOT EXISTS (SELECT 1 FROM "Student" s WHERE s.id = v.id);
@@ -70,7 +71,7 @@ kids AS (
   FROM "Student"
   WHERE id IN (
     'sample-noor-10','sample-noor-11','sample-noor-12',
-    'sample-noor-hassan-1','sample-noor-hassan-2','sample-noor-hassan-3'
+    'sample-noor-hassan-1','sample-noor-hassan-2','sample-noor-hassan-3','sample-noor-hassan-4'
   )
 )
 INSERT INTO "Attendance" (id, "tenantId", "studentId", "classId", date, status)
@@ -156,7 +157,7 @@ JOIN (
     'sample-noor-6','sample-noor-7','sample-noor-8','sample-noor-9',
     'sample-noor-10','sample-noor-11','sample-noor-12',
     'sample-noor-hodan-1','sample-noor-hodan-2','sample-noor-hodan-3',
-    'sample-noor-hassan-1','sample-noor-hassan-2','sample-noor-hassan-3'
+    'sample-noor-hassan-1','sample-noor-hassan-2','sample-noor-hassan-3','sample-noor-hassan-4'
   )
 ) k ON k.class_id = h."classId"
 WHERE h.id LIKE 'sample-noor-hw-%';
@@ -194,7 +195,7 @@ CROSS JOIN (
     'sample-noor-6','sample-noor-7','sample-noor-8','sample-noor-9',
     'sample-noor-10','sample-noor-11','sample-noor-12',
     'sample-noor-hodan-1','sample-noor-hodan-2','sample-noor-hodan-3',
-    'sample-noor-hassan-1','sample-noor-hassan-2','sample-noor-hassan-3'
+    'sample-noor-hassan-1','sample-noor-hassan-2','sample-noor-hassan-3','sample-noor-hassan-4'
   )
 ) k
 WHERE t.slug = 'noor';
