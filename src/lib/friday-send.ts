@@ -1,7 +1,7 @@
 import { sendTenantEmail } from "@/lib/email";
 import { fridayAdminEmail, fridayAdminMonthEmail, fridayParentEmail, fridayTeacherEmail } from "@/lib/friday-emails";
 import { loadTenantFridayData, type Person } from "@/lib/friday-snapshot";
-import { chicagoNow, fridayWindows, isFirstFriday, previousMonth } from "@/lib/friday-weeks";
+import { chicagoNow, formatDateRange, fridayWindows, isFirstFriday, previousMonth } from "@/lib/friday-weeks";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const NOOR_WATCH: Person = {
@@ -42,7 +42,7 @@ export async function runFridaySnapshots(asOf = chicagoNow()) {
   const admin = createAdminClient();
   const { thisWeek, lastWeek } = fridayWindows(asOf.date);
   const weekMarker = `Snapshot week ${thisWeek.start}/${thisWeek.end}`;
-  const weekLabel = `Week ${thisWeek.start} to ${thisWeek.end}. ${weekMarker}`;
+  const weekLabel = formatDateRange(thisWeek.start, thisWeek.end);
   const sendMonth = isFirstFriday(asOf.date);
   const month = sendMonth ? previousMonth(asOf.date) : null;
   const monthMarker = month ? `Snapshot month ${month.start}` : "";
@@ -72,6 +72,7 @@ export async function runFridaySnapshots(asOf = chicagoNow()) {
         parentName: parent.name,
         schoolCode: tenant.slug,
         weekLabel,
+        weekMarker,
         children,
       });
       await sendTenantEmail({
@@ -79,6 +80,7 @@ export async function runFridaySnapshots(asOf = chicagoNow()) {
         toEmail: parent.email,
         subject: copy.subject,
         body: copy.body,
+        html: copy.html,
         event: "friday_parent",
       });
       parentEmails += 1;
@@ -93,6 +95,7 @@ export async function runFridaySnapshots(asOf = chicagoNow()) {
         teacherName: teacher.name,
         schoolCode: tenant.slug,
         weekLabel,
+        weekMarker,
         classes,
       });
       await sendTenantEmail({
@@ -100,6 +103,7 @@ export async function runFridaySnapshots(asOf = chicagoNow()) {
         toEmail: teacher.email,
         subject: copy.subject,
         body: copy.body,
+        html: copy.html,
         event: "friday_teacher",
       });
       teacherEmails += 1;
@@ -112,6 +116,7 @@ export async function runFridaySnapshots(asOf = chicagoNow()) {
           adminName: office.name,
           schoolCode: tenant.slug,
           weekLabel,
+          weekMarker,
           school: data.week,
         });
         await sendTenantEmail({
@@ -119,6 +124,7 @@ export async function runFridaySnapshots(asOf = chicagoNow()) {
           toEmail: office.email,
           subject: copy.subject,
           body: copy.body,
+          html: copy.html,
           event: "friday_admin",
         });
         adminEmails += 1;
@@ -139,6 +145,7 @@ export async function runFridaySnapshots(asOf = chicagoNow()) {
           toEmail: office.email,
           subject: copy.subject,
           body: copy.body,
+          html: copy.html,
           event: "friday_admin_month",
         });
         adminMonthEmails += 1;

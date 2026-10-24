@@ -48,3 +48,15 @@ export function isFirstFriday(friday: string) {
 export function monthLabel(iso: string) {
   return new Date(`${iso}T12:00:00`).toLocaleString("en-US", { month: "long", year: "numeric" });
 }
+
+export function formatDateRange(start: string, end: string) {
+  const from = new Date(`${start}T12:00:00`);
+  const to = new Date(`${end}T12:00:00`);
+  const year = to.getFullYear();
+  const startMonth = from.toLocaleString("en-US", { month: "long" });
+  const endMonth = to.toLocaleString("en-US", { month: "long" });
+  if (from.getMonth() === to.getMonth()) {
+    return `${startMonth} ${from.getDate()}–${to.getDate()}, ${year}`;
+  }
+  return `${startMonth} ${from.getDate()}–${endMonth} ${to.getDate()}, ${year}`;
+}
