@@ -16,11 +16,7 @@ CREATE POLICY homework_isolation ON "Homework"
         public.current_app_role() = 'PARENT'
         AND (
           ("studentId" IS NOT NULL AND "studentId" IN (SELECT public.parent_student_ids()))
-          OR EXISTS (
-            SELECT 1 FROM "HomeworkCompletion" hc
-            WHERE hc."homeworkId" = "Homework".id
-              AND hc."studentId" IN (SELECT public.parent_student_ids())
-          )
+          OR "classId" IN (SELECT public.parent_class_ids())
         )
       )
     )
