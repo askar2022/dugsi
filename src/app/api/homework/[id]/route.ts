@@ -15,7 +15,7 @@ async function updateParentCompletion(
   const { session } = await requireAuthedTenant(request, ["PARENT"]);
   const parsed = homeworkCompletionSchema.safeParse(body);
   if (!parsed.success) {
-    throw new ApiError("Choose Done or Needs help.");
+    throw new ApiError("Choose Done or Need Help.");
   }
 
   const admin = createAdminClient();

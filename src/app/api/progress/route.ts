@@ -16,19 +16,17 @@ export async function GET(request: NextRequest) {
       return json({ progress: [] });
     }
     const studentId = new URL(request.url).searchParams.get("studentId");
-    const reader = session.role === "PARENT" || session.role === "ADMIN" || session.role === "STAFF"
-      ? createAdminClient()
-      : supabase;
     if (session.role === "PARENT") {
-      await attachChildrenToParent(reader, session.tenantId, session.userId, session.email);
+      await attachChildrenToParent(createAdminClient(), session.tenantId, session.userId, session.email);
     }
+    const reader = session.role === "PARENT" || session.role === "TEACHER" ? supabase : createAdminClient();
     let query = reader
       .from("QuranProgress")
       .select("*, student:Student(id, firstName, lastName, class:Class(id, name, level, teacherId, teacher:User!teacherId(id, name)))")
       .eq("tenantId", session.tenantId)
       .order("date", { ascending: false });
     if (session.role === "PARENT") {
-      const { data: kids } = await reader
+      const { data: kids } = await supabase
         .from("Student")
         .select("id")
         .eq("tenantId", session.tenantId)

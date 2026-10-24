@@ -94,8 +94,8 @@ export default function ParentStudentsPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        title="Enrolled students"
-        description="See each child's class, enrolled date, and current Juz and Surah. You can unenroll a child here."
+        title="My Children"
+        description="See each of your children's class, enrolled date, and current Juz and Surah."
       />
       {!ready ? (
         <EmptyState title="Loading" text="Loading your family record." />

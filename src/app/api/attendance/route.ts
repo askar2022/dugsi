@@ -10,13 +10,13 @@ export async function GET(request: NextRequest) {
   try {
     const { supabase, session } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "TEACHER", "PARENT"]);
     const url = new URL(request.url);
-    const reader = session.role === "PARENT" || session.role === "ADMIN" || session.role === "STAFF"
-      ? createAdminClient()
-      : supabase;
+    if (session.role === "PARENT") {
+      await attachChildrenToParent(createAdminClient(), session.tenantId, session.userId, session.email);
+    }
+    const reader = session.role === "PARENT" || session.role === "TEACHER" ? supabase : createAdminClient();
     let childIds: string[] | null = null;
     if (session.role === "PARENT") {
-      await attachChildrenToParent(reader, session.tenantId, session.userId, session.email);
-      const { data: kids } = await reader
+      const { data: kids } = await supabase
         .from("Student")
         .select("id")
         .eq("tenantId", session.tenantId)
