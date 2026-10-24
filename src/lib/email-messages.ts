@@ -98,6 +98,23 @@ export function teacherWelcomeEmail(input: {
   };
 }
 
+export function adminLoginCodeEmail(input: {
+  schoolName: string;
+  name?: string | null;
+  code: string;
+}) {
+  return {
+    subject: `Your 6-digit admin code for ${input.schoolName}`,
+    body: [
+      greeting(input.name),
+      "",
+      `Your admin sign-in code is ${input.code}.`,
+      "It expires in 10 minutes. Do not share it.",
+      "Teachers and parents do not use this code.",
+    ].join("\n"),
+  };
+}
+
 export function passwordResetEmail(input: {
   schoolName: string;
   name?: string | null;

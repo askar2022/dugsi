@@ -75,6 +75,9 @@ export default function RegisterPage() {
           <FormField label="Password">
             <input className="input" name="password" type="password" minLength={8} required autoComplete="new-password" />
           </FormField>
+          <FormField label="Email for 6-digit admin code">
+            <input className="input" name="email" type="email" required />
+          </FormField>
           <FormField label="Phone">
             <input className="input" name="phone" />
           </FormField>

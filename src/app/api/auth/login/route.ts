@@ -1,4 +1,12 @@
 import { applyCors, error, json } from "@/lib/http";
+import {
+  adminCodeDestination,
+  attachAdminOtpCookies,
+  clearAdminOtpCookies,
+  isAdminLoginRole,
+  maskEmail,
+} from "@/lib/admin-otp";
+import { sendAdminLoginCode } from "@/lib/admin-otp-send";
 import { normalizeSchoolCode } from "@/lib/auth";
 import { resolveSchoolLoginEmail } from "@/lib/parent-account";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -48,7 +56,7 @@ export async function POST(request: Request) {
   }
 
   let profile: { id: string; name: string; role: string; tenantId: string | null } | null = null;
-  let tenant: { id: string; slug: string; name: string; status: string } | null = null;
+  let tenant: { id: string; slug: string; name: string; status: string; email?: string | null } | null = null;
 
   if (slug === "platform") {
     const { data: row } = await admin
@@ -64,7 +72,7 @@ export async function POST(request: Request) {
   } else {
     const { data: school } = await admin
       .from("Tenant")
-      .select("id, slug, name, status")
+      .select("id, slug, name, status, email")
       .eq("slug", slug)
       .maybeSingle();
     tenant = school;
@@ -130,17 +138,51 @@ export async function POST(request: Request) {
 
   const { data: refreshed } = await supabase.auth.getSession();
   const accessToken = refreshed.session?.access_token ?? data.session.access_token;
-
-  return json({
-    token: accessToken,
-    user: publicUser({
-      userId: data.user.id,
-      email,
-      name: profile.name,
-      role: profile.role as Role,
-      tenantId: profile.tenantId,
-      tenantSlug: tenant?.slug ?? null,
-      tenantName: tenant?.name ?? null,
-    }),
+  const user = publicUser({
+    userId: data.user.id,
+    email,
+    name: profile.name,
+    role: profile.role as Role,
+    tenantId: profile.tenantId,
+    tenantSlug: tenant?.slug ?? null,
+    tenantName: tenant?.name ?? null,
   });
+
+  const wantsAdminCode = parsed.data.portal === "admin" || slug === "platform";
+  if (wantsAdminCode && isAdminLoginRole(profile.role)) {
+    const dest = await adminCodeDestination(admin, {
+      userId: profile.id,
+      authEmail: email,
+      tenantEmail: tenant?.email ?? null,
+    });
+    const response = json({
+      needsCode: true,
+      needsEmail: !dest,
+      sentTo: dest ? maskEmail(dest) : null,
+    });
+    if (dest) {
+      await sendAdminLoginCode({
+        response,
+        userId: profile.id,
+        dest,
+        name: profile.name,
+        schoolName: tenant?.name ?? "OurDugsi",
+        tenantId: profile.tenantId,
+      });
+    } else {
+      attachAdminOtpCookies(response, {
+        userId: profile.id,
+        dest: "",
+        hash: "",
+        exp: Date.now() + 10 * 60 * 1000,
+        tries: 0,
+        sentAt: 0,
+      });
+    }
+    return response;
+  }
+
+  const response = json({ token: accessToken, user });
+  clearAdminOtpCookies(response);
+  return response;
 }

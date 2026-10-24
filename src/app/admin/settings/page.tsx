@@ -22,6 +22,7 @@ export default function SettingsPage() {
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [pageColor, setPageColor] = useState<PageColorId>("green");
   const [enrollUrl, setEnrollUrl] = useState("");
+  const [securityEmail, setSecurityEmail] = useState("");
   const [message, setMessage] = useState("");
   const [imageError, setImageError] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
@@ -29,8 +30,9 @@ export default function SettingsPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function load() {
-    const data = await api<{ tenant: Tenant; enrollUrl: string | null }>("/api/settings");
+    const data = await api<{ tenant: Tenant; enrollUrl: string | null; securityEmail?: string | null }>("/api/settings");
     setTenant(data.tenant);
+    setSecurityEmail(data.securityEmail ?? "");
     setPageColor(
       data.tenant.pageColor && PAGE_COLOR_IDS.includes(data.tenant.pageColor as PageColorId)
         ? (data.tenant.pageColor as PageColorId)
@@ -53,7 +55,7 @@ export default function SettingsPage() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(event.currentTarget).entries());
-    await api("/api/settings", { method: "PATCH", body: JSON.stringify({ ...data, pageColor }) });
+    await api("/api/settings", { method: "PATCH", body: JSON.stringify({ ...data, pageColor, securityEmail }) });
     window.dispatchEvent(new CustomEvent("dugsi-page-color", { detail: pageColor }));
     setMessage("School settings saved.");
   }
@@ -144,6 +146,9 @@ export default function SettingsPage() {
         <FormField label="Phone"><input className="input" name="phone" defaultValue={tenant.phone ?? ""} /></FormField>
         <FormField label="Address"><input className="input" name="address" defaultValue={tenant.address ?? ""} /></FormField>
         <FormField label="City"><input className="input" name="city" defaultValue={tenant.city ?? ""} /></FormField>
+        <FormField label="Email for your 6-digit admin code">
+          <input className="input" type="email" value={securityEmail} onChange={(event) => setSecurityEmail(event.target.value)} />
+        </FormField>
         <FormField label="Welcome note">
           <textarea className="input min-h-32" name="welcomeNote" defaultValue={tenant.welcomeNote ?? ""} />
         </FormField>

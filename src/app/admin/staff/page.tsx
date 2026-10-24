@@ -34,6 +34,7 @@ export default function StaffPage() {
   const [phone, setPhone] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [securityEmail, setSecurityEmail] = useState("");
   const [position, setPosition] = useState("");
   const [classId, setClassId] = useState("");
   const [status, setStatus] = useState<"active" | "inactive">("active");
@@ -64,6 +65,7 @@ export default function StaffPage() {
     setPhone("");
     setUsername("");
     setPassword("");
+    setSecurityEmail("");
     setPosition("");
     setClassId("");
     setStatus("active");
@@ -86,6 +88,7 @@ export default function StaffPage() {
           phone,
           username,
           password: portal ? password : undefined,
+          email: portal === "ADMIN" ? securityEmail : undefined,
           title: position,
           classId: teaching ? classId : undefined,
           status,
@@ -157,6 +160,11 @@ export default function StaffPage() {
             <FormField label="Password">
               <input className="input" type="password" required={status === "active"} minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" />
             </FormField>
+            {portal === "ADMIN" ? (
+              <FormField label="Email for 6-digit code">
+                <input className="input" type="email" required={status === "active"} value={securityEmail} onChange={(event) => setSecurityEmail(event.target.value)} />
+              </FormField>
+            ) : null}
           </>
         ) : null}
         {teaching ? (
