@@ -308,7 +308,7 @@ export default function EnrollmentPage() {
                       <td><StatusBadge status={row.status} /></td>
                       <td>
                         {row.stage === "enrolled" && row.studentId ? (
-                          <Link href={`/admin/students/${row.studentId}`} className="btn btn-ghost">View</Link>
+                          <Link href={`/admin/students/${row.studentId}?from=enrollment`} className="btn btn-ghost">View</Link>
                         ) : row.stage === "ready" && row.studentId ? (
                           <div className="enroll-action">
                             <select

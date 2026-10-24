@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -34,8 +34,17 @@ function one<T>(value: T | T[] | null | undefined): T | null {
   return value ?? null;
 }
 
+function backLink(from?: string | null) {
+  if (from === "enrollment") return { href: "/admin/enrollment", label: "Back to Enrollment" };
+  if (from === "progress") return { href: "/admin/progress", label: "Back to Qur’an Progress" };
+  if (from === "overview") return { href: "/admin", label: "Back to Overview" };
+  return { href: "/admin/students", label: "Back to Students" };
+}
+
 export default function AdminStudentPage() {
   const params = useParams<{ id: string }>();
+  const search = useSearchParams();
+  const back = backLink(search.get("from"));
   const [student, setStudent] = useState<Student | null>(null);
   const [progress, setProgress] = useState<Progress[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
@@ -73,7 +82,7 @@ export default function AdminStudentPage() {
     return (
       <div className="page-stack">
         <PageHeader title="Student not found" description="This child is not in this dugsi." />
-        <Link href="/admin/progress" className="btn btn-ghost">Back to Quran progress</Link>
+        <Link href={back.href} className="btn btn-ghost">{back.label}</Link>
       </div>
     );
   }
@@ -87,7 +96,7 @@ export default function AdminStudentPage() {
         description={`${student.class?.name ?? "No class"}${student.class?.teacher?.name ? ` · ${student.class.teacher.name}` : ""}`}
       />
       <div>
-        <Link href="/admin/progress" className="btn btn-ghost">Back to Quran progress</Link>
+        <Link href={back.href} className="btn btn-ghost">{back.label}</Link>
       </div>
 
       <section className="progress-summary">
