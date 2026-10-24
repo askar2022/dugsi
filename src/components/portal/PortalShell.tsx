@@ -36,6 +36,7 @@ const NAV: Record<string, NavSection[]> = {
       items: [
         { href: "/admin", label: "Overview", icon: Home },
         { href: "/admin/enrollment", label: "Enrollment", icon: UserPlus },
+        { href: "/admin/attendance", label: "Attendance", icon: CalendarDays },
       ],
     },
     {

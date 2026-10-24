@@ -1523,6 +1523,88 @@ body:has(.teacher-dock) .site-footer {
   padding: 1rem 1.1rem;
 }
 
+.attend-filters {
+  display: grid;
+  gap: 1rem;
+}
+
+.attend-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.attend-exceptions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--green);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.attend-list {
+  overflow: hidden;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 0.95rem;
+}
+
+.attend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3.1rem;
+  padding: 0.45rem 0.85rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.attend-row:last-child {
+  border-bottom: 0;
+}
+
+.attend-name {
+  font-weight: 700;
+  color: var(--green);
+}
+
+.attend-select {
+  min-width: 8.4rem;
+  max-width: 42%;
+  min-height: 2.3rem;
+  padding: 0 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.attend-select.is-present {
+  background: var(--green-soft);
+  border-color: var(--paid);
+  color: var(--paid);
+}
+
+.attend-select.is-absent {
+  background: #fdecec;
+  border-color: var(--late);
+  color: var(--late);
+}
+
+.attend-select.is-late {
+  background: var(--gold-soft);
+  border-color: var(--due);
+  color: var(--due);
+}
+
+.attend-select.is-excused {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  color: #6b7280;
+}
+
 .mark-group {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2042,6 +2124,10 @@ body:has(.teacher-dock) .site-footer {
 
   .teacher-filters {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .attend-filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .teacher-form {
