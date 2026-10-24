@@ -25,7 +25,7 @@ export default function EnrollStartPage() {
     }
     try {
       await api(`/api/public/school/${code}`);
-      router.push(`/s/${code}`);
+      router.push(`/enroll/${code}`);
     } catch {
       setError("That school was not found. Ask your dugsi for their enrollment link. This page does not list other schools.");
     } finally {
