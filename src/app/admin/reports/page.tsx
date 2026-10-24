@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { api } from "@/lib/api";
+import { downloadLeadershipPdf } from "@/lib/leadership-pdf";
 import { downloadTableCsv } from "@/lib/table-csv";
-import { downloadTablePdf } from "@/lib/table-pdf";
+import type { Session } from "@/lib/types";
 
 type Report = {
   enrolled: number;
@@ -31,6 +32,10 @@ function money(value: number) {
 export default function ReportsPage() {
   const [report, setReport] = useState<Report | null>(null);
   const [schoolName, setSchoolName] = useState("Administrative Reports");
+  const [adminName, setAdminName] = useState("");
+  const [schoolImageUrl, setSchoolImageUrl] = useState<string | null>(null);
+  const [pdfPending, setPdfPending] = useState(false);
+  const [pdfError, setPdfError] = useState("");
   const [fridayOpen, setFridayOpen] = useState(false);
   const [fridayPending, setFridayPending] = useState(false);
   const [fridayError, setFridayError] = useState("");
@@ -38,9 +43,15 @@ export default function ReportsPage() {
 
   useEffect(() => {
     api<{ report: Report }>("/api/reports").then((data) => setReport(data.report));
-    api<{ user: { tenantName?: string | null } }>("/api/auth/me")
-      .then((data) => setSchoolName(data.user.tenantName ?? "Administrative Reports"))
+    api<{ user: Session }>("/api/auth/me")
+      .then((data) => {
+        setSchoolName(data.user.tenantName ?? "Administrative Reports");
+        setAdminName(data.user.name ?? "");
+      })
       .catch(() => setSchoolName("Administrative Reports"));
+    api<{ tenant: { schoolImageUrl: string | null } }>("/api/settings")
+      .then((data) => setSchoolImageUrl(data.tenant.schoolImageUrl))
+      .catch(() => setSchoolImageUrl(null));
   }, []);
 
   useEffect(() => {
@@ -70,18 +81,31 @@ export default function ReportsPage() {
     ];
   }
 
-  function exportPdf() {
-    downloadTablePdf({
-      title: schoolName,
-      subtitle: "Administrative reports overview",
-      filename: "administrative-reports.pdf",
-      columns: [
-        { key: "section", label: "Section", x: 36 },
-        { key: "item", label: "Record", x: 200 },
-        { key: "value", label: "Value", x: 420 },
-      ],
-      rows: snapshotRows(),
-    });
+  async function exportPdf() {
+    if (!report) return;
+    setPdfError("");
+    setPdfPending(true);
+    try {
+      await downloadLeadershipPdf({
+        schoolName,
+        adminName,
+        schoolImageUrl,
+        enrolled: report.enrolled,
+        waiting,
+        onTrack: report.progress.on_track,
+        needPractice: report.progress.needs_practice,
+        needSupport: report.progress.contact_parent,
+        noRecord: report.progress.none,
+        paid: report.tuition.paid,
+        due: report.tuition.due,
+        late: report.tuition.late,
+        expenses: report.expenseTotal,
+      });
+    } catch (err) {
+      setPdfError(err instanceof Error ? err.message : "Could not create the weekly report.");
+    } finally {
+      setPdfPending(false);
+    }
   }
 
   function exportExcel() {
@@ -237,7 +261,10 @@ export default function ReportsPage() {
               <div className="report-official-row">
                 <p className="report-official-label">Download overview</p>
                 <div className="report-official-actions">
-                  <button type="button" className="btn btn-ghost" onClick={exportPdf}>Download PDF</button>
+                  <button type="button" className="btn btn-ghost" disabled={pdfPending} onClick={exportPdf}>
+                    {pdfPending ? "Preparing..." : "Download PDF"}
+                  </button>
+                  {pdfError ? <p className="report-note">{pdfError}</p> : null}
                   <button type="button" className="btn btn-ghost" onClick={exportExcel}>Download Excel</button>
                 </div>
               </div>
