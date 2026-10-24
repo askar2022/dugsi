@@ -221,7 +221,7 @@ export async function GET(request: NextRequest) {
       applications,
       waiting,
       pipeline,
-      enrollUrl: `/s/${session.tenantSlug}`,
+      enrollUrl: `/enroll/${session.tenantSlug}`,
       schoolCode: session.tenantSlug,
     });
   } catch (err) {
