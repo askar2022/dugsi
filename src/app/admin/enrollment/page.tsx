@@ -222,7 +222,7 @@ export default function EnrollmentPage() {
       <section className="card enroll-link">
         <div>
           <p className="metric-label">Family Enrollment Link</p>
-          <p className="record-meta" style={{ marginTop: "0.35rem", wordBreak: "break-all" }}>{enrollUrl || "Loading link…"}</p>
+          <p className="record-meta" style={{ marginTop: "0.35rem", wordBreak: "break-all" }}>{enrollUrl || "Loading form…"}</p>
         </div>
         <div className="enroll-link-actions">
           <button type="button" className="btn btn-primary" disabled={!enrollUrl} onClick={copyLink}>
