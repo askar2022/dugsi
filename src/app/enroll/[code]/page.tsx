@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { FormField } from "@/components/forms/FormField";
 import { PublicHeader } from "@/components/PublicHeader";
+import { RememberSchool } from "@/components/public/RememberSchool";
 import { SchoolTheme } from "@/components/SchoolTheme";
 import { api } from "@/lib/api";
 
@@ -23,13 +24,14 @@ const emptyChild = { firstName: "", lastName: "", age: "", notes: "" };
 
 export default function PublicEnrollPage() {
   const params = useParams<{ code: string }>();
+  const schoolCode = String(params.code ?? "").trim().toLowerCase();
   const [school, setSchool] = useState<School | null>(null);
   const [missing, setMissing] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [parent, setParent] = useState(emptyParent);
   const [child, setChild] = useState(emptyChild);
   const [agreed, setAgreed] = useState(false);
-  const [message, setMessage] = useState("");
+  const [doneChild, setDoneChild] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
@@ -43,8 +45,16 @@ export default function PublicEnrollPage() {
   function goToChild(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    setMessage("");
     setStep(2);
+  }
+
+  function startAnother() {
+    setParent(emptyParent);
+    setChild(emptyChild);
+    setAgreed(false);
+    setStep(1);
+    setDoneChild("");
+    setError("");
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -52,7 +62,7 @@ export default function PublicEnrollPage() {
     if (!school) return;
     setPending(true);
     setError("");
-    setMessage("");
+    const childName = `${child.firstName} ${child.lastName}`.trim();
     try {
       await api("/api/public/enroll", {
         method: "POST",
@@ -76,7 +86,7 @@ export default function PublicEnrollPage() {
       setChild(emptyChild);
       setAgreed(false);
       setStep(1);
-      setMessage("Application sent. The child is waiting for assessment. You do not need an account yet.");
+      setDoneChild(childName);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send that application.");
     } finally {
@@ -88,11 +98,11 @@ export default function PublicEnrollPage() {
     return (
       <SchoolTheme>
       <div className="min-h-screen">
-        <PublicHeader />
+        <PublicHeader variant="school" schoolName="Dugsi" schoolCode={schoolCode || "school"} homeHref={schoolCode ? `/enroll/${schoolCode}` : "/enroll"} />
         <div className="flex justify-center px-4 pb-16">
           <div className="card empty-state max-w-lg">
-            <p className="empty-state-title">School page not found</p>
-            <p className="empty-state-text">Ask your dugsi for their school page. This form does not list other schools.</p>
+            <p className="empty-state-title">Enrollment form not found</p>
+            <p className="empty-state-text">Ask your dugsi for their enrollment link. This form does not list other schools.</p>
           </div>
         </div>
       </div>
@@ -104,7 +114,7 @@ export default function PublicEnrollPage() {
     return (
       <SchoolTheme>
       <div className="min-h-screen">
-        <PublicHeader />
+        <PublicHeader variant="school" schoolName="Dugsi" schoolCode={schoolCode || "school"} homeHref={schoolCode ? `/enroll/${schoolCode}` : "/enroll"} />
         <p className="px-6 py-10 text-muted">Loading enrollment…</p>
       </div>
       </SchoolTheme>
@@ -114,9 +124,26 @@ export default function PublicEnrollPage() {
   return (
     <SchoolTheme pageColor={school.pageColor}>
     <div className="min-h-screen">
-      <PublicHeader variant="school" schoolName={school.name} schoolCode={school.code} />
+      <RememberSchool code={school.code} />
+      <PublicHeader variant="school" schoolName={school.name} schoolCode={school.code} homeHref={`/enroll/${school.code}`} />
       <div className="flex justify-center px-4 pb-16">
         <div className="card parent-form w-full max-w-xl">
+          {doneChild ? (
+            <div className="grid gap-4">
+              <div>
+                <p className="hero-kicker">Application received</p>
+                <h1 className="page-title">{school.name}</h1>
+              </div>
+              <p className="empty-state-title">{doneChild} is waiting for assessment.</p>
+              <p className="page-copy">
+                The office received this application. They will assess the child and then place them in a class. You do not need an account yet.
+              </p>
+              <button className="btn btn-primary parent-form-submit" type="button" onClick={startAnother}>
+                Enroll another child
+              </button>
+            </div>
+          ) : (
+            <>
           <div>
             <p className="hero-kicker">Enroll your child</p>
             <h1 className="page-title">{school.name}</h1>
@@ -187,7 +214,8 @@ export default function PublicEnrollPage() {
           )}
 
           {error ? <p className="text-sm text-late">{error}</p> : null}
-          {message ? <p className="text-sm text-paid">{message}</p> : null}
+            </>
+          )}
         </div>
       </div>
     </div>
