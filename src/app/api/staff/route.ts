@@ -1,21 +1,12 @@
 import { NextRequest } from "next/server";
 import { isAssessmentClass } from "@/lib/assessment-class";
-import { sendTenantEmail } from "@/lib/email";
-import { parentWelcomeEmail, teacherWelcomeEmail } from "@/lib/email-messages";
 import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
-import { inviteSchoolUser } from "@/lib/invite";
+import { ensureSchoolLogin, parentUsernameLabel } from "@/lib/parent-account";
 import { needsAssignedClass, portalForPosition, STAFF_POSITIONS } from "@/lib/staff-positions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
-import type { Role } from "@/lib/types";
 import { staffSchema } from "@/lib/validators";
-
-function loginRoleFor(role: Role): "admin" | "teacher" | "parent" {
-  if (role === "PARENT") return "parent";
-  if (role === "TEACHER") return "teacher";
-  return "admin";
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,7 +21,20 @@ export async function GET(request: NextRequest) {
       .select("id, name, email, phone")
       .eq("tenantId", session.tenantId)
       .eq("role", "TEACHER");
-    return json({ staff: staff ?? [], teachers: teachers ?? [] });
+    return json({
+      staff: (staff ?? []).map((person) => ({
+        ...person,
+        username: person.user?.email
+          ? parentUsernameLabel(person.user.email, session.tenantSlug)
+          : person.email
+            ? parentUsernameLabel(person.email, session.tenantSlug)
+            : null,
+      })),
+      teachers: (teachers ?? []).map((teacher) => ({
+        ...teacher,
+        username: parentUsernameLabel(teacher.email, session.tenantSlug),
+      })),
+    });
   } catch (err) {
     return handleApiError(err);
   }
@@ -41,13 +45,16 @@ export async function POST(request: NextRequest) {
     const { session } = await requireAuthedTenant(request, ["ADMIN"]);
     const parsed = staffSchema.safeParse(await request.json());
     if (!parsed.success) {
-      throw new ApiError("Enter the full name, phone, email, and position.");
+      throw new ApiError("Enter the full name, phone, username, password, and position.");
     }
     if (!(STAFF_POSITIONS as string[]).includes(parsed.data.title)) {
       throw new ApiError("Choose a position from the list.");
     }
+    if (!session.tenantSlug) {
+      throw new ApiError("This school is missing a school code.");
+    }
 
-    const email = parsed.data.email.trim().toLowerCase();
+    const username = (parsed.data.username || parsed.data.email || "").trim();
     const phone = parsed.data.phone.trim();
     const status = parsed.data.status === "inactive" ? "inactive" : "active";
     const portal = portalForPosition(parsed.data.title);
@@ -55,6 +62,12 @@ export async function POST(request: NextRequest) {
     const classId = parsed.data.classId?.trim() || "";
     if (teaching && !classId) {
       throw new ApiError("Assign a class for that teaching role.");
+    }
+    if (portal && status === "active" && username.length < 3) {
+      throw new ApiError("Enter a username for this login.");
+    }
+    if (portal && status === "active" && !parsed.data.password) {
+      throw new ApiError("Each teacher and admin needs their own password.");
     }
 
     const writer = createAdminClient();
@@ -71,20 +84,22 @@ export async function POST(request: NextRequest) {
     }
 
     let userId: string | undefined;
-    let inviteLink: string | null = null;
+    let loginEmail = username;
 
     if (portal && status === "active") {
-      const invited = await inviteSchoolUser({
+      const created = await ensureSchoolLogin({
         tenantId: session.tenantId,
         tenantSlug: session.tenantSlug,
         tenantName: session.tenantName,
-        email,
         name: parsed.data.name,
-        role: portal,
+        username,
+        password: parsed.data.password,
         phone,
+        role: portal,
+        requirePassword: true,
       });
-      userId = invited.userId;
-      inviteLink = invited.inviteLink;
+      userId = created.userId;
+      loginEmail = created.email;
     }
 
     const { data: staff, error } = await writer
@@ -93,7 +108,7 @@ export async function POST(request: NextRequest) {
         tenantId: session.tenantId,
         userId,
         name: parsed.data.name.trim(),
-        email,
+        email: loginEmail || null,
         phone,
         title: parsed.data.title,
         status,
@@ -110,33 +125,6 @@ export async function POST(request: NextRequest) {
         .eq("id", classId)
         .eq("tenantId", session.tenantId);
       throwIfError(classError, "Staff was saved. Could not assign that class.");
-    }
-
-    if (portal && status === "active") {
-      const copy =
-        portal === "PARENT"
-          ? parentWelcomeEmail({
-              schoolName: session.tenantName ?? "your school",
-              parentName: parsed.data.name,
-              email,
-              inviteLink,
-              schoolCode: session.tenantSlug,
-            })
-          : teacherWelcomeEmail({
-              schoolName: session.tenantName ?? "your school",
-              teacherName: parsed.data.name,
-              title: parsed.data.title,
-              inviteLink,
-              schoolCode: session.tenantSlug,
-              loginRole: loginRoleFor(portal),
-            });
-      await sendTenantEmail({
-        tenantId: session.tenantId,
-        toEmail: email,
-        subject: copy.subject,
-        body: copy.body,
-        event: "staff_onboarded",
-      });
     }
 
     return json({ staff }, 201);

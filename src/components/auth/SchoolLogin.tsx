@@ -24,21 +24,21 @@ const COPY = {
     artAlt: "Welcome back, Teacher",
     kicker: "Welcome",
     heading: "Teacher",
-    text: "Assalamu alaikum. Sign in to your class.",
+    text: "Assalamu alaikum. Sign in with your own username and password.",
   },
   admin: {
     art: "/admin_image.png",
     artAlt: "Welcome back, Admin",
     kicker: "Office",
     heading: "Admin",
-    text: "Assalamu alaikum. Sign in to run this school.",
+    text: "Assalamu alaikum. Sign in with your own username and password.",
   },
   staff: {
     art: "/teacher_image.png",
     artAlt: "Welcome back, Teacher",
     kicker: "Welcome",
     heading: "Teacher",
-    text: "Assalamu alaikum. Sign in to your class.",
+    text: "Assalamu alaikum. Sign in with your own username and password.",
   },
 };
 
@@ -55,6 +55,7 @@ function SchoolLoginForm({
   const copy = COPY[portal];
   const [school, setSchool] = useState<School | null>(null);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
@@ -104,6 +105,30 @@ function SchoolLoginForm({
     }
   }
 
+  async function onForgot() {
+    const form = document.querySelector(".login-form") as HTMLFormElement | null;
+    const username = String(form?.elements.namedItem("email") instanceof HTMLInputElement ? (form.elements.namedItem("email") as HTMLInputElement).value : "").trim();
+    const code = school?.code ?? schoolCode;
+    if (!code || username.length < 3) {
+      setError("Enter your username first.");
+      return;
+    }
+    setPending(true);
+    setError("");
+    setMessage("");
+    try {
+      const data = await api<{ message?: string }>("/api/auth/forgot", {
+        method: "POST",
+        body: JSON.stringify({ schoolCode: code, username }),
+      });
+      setMessage(data.message || "If this login can receive email, a reset link was sent. Otherwise ask the office.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not start a password reset.");
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <SchoolTheme pageColor={school?.pageColor}>
     <div className="min-h-screen">
@@ -136,21 +161,19 @@ function SchoolLoginForm({
               <input className="input" name="schoolCode" required autoComplete="organization" />
             </FormField>
           )}
-          <FormField label={portal === "parent" ? "Username" : "Email"}>
-            <input
-              className="input"
-              name="email"
-              type={portal === "parent" ? "text" : "email"}
-              required
-              autoComplete="username"
-            />
+          <FormField label="Username">
+            <input className="input" name="email" type="text" required autoComplete="username" />
           </FormField>
           <FormField label="Password">
             <input className="input" name="password" type="password" required autoComplete="current-password" />
           </FormField>
           {error ? <p className="text-sm text-late">{error}</p> : null}
+          {message ? <p className="text-sm text-paid">{message}</p> : null}
           <button className="btn btn-primary w-full" disabled={pending}>
             {pending ? "Signing in..." : "Sign in"}
+          </button>
+          <button className="btn btn-ghost w-full" type="button" disabled={pending} onClick={() => void onForgot()}>
+            Reset password
           </button>
         </form>
       </div>

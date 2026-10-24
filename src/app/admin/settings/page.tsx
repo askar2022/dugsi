@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { ChangePasswordForm } from "@/components/account/ChangePasswordForm";
 import { FormField } from "@/components/forms/FormField";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { SchoolImage } from "@/components/portal/SchoolImage";
@@ -105,7 +106,7 @@ export default function SettingsPage() {
       {enrollUrl ? (
         <section className="card max-w-2xl space-y-2 p-6">
           <h2 className="page-title" style={{ fontSize: "1.5rem" }}>This school’s page</h2>
-          <p className="page-copy">Share this link with families. It is this dugsi’s landing page, not Our Dugsi. They enroll without signing in.</p>
+          <p className="page-copy">Share this link with families. It is this dugsi’s landing page, not Our Dugsi. Each parent creates their own username and password.</p>
           <p className="record-title" style={{ wordBreak: "break-all" }}>{enrollUrl}</p>
         </section>
       ) : null}
@@ -175,6 +176,8 @@ export default function SettingsPage() {
         <button className="btn btn-primary">Save settings</button>
         {message ? <p className="text-sm text-paid">{message}</p> : null}
       </form>
+
+      <ChangePasswordForm />
     </div>
   );
 }

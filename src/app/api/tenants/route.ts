@@ -13,18 +13,22 @@ export async function GET(request: NextRequest) {
     const admin = createAdminClient();
     const { data: tenants, error } = await admin
       .from("Tenant")
-      .select("*, users:User(id), students:Student(id), classes:Class(id)")
+      .select("*, users:User(id, name, email, role), students:Student(id), classes:Class(id)")
       .order("createdAt", { ascending: false });
     if (error) throw new ApiError(error.message);
     return json({
-      tenants: (tenants ?? []).map((tenant) => ({
-        ...tenant,
-        _count: {
-          users: tenant.users?.length ?? 0,
-          students: tenant.students?.length ?? 0,
-          classes: tenant.classes?.length ?? 0,
-        },
-      })),
+      tenants: (tenants ?? []).map((tenant) => {
+        const admins = (tenant.users ?? []).filter((user: { role: string }) => user.role === "ADMIN" || user.role === "STAFF");
+        return {
+          ...tenant,
+          admins,
+          _count: {
+            users: tenant.users?.length ?? 0,
+            students: tenant.students?.length ?? 0,
+            classes: tenant.classes?.length ?? 0,
+          },
+        };
+      }),
     });
   } catch (err) {
     return handleApiError(err);

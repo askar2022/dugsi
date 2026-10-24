@@ -16,6 +16,7 @@ function LoginForm() {
   const schoolCode = (params.get("school") ?? "").trim().toLowerCase();
   const portal = params.get("portal");
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
@@ -74,15 +75,46 @@ function LoginForm() {
           <FormField label="School code">
             <input className="input" name="schoolCode" required autoComplete="organization" />
           </FormField>
-          <FormField label="Email">
-            <input className="input" name="email" type="email" required autoComplete="username" />
+          <FormField label="Username">
+            <input className="input" name="email" type="text" required autoComplete="username" />
           </FormField>
           <FormField label="Password">
             <input className="input" name="password" type="password" required autoComplete="current-password" />
           </FormField>
           {error ? <p className="text-sm text-late">{error}</p> : null}
+          {message ? <p className="text-sm text-paid">{message}</p> : null}
           <button className="btn btn-primary w-full" disabled={pending}>
             {pending ? "Signing in..." : "Sign in"}
+          </button>
+          <button
+            className="btn btn-ghost w-full"
+            type="button"
+            disabled={pending}
+            onClick={async () => {
+              const form = document.querySelector(".login-form") as HTMLFormElement | null;
+              const username = String(form?.email instanceof HTMLInputElement ? form.email.value : "").trim();
+              const schoolCode = String(form?.schoolCode instanceof HTMLInputElement ? form.schoolCode.value : "").trim();
+              if (!schoolCode || username.length < 3) {
+                setError("Enter the school code and username first.");
+                return;
+              }
+              setPending(true);
+              setError("");
+              setMessage("");
+              try {
+                const data = await api<{ message?: string }>("/api/auth/forgot", {
+                  method: "POST",
+                  body: JSON.stringify({ schoolCode, username }),
+                });
+                setMessage(data.message || "If this login can receive email, a reset link was sent.");
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Could not start a password reset.");
+              } finally {
+                setPending(false);
+              }
+            }}
+          >
+            Reset password
           </button>
           <p className="text-sm text-muted">
             New school? <Link className="text-green underline" href="/register">Create</Link>

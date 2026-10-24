@@ -18,6 +18,7 @@ type Staff = {
   name: string;
   title: string;
   email: string | null;
+  username?: string | null;
   phone: string | null;
   status?: string | null;
   userId: string | null;
@@ -31,15 +32,19 @@ export default function StaffPage() {
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [position, setPosition] = useState("");
   const [classId, setClassId] = useState("");
   const [status, setStatus] = useState<"active" | "inactive">("active");
+  const [resetId, setResetId] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
   const [pending, setPending] = useState(false);
   const teaching = needsAssignedClass(position);
+  const portal = portalForPosition(position);
 
   async function load() {
     const [staffData, classData] = await Promise.all([
@@ -57,7 +62,8 @@ export default function StaffPage() {
   function resetForm() {
     setName("");
     setPhone("");
-    setEmail("");
+    setUsername("");
+    setPassword("");
     setPosition("");
     setClassId("");
     setStatus("active");
@@ -78,17 +84,17 @@ export default function StaffPage() {
         body: JSON.stringify({
           name,
           phone,
-          email,
+          username,
+          password: portal ? password : undefined,
           title: position,
           classId: teaching ? classId : undefined,
           status,
         }),
       });
-      const portal = portalForPosition(position);
       resetForm();
       setMessage(
         portal && status === "active"
-          ? "Staff added. They will get an email to create their own password."
+          ? "Staff login saved. This person uses their own username and password."
           : "Staff added.",
       );
       await load();
@@ -99,15 +105,20 @@ export default function StaffPage() {
     }
   }
 
-  async function inviteLogin(person: Staff) {
+  async function saveReset(person: Staff) {
     setBusy(person.id);
     setError("");
     try {
-      await api(`/api/staff/${person.id}`, { method: "PATCH", body: JSON.stringify({}) });
-      setMessage(`Invitation sent to ${person.email}. They will create their own password.`);
+      await api(`/api/staff/${person.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ password: resetPassword }),
+      });
+      setResetId("");
+      setResetPassword("");
+      setMessage(`Password reset for ${person.name}.`);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send that invitation.");
+      setError(err instanceof Error ? err.message : "Could not reset that password.");
     } finally {
       setBusy("");
     }
@@ -117,7 +128,7 @@ export default function StaffPage() {
     <div className="page-stack">
       <PageHeader
         title="Staff"
-        description="Add staff by position. The system opens the right portal, or none, from that position."
+        description="Each teacher and admin gets their own username and password. Do not share one login."
       />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Full Name">
@@ -125,9 +136,6 @@ export default function StaffPage() {
         </FormField>
         <FormField label="Phone">
           <input className="input" type="tel" required value={phone} onChange={(event) => setPhone(event.target.value)} />
-        </FormField>
-        <FormField label="Email">
-          <input className="input" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
         </FormField>
         <FormField label="Position">
           <select className="select" required value={position} onChange={(event) => { setPosition(event.target.value); setClassId(""); }}>
@@ -141,6 +149,16 @@ export default function StaffPage() {
             ))}
           </select>
         </FormField>
+        {portal ? (
+          <>
+            <FormField label="Username">
+              <input className="input" required={status === "active"} value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="off" />
+            </FormField>
+            <FormField label="Password">
+              <input className="input" type="password" required={status === "active"} minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" />
+            </FormField>
+          </>
+        ) : null}
         {teaching ? (
           <FormField label="Assigned Class">
             <select className="select" required value={classId} onChange={(event) => setClassId(event.target.value)}>
@@ -171,10 +189,10 @@ export default function StaffPage() {
             <tr>
               <th>Name</th>
               <th>Position</th>
-              <th>Email</th>
+              <th>Username</th>
               <th>Portal</th>
               <th>Status</th>
-              <th>Login</th>
+              <th>Password</th>
             </tr>
           </thead>
           <tbody>
@@ -184,26 +202,40 @@ export default function StaffPage() {
               </tr>
             ) : (
               staff.map((person) => {
-                const portal = portalForPosition(person.title) ?? person.user?.role ?? null;
+                const personPortal = portalForPosition(person.title) ?? person.user?.role ?? null;
                 return (
                   <tr key={person.id}>
                     <td>{person.name}</td>
                     <td>{person.title}</td>
-                    <td>{person.email ?? "—"}</td>
-                    <td>{portalLabel(portal)}</td>
+                    <td>{person.username ?? person.email ?? "—"}</td>
+                    <td>{portalLabel(personPortal)}</td>
                     <td><StatusBadge status={person.status === "inactive" ? "inactive" : "active"} /></td>
                     <td>
                       {person.userId ? (
-                        person.user?.status === "invited" ? "Invitation sent" : "Ready"
-                      ) : portal && person.email && person.status !== "inactive" ? (
-                        <button
-                          className="btn btn-primary py-2 text-sm"
-                          type="button"
-                          disabled={Boolean(busy)}
-                          onClick={() => inviteLogin(person)}
-                        >
-                          {busy === person.id ? "Sending..." : "Send login invitation"}
-                        </button>
+                        resetId === person.id ? (
+                          <span style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                            <input
+                              className="input"
+                              type="password"
+                              minLength={8}
+                              placeholder="New password"
+                              value={resetPassword}
+                              onChange={(event) => setResetPassword(event.target.value)}
+                            />
+                            <button
+                              className="btn btn-primary py-2 text-sm"
+                              type="button"
+                              disabled={busy === person.id || resetPassword.length < 8}
+                              onClick={() => void saveReset(person)}
+                            >
+                              {busy === person.id ? "Saving..." : "Save"}
+                            </button>
+                          </span>
+                        ) : (
+                          <button className="btn btn-ghost py-2 text-sm" type="button" onClick={() => { setResetId(person.id); setResetPassword(""); }}>
+                            Reset password
+                          </button>
+                        )
                       ) : (
                         "—"
                       )}

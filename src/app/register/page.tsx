@@ -1,15 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
 import { PublicHeader } from "@/components/PublicHeader";
 import { api } from "@/lib/api";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [error, setError] = useState("");
+  const [done, setDone] = useState("");
   const [pending, setPending] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -18,19 +17,20 @@ export default function RegisterPage() {
     setError("");
     const form = new FormData(event.currentTarget);
     try {
-      await api("/api/tenants/register", {
+      const data = await api<{ message?: string }>("/api/tenants/register", {
         method: "POST",
         body: JSON.stringify({
           dugsiName: form.get("dugsiName"),
           schoolCode: form.get("schoolCode"),
           adminName: form.get("adminName"),
-          email: form.get("email"),
+          username: form.get("username"),
+          email: form.get("email") || undefined,
           password: form.get("password"),
           phone: form.get("phone"),
           city: form.get("city"),
         }),
       });
-      router.replace("/admin");
+      setDone(data.message || "Your dugsi is waiting for OurDugsi to approve it.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not register this dugsi.");
     } finally {
@@ -42,12 +42,21 @@ export default function RegisterPage() {
     <div className="min-h-screen">
       <PublicHeader />
       <div className="flex justify-center px-4 pb-16">
+      {done ? (
+        <div className="card mx-auto w-full max-w-xl space-y-4 p-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-gold">Waiting for approval</p>
+          <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">Request received</h1>
+          <p className="page-copy">{done}</p>
+          <p className="page-copy">The super admin will approve this dugsi. After that, sign in with the admin username and password you chose.</p>
+          <Link className="btn btn-primary" href="/login">Back to sign in</Link>
+        </div>
+      ) : (
       <form onSubmit={onSubmit} className="card mx-auto w-full max-w-xl space-y-4 p-6">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-gold">New school</p>
           <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">Register a dugsi</h1>
           <p className="mt-2 text-sm text-muted">
-            Create the school on Our Dugsi. Families will use your school’s own page, not this site.
+            Create the school on Our Dugsi. A super admin must approve it before the office can sign in. Each admin uses their own username and password.
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -60,11 +69,11 @@ export default function RegisterPage() {
           <FormField label="Admin name">
             <input className="input" name="adminName" required />
           </FormField>
-          <FormField label="Admin email">
-            <input className="input" name="email" type="email" required />
+          <FormField label="Admin username">
+            <input className="input" name="username" required minLength={3} autoComplete="username" />
           </FormField>
           <FormField label="Password">
-            <input className="input" name="password" type="password" minLength={8} required />
+            <input className="input" name="password" type="password" minLength={8} required autoComplete="new-password" />
           </FormField>
           <FormField label="Phone">
             <input className="input" name="phone" />
@@ -75,12 +84,13 @@ export default function RegisterPage() {
         </FormField>
         {error ? <p className="text-sm text-late">{error}</p> : null}
         <button className="btn btn-primary w-full" disabled={pending}>
-          {pending ? "Creating school..." : "Create school"}
+          {pending ? "Sending request..." : "Ask to open this school"}
         </button>
         <p className="text-sm text-muted">
-          Already registered? <Link className="text-green underline" href="/login">Sign in</Link>
+          Already approved? <Link className="text-green underline" href="/login">Sign in</Link>
         </p>
       </form>
+      )}
       </div>
     </div>
   );
