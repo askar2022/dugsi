@@ -155,9 +155,7 @@ export default function ProgressPage() {
               ))}
             </select>
           </FormField>
-          <div className="teacher-sticky-save">
-            <button className="btn btn-primary parent-form-submit" disabled={!studentId}>Save progress</button>
-          </div>
+          <button className="btn btn-primary parent-form-submit" disabled={!studentId}>Save progress</button>
         </form>
       )}
       {progress.length === 0 ? (
