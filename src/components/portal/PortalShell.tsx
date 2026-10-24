@@ -229,12 +229,6 @@ export function PortalShell({
       <div className="portal-nav-scroll">
         <NavLinks sections={sections} pathname={pathname} onNavigate={() => setMenuOpen(false)} />
       </div>
-      <div className="portal-side-foot">
-        <button onClick={logout} className="portal-nav-link portal-signout">
-          <LogOut size={18} />
-          Sign out
-        </button>
-      </div>
     </>
   );
 
@@ -258,12 +252,6 @@ export function PortalShell({
             <div className="portal-nav-scroll">
               <NavLinks sections={sections} pathname={pathname} onNavigate={() => setMenuOpen(false)} />
             </div>
-            <div className="portal-side-foot">
-              <button onClick={logout} className="portal-nav-link portal-signout">
-                <LogOut size={18} />
-                Sign out
-              </button>
-            </div>
           </aside>
           <button className="portal-drawer-mask" onClick={() => setMenuOpen(false)} aria-label="Close menu" />
         </div>
@@ -278,6 +266,10 @@ export function PortalShell({
             <p className="portal-hello-title">{greeting}</p>
             <p className="portal-hello-school">{schoolName}</p>
           </div>
+          <button type="button" onClick={logout} className="portal-signout">
+            <LogOut size={18} />
+            <span>Sign out</span>
+          </button>
         </header>
         <main className="portal-content">{children}</main>
         {role === "TEACHER" ? (

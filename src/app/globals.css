@@ -371,12 +371,6 @@ tbody tr:hover td {
   overflow-y: auto;
 }
 
-.portal-side-foot {
-  margin-top: auto;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0.85rem;
-}
-
 .portal-brand-row {
   display: flex;
   justify-content: space-between;
@@ -419,11 +413,27 @@ tbody tr:hover td {
 }
 
 .portal-signout {
-  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
   margin: 0;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.8);
-  text-align: left;
+  margin-left: auto;
+  min-height: 2.85rem;
+  padding: 0.55rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: white;
+  color: var(--green);
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.portal-signout:hover {
+  border-color: var(--gold);
+  background: var(--gold-soft);
 }
 
 .portal-main {
