@@ -108,6 +108,23 @@ export default function StaffPage() {
     }
   }
 
+  async function setStaffStatus(person: Staff, next: "active" | "inactive") {
+    setBusy(person.id);
+    setError("");
+    try {
+      await api(`/api/staff/${person.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: next }),
+      });
+      setMessage(next === "active" ? `${person.name} can sign in now.` : `${person.name} is inactive.`);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update that staff member.");
+    } finally {
+      setBusy("");
+    }
+  }
+
   async function saveReset(person: Staff) {
     setBusy(person.id);
     setError("");
@@ -131,7 +148,7 @@ export default function StaffPage() {
     <div className="page-stack">
       <PageHeader
         title="Staff"
-        description="Each teacher and admin gets their own username and password. Do not share one login."
+        description="Each teacher and admin gets their own username and password. Teachers can create an account on the teacher page. Approve them here before they sign in."
       />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Full Name">
@@ -217,7 +234,21 @@ export default function StaffPage() {
                     <td>{person.title}</td>
                     <td>{person.username ?? person.email ?? "—"}</td>
                     <td>{portalLabel(personPortal)}</td>
-                    <td><StatusBadge status={person.status === "inactive" ? "inactive" : "active"} /></td>
+                    <td>
+                      <div style={{ display: "flex", gap: "0.4rem", alignItems: "center", flexWrap: "wrap" }}>
+                        <StatusBadge status={person.status === "inactive" ? "inactive" : "active"} />
+                        {person.status === "inactive" ? (
+                          <button
+                            className="btn btn-primary py-2 text-sm"
+                            type="button"
+                            disabled={busy === person.id}
+                            onClick={() => void setStaffStatus(person, "active")}
+                          >
+                            {busy === person.id ? "Saving..." : "Approve"}
+                          </button>
+                        ) : null}
+                      </div>
+                    </td>
                     <td>
                       {person.userId ? (
                         resetId === person.id ? (

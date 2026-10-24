@@ -54,6 +54,14 @@ export const parentSchema = z.object({
   phone: z.string().optional(),
 });
 
+export const teacherJoinSchema = z.object({
+  schoolCode: z.string().min(2),
+  name: z.string().min(2),
+  username: z.string().min(3),
+  password: z.string().min(8),
+  phone: z.string().min(7),
+});
+
 export const staffSchema = z.object({
   name: z.string().min(2),
   username: z.string().min(3).optional(),
