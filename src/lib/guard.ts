@@ -41,7 +41,7 @@ export async function getTenantStudent(
   const { supabase, session } = await requireAuthedTenant(request);
   const { data: student, error } = await supabase
     .from("Student")
-    .select("*, class:Class(*), parent:User!parentId(id, name, email)")
+    .select("*, class:Class(*), parent:User!parentId(id, name, email, phone)")
     .eq("id", studentId)
     .maybeSingle();
   if (error || !student) {

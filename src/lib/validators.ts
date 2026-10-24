@@ -79,6 +79,7 @@ export const attendanceSchema = z.object({
 export const homeworkSchema = z.object({
   classId: z.string(),
   studentId: z.string().optional(),
+  studentIds: z.array(z.string()).optional(),
   kind: z.enum(["reading", "memorization", "review", "written"]).default("reading"),
   surah: z.string().min(1),
   ayahFrom: z.coerce.number().int().min(1),
@@ -86,7 +87,7 @@ export const homeworkSchema = z.object({
   juz: z.coerce.number().int().min(1).max(30).optional(),
   title: z.string().optional(),
   description: z.string().optional(),
-  assignedDate: z.string(),
+  assignedDate: z.string().optional(),
   dueDate: z.string().optional(),
 });
 

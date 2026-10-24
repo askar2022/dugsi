@@ -12,10 +12,12 @@ import {
   FileBarChart,
   GraduationCap,
   Home,
+  List,
   LogOut,
   Menu,
   Receipt,
   Settings,
+  Table2,
   UserPlus,
   Users,
   Wallet,
@@ -70,11 +72,23 @@ const NAV: Record<string, NavSection[]> = {
     {
       label: "Classroom",
       items: [
-        { href: "/teacher", label: "Class Roster", icon: Users },
+        { href: "/teacher", label: "Home", icon: Home },
+        { href: "/teacher/roster", label: "Class Roster", icon: Users },
         { href: "/teacher/attendance", label: "Attendance", icon: CalendarDays },
-        { href: "/teacher/progress", label: "Quran Progress", icon: BookOpen },
-        { href: "/teacher/homework", label: "Homework", icon: ClipboardList },
-        { href: "/teacher/performance", label: "Your class", icon: Activity },
+      ],
+    },
+    {
+      label: "Qur’an Progress",
+      items: [
+        { href: "/teacher/progress/record", label: "Record Progress", icon: BookOpen },
+        { href: "/teacher/progress/view", label: "View Progress", icon: Table2 },
+      ],
+    },
+    {
+      label: "Homework",
+      items: [
+        { href: "/teacher/homework/assign", label: "Assign Homework", icon: ClipboardList },
+        { href: "/teacher/homework/view", label: "View Homework", icon: List },
       ],
     },
   ],
@@ -194,10 +208,10 @@ export function PortalShell({
   }
 
   const teacherDock = [
-    { href: "/teacher", label: "Class", icon: Users },
+    { href: "/teacher/roster", label: "Class", icon: Users },
     { href: "/teacher/attendance", label: "Attend", icon: CalendarDays },
-    { href: "/teacher/progress", label: "Quran", icon: BookOpen },
-    { href: "/teacher/homework", label: "Homework", icon: ClipboardList },
+    { href: "/teacher/progress/view", label: "Quran", icon: BookOpen },
+    { href: "/teacher/homework/view", label: "Homework", icon: ClipboardList },
   ];
 
   const sidebarBody = (
@@ -264,7 +278,12 @@ export function PortalShell({
           <nav className="teacher-dock" aria-label="Teacher pages">
             {teacherDock.map((item) => {
               const Icon = item.icon;
-              const current = itemActive(item.href, pathname);
+              const current =
+                item.href === "/teacher/homework/view"
+                  ? pathname.startsWith("/teacher/homework")
+                  : item.href === "/teacher/progress/view"
+                    ? pathname.startsWith("/teacher/progress")
+                    : itemActive(item.href, pathname);
               return (
                 <Link
                   key={item.href}

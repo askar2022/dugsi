@@ -6,7 +6,7 @@ export const HOMEWORK_KIND_LABELS: Record<HomeworkKind, string> = {
   reading: "Reading",
   memorization: "Memorization",
   review: "Review",
-  written: "Written work",
+  written: "Written Work",
 };
 
 export const HOMEWORK_COMPLETION_STATUSES = ["assigned", "done", "needs_help"] as const;
@@ -39,4 +39,32 @@ export function homeworkTitle(input: {
   }
   if (input.surah) return `${kind} · ${input.surah}`;
   return input.fallback?.trim() || kind;
+}
+
+export type HomeworkTab = "current" | "completed" | "past";
+
+export function homeworkTab(
+  completions: Array<{ status?: string | null }>,
+  dueDate: string | null | undefined,
+  asOf: string,
+): HomeworkTab {
+  const counts = homeworkCompletionCounts(completions);
+  const total = counts.done + counts.needsHelp + counts.assigned;
+  const finished = total > 0 && counts.assigned === 0;
+  if (finished) return "completed";
+  if (dueDate && dueDate < asOf) return "past";
+  return "current";
+}
+
+export function homeworkTabLabel(tab: HomeworkTab) {
+  if (tab === "completed") return "Completed";
+  if (tab === "past") return "Past Due";
+  return "Active";
+}
+
+export function homeworkWaitingLine(completions: Array<{ status?: string | null }>) {
+  const counts = homeworkCompletionCounts(completions);
+  const total = counts.done + counts.needsHelp + counts.assigned;
+  if (total <= 1 && counts.assigned === total) return `${total || 1} student · Waiting`;
+  return `${total} students · ${counts.done} completed · ${counts.assigned} waiting`;
 }
