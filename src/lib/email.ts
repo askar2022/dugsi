@@ -20,7 +20,7 @@ function fromAddress() {
   return raw.includes("<") ? raw : `Dugsi <${raw}>`;
 }
 
-async function deliverWithResend(input: { toEmail: string; subject: string; body: string }) {
+async function deliverWithResend(input: { toEmail: string; subject: string; body: string; html?: string }) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return { status: "logged" as const, error: null };
 
@@ -35,6 +35,7 @@ async function deliverWithResend(input: { toEmail: string; subject: string; body
       to: [input.toEmail],
       subject: input.subject,
       text: input.body,
+      html: input.html,
     }),
   });
 
@@ -52,6 +53,7 @@ export async function sendTenantEmail(input: {
   toEmail: string;
   subject: string;
   body: string;
+  html?: string;
   event: EmailEvent;
 }) {
   const delivery = await deliverWithResend(input);

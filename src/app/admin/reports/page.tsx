@@ -20,6 +20,11 @@ type Report = {
 type FridayEmail = {
   subject: string;
   body: string;
+  html: string;
+};
+
+type FridaySent = {
+  subject: string;
   toEmail: string;
   createdAt: string;
   status: string;
@@ -40,6 +45,7 @@ export default function ReportsPage() {
   const [fridayPending, setFridayPending] = useState(false);
   const [fridayError, setFridayError] = useState("");
   const [fridayEmail, setFridayEmail] = useState<FridayEmail | null>(null);
+  const [fridaySent, setFridaySent] = useState<FridaySent | null>(null);
 
   useEffect(() => {
     api<{ report: Report }>("/api/reports").then((data) => setReport(data.report));
@@ -136,11 +142,14 @@ export default function ReportsPage() {
 
   async function openFridayReport() {
     setFridayError("");
+    setFridayEmail(null);
+    setFridaySent(null);
     setFridayPending(true);
     setFridayOpen(true);
     try {
-      const data = await api<{ friday: { lastSent: FridayEmail | null } }>("/api/reports/friday");
-      setFridayEmail(data.friday.lastSent);
+      const data = await api<{ friday: { preview: FridayEmail; lastSent: FridaySent | null } }>("/api/reports/friday");
+      setFridayEmail(data.friday.preview);
+      setFridaySent(data.friday.lastSent);
     } catch (err) {
       setFridayEmail(null);
       setFridayError(err instanceof Error ? err.message : "Could not load the last Friday email.");
@@ -283,17 +292,15 @@ export default function ReportsPage() {
             <p className="report-note">
               This email is sent automatically on Friday. Nothing was sent just now.
             </p>
-            {fridayPending ? <p className="page-copy">Loading the last Friday email...</p> : null}
+            {fridaySent ? <p className="record-meta">Last emailed {sentWhen(fridaySent.createdAt)}</p> : null}
+            {fridayPending ? <p className="page-copy">Loading this week’s snapshot...</p> : null}
             {fridayError ? <p className="mt-0 text-sm text-late">{fridayError}</p> : null}
-            {!fridayPending && !fridayError && !fridayEmail ? (
-              <p className="page-copy">No Friday leadership email has been sent yet.</p>
-            ) : null}
-            {fridayEmail ? (
-              <>
-                <p className="record-meta">Sent {sentWhen(fridayEmail.createdAt)}</p>
-                <p className="record-title">{fridayEmail.subject}</p>
-                <p className="report-email">{fridayEmail.body}</p>
-              </>
+            {fridayEmail?.html ? (
+              <iframe
+                className="report-email-frame"
+                title={fridayEmail.subject}
+                srcDoc={fridayEmail.html}
+              />
             ) : null}
           </div>
         </div>
