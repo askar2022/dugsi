@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CalendarDays } from "lucide-react";
 import { useParentFamily } from "@/components/portal/useParentFamily";
 import { api } from "@/lib/api";
+import { formatClassDays } from "@/lib/class-schedule";
 
 type Homework = {
   id: string;
@@ -43,7 +44,7 @@ export default function ParentHomePage() {
       : null,
     nextClass
       ? {
-          title: `Class this ${nextClass.dayOfWeek}`,
+          title: `Class this ${formatClassDays(nextClass.dayOfWeek) || nextClass.dayOfWeek}`,
           text: [nextClass.name, nextClass.startTime && nextClass.endTime ? `${nextClass.startTime}–${nextClass.endTime}` : null]
             .filter(Boolean)
             .join(" · "),

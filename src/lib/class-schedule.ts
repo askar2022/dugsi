@@ -1,23 +1,57 @@
-export const CLASS_DAYS = [
-  { value: "Saturday", label: "Saturday" },
-  { value: "Sunday", label: "Sunday" },
-  { value: "Saturday & Sunday", label: "Saturday & Sunday" },
+export const CLASS_DAY_OPTIONS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+] as const;
+
+export const CLASS_DAY_PRESETS = [
+  { id: "saturday", label: "Saturday", days: ["Saturday"] },
+  { id: "weekend", label: "Weekend", days: ["Saturday", "Sunday"] },
+  { id: "weekdays", label: "Monday–Thursday", days: ["Monday", "Tuesday", "Wednesday", "Thursday"] },
+  { id: "custom", label: "Custom", days: null },
 ] as const;
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+function knownDay(value: string) {
+  const needle = value.trim().toLowerCase();
+  return CLASS_DAY_OPTIONS.find((day) => day.toLowerCase() === needle) ?? null;
+}
+
 export function classDays(dayOfWeek?: string | null) {
   const raw = (dayOfWeek ?? "").trim();
   if (!raw) return [];
-  if (raw.includes("&")) {
-    return raw.split("&").map((part) => part.trim()).filter(Boolean);
-  }
-  return [raw];
+  const parts = raw.split(/[,&]| and /i).map((part) => knownDay(part)).filter((day): day is string => Boolean(day));
+  return CLASS_DAY_OPTIONS.filter((day) => parts.includes(day));
+}
+
+export function serializeClassDays(days: string[]) {
+  return classDays(days.join(",")).join(",");
 }
 
 export function classMeetsOn(dayOfWeek: string | null | undefined, weekday: string) {
   const target = weekday.trim().toLowerCase();
   return classDays(dayOfWeek).some((day) => day.toLowerCase() === target);
+}
+
+export function matchingDayPreset(days: string[]) {
+  const selected = serializeClassDays(days);
+  const match = CLASS_DAY_PRESETS.find((preset) => preset.days && serializeClassDays([...preset.days]) === selected);
+  return match?.id ?? "custom";
+}
+
+export function formatClassDays(dayOfWeek?: string | null) {
+  const days = classDays(dayOfWeek);
+  if (!days.length) return "";
+  if (days.length === 1) return days[0];
+  const indexes = days.map((day) => CLASS_DAY_OPTIONS.indexOf(day as typeof CLASS_DAY_OPTIONS[number]));
+  const consecutive = indexes.every((value, index) => index === 0 || value === indexes[index - 1] + 1);
+  if (consecutive) return `${days[0]}–${days[days.length - 1]}`;
+  return days.join(", ");
 }
 
 export function nextClassDate(dayOfWeek?: string | null, now = new Date()) {
@@ -57,7 +91,7 @@ export function formatClassHours(start?: string | null, end?: string | null) {
 
 export function formatClassWhen(dayOfWeek?: string | null, start?: string | null, end?: string | null) {
   const hours = formatClassHours(start, end);
-  const day = (dayOfWeek ?? "").trim();
+  const day = formatClassDays(dayOfWeek);
   if (day && hours) return `${day} · ${hours}`;
   return day || hours;
 }

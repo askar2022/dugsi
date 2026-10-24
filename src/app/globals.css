@@ -1572,6 +1572,46 @@ body:has(.teacher-dock) .site-footer {
   gap: 1rem;
 }
 
+.class-day-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.55rem 0 0.75rem;
+}
+
+.class-day-preset {
+  min-height: 2.2rem;
+  padding: 0.3rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: white;
+  color: var(--green);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.class-day-preset.is-on {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+
+.class-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 1rem;
+}
+
+.class-day {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--green);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .attendance-row {
   padding: 1rem 1.1rem;
 }
