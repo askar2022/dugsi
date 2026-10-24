@@ -1819,6 +1819,139 @@ body:has(.teacher-dock) .site-footer {
   }
 }
 
+.progress-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+
+.progress-stat {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.8rem 0.9rem 0.85rem;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  border-top-width: 3px;
+}
+
+.progress-stat.is-on {
+  border-top-color: var(--paid);
+}
+
+.progress-stat.is-attention {
+  border-top-color: var(--due);
+}
+
+.progress-stat.is-support {
+  border-top-color: var(--late);
+}
+
+.progress-stat.is-none {
+  border-top-color: #9ca3af;
+}
+
+.progress-stat-value {
+  margin: 0;
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.55rem;
+  line-height: 1.1;
+  color: var(--green);
+}
+
+.progress-stat.is-on .progress-stat-value {
+  color: var(--paid);
+}
+
+.progress-stat.is-attention .progress-stat-value {
+  color: var(--due);
+}
+
+.progress-stat.is-support .progress-stat-value {
+  color: var(--late);
+}
+
+.progress-stat.is-none .progress-stat-value {
+  color: #6b7280;
+}
+
+.progress-stat-label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.progress-filters {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+}
+
+.progress-filter-grid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: 1fr;
+}
+
+.progress-table-wrap {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 0.95rem;
+  overflow: auto;
+}
+
+.progress-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.progress-table th,
+.progress-table td {
+  padding: 0.75rem 0.9rem;
+  text-align: left;
+  vertical-align: middle;
+  background: white;
+  border-bottom: 1px solid var(--line);
+}
+
+.progress-table th {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.progress-table tbody tr {
+  cursor: pointer;
+}
+
+.progress-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.progress-table tbody tr:hover td {
+  background: #fcfaf6;
+}
+
+.progress-student-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.95rem 1rem 1rem;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 0.95rem;
+  color: inherit;
+}
+
+.progress-student-card:hover {
+  border-color: var(--green);
+}
+
+.progress-badge-none {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
 .homework-filters {
   display: grid;
   gap: 0.85rem;
@@ -1928,6 +2061,14 @@ body:has(.teacher-dock) .site-footer {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .progress-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .progress-filter-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .progress-desktop .mark-group {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -2022,5 +2163,9 @@ body:has(.teacher-dock) .site-footer {
 
   .metric-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .progress-filter-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }

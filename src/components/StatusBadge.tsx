@@ -25,13 +25,13 @@ const TONES: Record<string, string> = {
   support_needed: "bg-red-50 text-late",
   needs_help: "bg-red-50 text-late",
   assigned: "bg-gold-soft text-due",
-  no_record: "bg-gold-soft text-due",
+  no_record: "progress-badge-none",
 };
 
 const LABELS: Record<string, string> = {
-  on_track: "On track",
-  needs_practice: "Needs practice",
-  contact_parent: "Contact parent",
+  on_track: "On Track",
+  needs_practice: "Needs Attention",
+  contact_parent: "Needs Support",
   done: "Done",
   needs_help: "Needs help",
   assigned: "Assigned",
@@ -39,8 +39,8 @@ const LABELS: Record<string, string> = {
   memorization: "Memorization",
   review: "Review",
   written: "Written work",
-  no_record: "No record yet",
-  needs_support: "Needs support",
+  no_record: "No Record",
+  needs_support: "Needs Support",
   needs_attention: "Needs Attention",
   support_needed: "Support Needed",
   strong_support: "Strong Support",

@@ -1,12 +1,14 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { isAssessmentClass } from "@/lib/assessment-class";
 import { api } from "@/lib/api";
-import { classSupportTone, normalizeProgressStatus, PROGRESS_LABELS } from "@/lib/progress-status";
-import { completedJuzes, quranPortion } from "@/lib/quran";
+import { normalizeProgressStatus, PROGRESS_LABELS } from "@/lib/progress-status";
+import { completedJuzes, finishesJuz, quranPortion } from "@/lib/quran";
 import { downloadTablePdf } from "@/lib/table-pdf";
 import type { Session } from "@/lib/types";
 
@@ -32,10 +34,12 @@ type Progress = {
   status?: string | null;
 };
 
-type Attendance = { studentId: string; status: string };
+type Attendance = { studentId: string; status: string; date?: string };
 type SchoolClass = { id: string; name: string; level?: string | null; teacher?: { id: string; name: string } | null };
 type Teacher = { id: string; name: string };
 type StatusFilter = "all" | "on_track" | "needs_practice" | "contact_parent" | "none";
+type AttendanceFilter = "all" | "present" | "late" | "absent" | "poor";
+type JuzFilter = "all" | "completed" | "none";
 
 const PAGE_SIZE = 25;
 
@@ -47,7 +51,45 @@ function latestByStudent(progress: Progress[]) {
   return map;
 }
 
+function shortDate(value?: string | null) {
+  if (!value) return "—";
+  const date = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("en-US", { month: "short", day: "numeric" });
+}
+
+function progressText(record: Progress | undefined, finished: Array<{ juz: number }>) {
+  if (!record) return "No record";
+  if (record.juz && (finishesJuz(record) || finished.some((item) => item.juz === record.juz))) {
+    return `Juz ${record.juz} Completed`;
+  }
+  if (record.juz && record.surah) return `Juz ${record.juz}, ${record.surah}`;
+  return quranPortion(record) || record.surah;
+}
+
+function attendanceSummary(marks: Attendance[]) {
+  if (!marks.length) return { label: "No record", latest: "", late: 0, absent: 0, poor: false };
+  const late = marks.filter((row) => row.status === "late").length;
+  const absent = marks.filter((row) => row.status === "absent").length;
+  const rate = marks.length ? absent / marks.length : 0;
+  const poor = absent >= 3 || (marks.length >= 4 && rate >= 0.25);
+  const latest = marks[0]?.status ?? "";
+  let label = "No record";
+  if (late >= 2) label = `${late} late`;
+  else if (absent >= 2) label = `${absent} absent`;
+  else if (latest === "present") label = "Present";
+  else if (latest === "late") label = "Late";
+  else if (latest === "absent") label = "Absent";
+  else if (latest === "excused") label = "Excused";
+  return { label, latest, late, absent, poor };
+}
+
+function progressTone(record?: Progress) {
+  return record ? normalizeProgressStatus(record.status) : "no_record";
+}
+
 export default function AdminProgressPage() {
+  const router = useRouter();
   const [students, setStudents] = useState<Student[]>([]);
   const [progress, setProgress] = useState<Progress[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
@@ -58,6 +100,8 @@ export default function AdminProgressPage() {
   const [classId, setClassId] = useState("");
   const [teacherId, setTeacherId] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
+  const [attendanceFilter, setAttendanceFilter] = useState<AttendanceFilter>("all");
+  const [juzFilter, setJuzFilter] = useState<JuzFilter>("all");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -104,76 +148,75 @@ export default function AdminProgressPage() {
   }, []);
 
   const latest = useMemo(() => latestByStudent(progress), [progress]);
-
-  const poorAttendance = useMemo(() => {
-    return students.map((student) => {
-      const marks = attendance.filter((row) => row.studentId === student.id);
-      const absent = marks.filter((row) => row.status === "absent").length;
-      const late = marks.filter((row) => row.status === "late").length;
-      const rate = marks.length ? absent / marks.length : 0;
-      const poor = absent >= 3 || (marks.length >= 4 && rate >= 0.25);
-      return { student, marks: marks.length, absent, late, poor };
-    }).filter((row) => row.poor).sort((a, b) => b.absent - a.absent);
-  }, [attendance, students]);
-
-  const juzAccomplishments = useMemo(() => {
-    return students.flatMap((student) => {
-      const records = progress.filter((item) => item.studentId === student.id);
-      return completedJuzes(records).map((item) => ({ student, ...item }));
-    }).sort((a, b) => b.date.localeCompare(a.date) || b.juz - a.juz);
+  const finishedByStudent = useMemo(() => {
+    const map = new Map<string, Array<{ juz: number; date: string }>>();
+    for (const student of students) {
+      map.set(student.id, completedJuzes(progress.filter((item) => item.studentId === student.id)));
+    }
+    return map;
   }, [progress, students]);
+  const marksByStudent = useMemo(() => {
+    const map = new Map<string, Attendance[]>();
+    for (const row of attendance) {
+      const list = map.get(row.studentId) ?? [];
+      list.push(row);
+      map.set(row.studentId, list);
+    }
+    return map;
+  }, [attendance]);
 
-  const classCards = useMemo(() => {
-    return classes.map((klass) => {
-      const kids = students.filter((student) => student.class?.id === klass.id);
-      const counts = { on_track: 0, needs_practice: 0, contact_parent: 0, none: 0 };
-      for (const student of kids) {
-        const record = latest.get(student.id);
-        if (!record) counts.none += 1;
-        else {
-          const status = normalizeProgressStatus(record.status);
-          counts[status] += 1;
-        }
-      }
+  const reports = useMemo(() => {
+    return students.map((student) => {
+      const record = latest.get(student.id);
+      const finished = finishedByStudent.get(student.id) ?? [];
+      const attend = attendanceSummary(marksByStudent.get(student.id) ?? []);
       return {
-        ...klass,
-        students: kids.length,
-        counts,
-        tone: classSupportTone(counts),
+        student,
+        record,
+        finished,
+        attend,
+        quran: progressText(record, finished),
+        tone: progressTone(record),
+        updated: record?.date ?? finished[0]?.date ?? "",
       };
-    }).sort((a, b) => {
-      const rank: Record<string, number> = { contact_parent: 0, needs_practice: 1, no_record: 2, on_track: 3 };
-      return (rank[a.tone] ?? 4) - (rank[b.tone] ?? 4);
     });
-  }, [classes, latest, students]);
+  }, [finishedByStudent, latest, marksByStudent, students]);
+
+  const totals = useMemo(() => {
+    return reports.reduce(
+      (sum, row) => {
+        if (row.tone === "on_track") sum.on_track += 1;
+        else if (row.tone === "needs_practice") sum.needs_practice += 1;
+        else if (row.tone === "contact_parent") sum.contact_parent += 1;
+        else sum.none += 1;
+        return sum;
+      },
+      { on_track: 0, needs_practice: 0, contact_parent: 0, none: 0 },
+    );
+  }, [reports]);
 
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return students.filter((student) => {
-      const record = latest.get(student.id);
-      const tone = record ? normalizeProgressStatus(record.status) : "none";
-      const teacher = student.class?.teacher?.name ?? "";
-      const haystack = `${student.firstName} ${student.lastName} ${student.class?.name ?? ""} ${teacher} ${record?.surah ?? ""}`.toLowerCase();
+    return reports.filter((row) => {
+      const teacher = row.student.class?.teacher?.name ?? "";
+      const haystack = `${row.student.firstName} ${row.student.lastName} ${row.student.class?.name ?? ""} ${teacher}`.toLowerCase();
       if (needle && !haystack.includes(needle)) return false;
-      if (classId && student.class?.id !== classId) return false;
-      if (teacherId && student.class?.teacher?.id !== teacherId) return false;
-      if (status === "none" && record) return false;
-      if (status !== "all" && status !== "none" && tone !== status) return false;
+      if (classId && row.student.class?.id !== classId) return false;
+      if (teacherId && row.student.class?.teacher?.id !== teacherId) return false;
+      if (status === "none" && row.record) return false;
+      if (status !== "all" && status !== "none" && row.tone !== status) return false;
+      if (attendanceFilter === "present" && row.attend.latest !== "present") return false;
+      if (attendanceFilter === "late" && row.attend.late === 0 && row.attend.latest !== "late") return false;
+      if (attendanceFilter === "absent" && row.attend.absent === 0 && row.attend.latest !== "absent") return false;
+      if (attendanceFilter === "poor" && !row.attend.poor) return false;
+      if (juzFilter === "completed" && row.finished.length === 0) return false;
+      if (juzFilter === "none" && row.finished.length > 0) return false;
       return true;
     });
-  }, [classId, latest, query, status, students, teacherId]);
+  }, [attendanceFilter, classId, juzFilter, query, reports, status, teacherId]);
 
   const currentPage = Math.min(page, Math.max(1, Math.ceil(rows.length / PAGE_SIZE) || 1));
   const visible = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const totals = classCards.reduce(
-    (sum, item) => ({
-      on_track: sum.on_track + item.counts.on_track,
-      needs_practice: sum.needs_practice + item.counts.needs_practice,
-      contact_parent: sum.contact_parent + item.counts.contact_parent,
-      none: sum.none + item.counts.none,
-    }),
-    { on_track: 0, needs_practice: 0, contact_parent: 0, none: 0 },
-  );
 
   function exportPdf() {
     downloadTablePdf({
@@ -182,128 +225,50 @@ export default function AdminProgressPage() {
       filename: "quran-progress.pdf",
       columns: [
         { key: "student", label: "Student", x: 36 },
-        { key: "className", label: "Class", x: 150 },
-        { key: "teacher", label: "Teacher", x: 250 },
-        { key: "quran", label: "Quran", x: 360 },
-        { key: "tone", label: "Progress", x: 470 },
+        { key: "className", label: "Class", x: 140 },
+        { key: "teacher", label: "Teacher", x: 230 },
+        { key: "quran", label: "Quran", x: 330 },
+        { key: "attendance", label: "Attendance", x: 430 },
+        { key: "tone", label: "Status", x: 510 },
       ],
-      rows: rows.map((student) => {
-        const record = latest.get(student.id);
-        return {
-          student: `${student.firstName} ${student.lastName}`,
-          className: student.class?.name ?? "—",
-          teacher: student.class?.teacher?.name ?? "—",
-          quran: record ? quranPortion(record) || record.surah : "No record yet",
-          tone: record ? PROGRESS_LABELS[normalizeProgressStatus(record.status)] : "No record yet",
-        };
-      }),
+      rows: rows.map((row) => ({
+        student: `${row.student.firstName} ${row.student.lastName}`,
+        className: row.student.class?.name ?? "—",
+        teacher: row.student.class?.teacher?.name ?? "—",
+        quran: row.quran,
+        attendance: row.attend.label,
+        tone: row.tone === "on_track" || row.tone === "needs_practice" || row.tone === "contact_parent"
+          ? PROGRESS_LABELS[row.tone]
+          : "No Record",
+      })),
       footer: `${rows.length} student${rows.length === 1 ? "" : "s"} on this filtered list.`,
     });
   }
 
   return (
     <div className="page-stack">
-      <PageHeader
-        title="Quran progress"
-        description="Monitor teacher records, poor attendance, and children who finished a Juz."
-      />
-      <section className="metric-grid">
-        <article className="card metric-card is-paid">
-          <p className="metric-label">On track</p>
-          <p className="metric-value">{totals.on_track}</p>
-          <p className="metric-detail">Green — teachers say these children are doing well</p>
+      <PageHeader title="Quran progress" description="See each student’s Qur’an level, attendance, and who needs support." />
+
+      <section className="progress-summary">
+        <article className="progress-stat is-on">
+          <p className="progress-stat-value">{totals.on_track}</p>
+          <p className="progress-stat-label">On Track</p>
         </article>
-        <article className="card metric-card is-due">
-          <p className="metric-label">Needs practice</p>
-          <p className="metric-value">{totals.needs_practice}</p>
-          <p className="metric-detail">Yellow — watch these classes</p>
+        <article className="progress-stat is-attention">
+          <p className="progress-stat-value">{totals.needs_practice}</p>
+          <p className="progress-stat-label">Needs Attention</p>
         </article>
-        <article className="card metric-card is-late">
-          <p className="metric-label">Needs support</p>
-          <p className="metric-value">{totals.contact_parent}</p>
-          <p className="metric-detail">Red — contact the family and help the class</p>
+        <article className="progress-stat is-support">
+          <p className="progress-stat-value">{totals.contact_parent}</p>
+          <p className="progress-stat-label">Needs Support</p>
         </article>
-        <article className="card metric-card is-due">
-          <p className="metric-label">No record yet</p>
-          <p className="metric-value">{totals.none}</p>
-          <p className="metric-detail">Teacher has not saved Quran progress</p>
+        <article className="progress-stat is-none">
+          <p className="progress-stat-value">{totals.none}</p>
+          <p className="progress-stat-label">No Record</p>
         </article>
       </section>
 
-      <section className="record-list">
-        <article className="card record-card-stack">
-          <h2 className="page-title" style={{ fontSize: "1.35rem" }}>Poor attendance</h2>
-          <p className="page-copy">Children who missed class often. Follow up with the teacher and family.</p>
-          {poorAttendance.length === 0 ? (
-            <p className="record-meta">No poor attendance yet. This list appears after several absences.</p>
-          ) : (
-            <div className="homework-status-list">
-              {poorAttendance.map((row) => (
-                <div key={row.student.id} className="homework-status-row">
-                  <div>
-                    <p className="record-title">{row.student.firstName} {row.student.lastName}</p>
-                    <p className="record-meta">
-                      {row.student.class?.name ?? "No class"}
-                      {row.student.class?.teacher?.name ? ` · ${row.student.class.teacher.name}` : ""}
-                      {` · ${row.absent} absent`}
-                      {row.late ? ` · ${row.late} late` : ""}
-                      {` · ${row.marks} days marked`}
-                    </p>
-                  </div>
-                  <StatusBadge status="absent" />
-                </div>
-              ))}
-            </div>
-          )}
-        </article>
-        <article className="card record-card-stack progress-row is-on_track">
-          <h2 className="page-title" style={{ fontSize: "1.35rem" }}>Juz finished</h2>
-          <p className="page-copy">A child who completes a Juz is an accomplishment for the class.</p>
-          {juzAccomplishments.length === 0 ? (
-            <p className="record-meta">No finished Juz yet. This appears when a child moves to the next Juz.</p>
-          ) : (
-            <div className="homework-status-list">
-              {juzAccomplishments.map((row) => (
-                <div key={`${row.student.id}-${row.juz}`} className="homework-status-row">
-                  <div>
-                    <p className="record-title">{row.student.firstName} {row.student.lastName}</p>
-                    <p className="record-meta">
-                      {row.student.class?.name ?? "No class"}
-                      {row.student.class?.teacher?.name ? ` · ${row.student.class.teacher.name}` : ""}
-                      {` · ${row.date}`}
-                    </p>
-                  </div>
-                  <span className="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold bg-green-soft text-paid">
-                    Juz {row.juz} finished
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </article>
-      </section>
-
-      {classCards.length > 0 ? (
-        <section className="record-list">
-          {classCards.map((klass) => (
-            <article key={klass.id} className={`card record-card-stack progress-row is-${klass.tone === "no_record" ? "needs_practice" : klass.tone}`}>
-              <div className="homework-card-top">
-                <p className="record-title">{klass.name}</p>
-                <StatusBadge status={klass.tone === "contact_parent" ? "needs_support" : klass.tone} />
-              </div>
-              <p className="record-meta">
-                {klass.teacher?.name ?? "No teacher yet"}
-                {` · ${klass.students} student${klass.students === 1 ? "" : "s"}`}
-              </p>
-              <p className="record-meta">
-                {klass.counts.on_track} on track · {klass.counts.needs_practice} need practice · {klass.counts.contact_parent} need support · {klass.counts.none} no record
-              </p>
-            </article>
-          ))}
-        </section>
-      ) : null}
-
-      <section className="card homework-filters">
+      <section className="card progress-filters">
         <input
           className="input"
           value={query}
@@ -311,40 +276,43 @@ export default function AdminProgressPage() {
             setQuery(event.target.value);
             setPage(1);
           }}
-          placeholder="Search student, class, teacher, or Surah"
+          placeholder="Search student, teacher, or class..."
         />
-        <div className="teacher-filters homework-filter-grid">
-          <label className="block space-y-2">
-            <span className="text-sm font-medium text-green">Class</span>
-            <select className="select" value={classId} onChange={(event) => { setClassId(event.target.value); setPage(1); }}>
-              <option value="">All classes</option>
-              {classes.map((item) => (
-                <option key={item.id} value={item.id}>{item.name}</option>
-              ))}
-            </select>
-          </label>
-          <label className="block space-y-2">
-            <span className="text-sm font-medium text-green">Teacher</span>
-            <select className="select" value={teacherId} onChange={(event) => { setTeacherId(event.target.value); setPage(1); }}>
-              <option value="">All teachers</option>
-              {teachers.map((item) => (
-                <option key={item.id} value={item.id}>{item.name}</option>
-              ))}
-            </select>
-          </label>
-          <label className="block space-y-2">
-            <span className="text-sm font-medium text-green">Progress</span>
-            <select className="select" value={status} onChange={(event) => { setStatus(event.target.value as StatusFilter); setPage(1); }}>
-              <option value="all">All colors</option>
-              <option value="on_track">On track</option>
-              <option value="needs_practice">Needs practice</option>
-              <option value="contact_parent">Needs support</option>
-              <option value="none">No record yet</option>
-            </select>
-          </label>
+        <div className="progress-filter-grid">
+          <select className="select" value={classId} onChange={(event) => { setClassId(event.target.value); setPage(1); }}>
+            <option value="">All Classes</option>
+            {classes.map((item) => (
+              <option key={item.id} value={item.id}>{item.name}</option>
+            ))}
+          </select>
+          <select className="select" value={teacherId} onChange={(event) => { setTeacherId(event.target.value); setPage(1); }}>
+            <option value="">All Teachers</option>
+            {teachers.map((item) => (
+              <option key={item.id} value={item.id}>{item.name}</option>
+            ))}
+          </select>
+          <select className="select" value={status} onChange={(event) => { setStatus(event.target.value as StatusFilter); setPage(1); }}>
+            <option value="all">All Statuses</option>
+            <option value="on_track">On Track</option>
+            <option value="needs_practice">Needs Attention</option>
+            <option value="contact_parent">Needs Support</option>
+            <option value="none">No Record</option>
+          </select>
+          <select className="select" value={attendanceFilter} onChange={(event) => { setAttendanceFilter(event.target.value as AttendanceFilter); setPage(1); }}>
+            <option value="all">Attendance</option>
+            <option value="present">Present</option>
+            <option value="late">Late</option>
+            <option value="absent">Absent</option>
+            <option value="poor">Poor attendance</option>
+          </select>
+          <select className="select" value={juzFilter} onChange={(event) => { setJuzFilter(event.target.value as JuzFilter); setPage(1); }}>
+            <option value="all">Juz Completed</option>
+            <option value="completed">Juz completed</option>
+            <option value="none">No Juz completed</option>
+          </select>
         </div>
         <div className="homework-filter-meta">
-          <button type="button" className="btn btn-ghost" onClick={() => { setQuery(""); setClassId(""); setTeacherId(""); setStatus("all"); setPage(1); }}>
+          <button type="button" className="btn btn-ghost" onClick={() => { setQuery(""); setClassId(""); setTeacherId(""); setStatus("all"); setAttendanceFilter("all"); setJuzFilter("all"); setPage(1); }}>
             Clear filters
           </button>
           <button type="button" className="btn btn-primary" onClick={exportPdf} disabled={rows.length === 0}>
@@ -357,62 +325,64 @@ export default function AdminProgressPage() {
       </section>
 
       <div className="record-list progress-mobile">
-        {visible.map((student) => {
-          const record = latest.get(student.id);
-          const tone = record ? normalizeProgressStatus(record.status) : "no_record";
-          return (
-            <article key={student.id} className={`card record-card-stack progress-row is-${tone === "no_record" ? "needs_practice" : tone}`}>
-              <p className="record-title">{student.firstName} {student.lastName}</p>
+        {visible.length === 0 ? (
+          <p className="page-copy">No students match. Teachers save Quran progress from their class page.</p>
+        ) : (
+          visible.map((row) => (
+            <Link key={row.student.id} href={`/admin/students/${row.student.id}`} className="progress-student-card">
+              <p className="record-title">{row.student.firstName} {row.student.lastName}</p>
               <p className="record-meta">
-                {student.class?.name ?? "No class"}
-                {student.class?.teacher?.name ? ` · ${student.class.teacher.name}` : ""}
+                {row.student.class?.name ?? "No class"}
+                {row.student.class?.teacher?.name ? ` · ${row.student.class.teacher.name}` : ""}
               </p>
-              <p className="homework-portion">
-                {record ? quranPortion(record) || `Surah ${record.surah}` : "No Quran record yet"}
-              </p>
-              {record?.date ? <p className="record-meta">Recorded {record.date}</p> : null}
-              <StatusBadge status={tone} />
-            </article>
-          );
-        })}
+              <p className="homework-portion">{row.quran}</p>
+              <p className="record-meta">{row.attend.label}{row.updated ? ` · ${shortDate(row.updated)}` : ""}</p>
+              <StatusBadge status={row.tone} />
+            </Link>
+          ))
+        )}
       </div>
 
-      <div className="card table-wrap p-2 progress-desktop">
-        <table>
+      <div className="progress-table-wrap progress-desktop">
+        <table className="progress-table">
           <thead>
             <tr>
               <th>Student</th>
               <th>Class</th>
               <th>Teacher</th>
-              <th>Juz</th>
-              <th>Surah</th>
-              <th>Ayah</th>
-              <th>Date</th>
-              <th>Progress</th>
+              <th>Qur’an Progress</th>
+              <th>Attendance</th>
+              <th>Status</th>
+              <th>Updated</th>
             </tr>
           </thead>
           <tbody>
             {visible.length === 0 ? (
               <tr>
-                <td colSpan={8}>No students match. Teachers save Quran progress from their class page.</td>
+                <td colSpan={7}>No students match. Teachers save Quran progress from their class page.</td>
               </tr>
             ) : (
-              visible.map((student) => {
-                const record = latest.get(student.id);
-                const tone = record ? normalizeProgressStatus(record.status) : "no_record";
-                return (
-                  <tr key={student.id} className={`progress-row is-${tone === "no_record" ? "needs_practice" : tone}`}>
-                    <td>{student.firstName} {student.lastName}</td>
-                    <td>{student.class?.name ?? "—"}</td>
-                    <td>{student.class?.teacher?.name ?? "—"}</td>
-                    <td>{record?.juz ?? "—"}</td>
-                    <td>{record?.surah ?? "—"}</td>
-                    <td>{record ? `${record.ayahFrom ?? "—"}–${record.ayahTo ?? "—"}` : "—"}</td>
-                    <td>{record?.date ?? "—"}</td>
-                    <td><StatusBadge status={tone} /></td>
-                  </tr>
-                );
-              })
+              visible.map((row) => (
+                <tr
+                  key={row.student.id}
+                  onClick={() => router.push(`/admin/students/${row.student.id}`)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      router.push(`/admin/students/${row.student.id}`);
+                    }
+                  }}
+                  tabIndex={0}
+                >
+                  <td>{row.student.firstName} {row.student.lastName}</td>
+                  <td>{row.student.class?.name ?? "—"}</td>
+                  <td>{row.student.class?.teacher?.name ?? "—"}</td>
+                  <td>{row.quran}</td>
+                  <td>{row.attend.label}</td>
+                  <td><StatusBadge status={row.tone} /></td>
+                  <td>{shortDate(row.updated)}</td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
