@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { SchoolImage } from "@/components/portal/SchoolImage";
 import { StatusBadge } from "@/components/StatusBadge";
-import { isAssessmentClass, needsClassPlacement } from "@/lib/assessment-class";
+import { classPlaceLabel, isAssessmentClass, needsClassPlacement } from "@/lib/assessment-class";
 import { api } from "@/lib/api";
 import { homeworkAssignedToStudent } from "@/lib/performance";
 import { normalizeProgressStatus } from "@/lib/progress-status";
@@ -98,6 +99,8 @@ function isEnrolled(student: Student, holdingId: string | null) {
 }
 
 export default function AdminHomePage() {
+  const router = useRouter();
+  const searchBox = useRef<HTMLDivElement>(null);
   const [user, setUser] = useState<Session | null>(null);
   const [schoolImageUrl, setSchoolImageUrl] = useState<string | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
@@ -107,6 +110,8 @@ export default function AdminHomePage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [homework, setHomework] = useState<Homework[]>([]);
   const [ready, setReady] = useState(false);
+  const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -130,6 +135,14 @@ export default function AdminHomePage() {
     }).finally(() => setReady(true));
   }, []);
 
+  useEffect(() => {
+    function onPointer(event: MouseEvent) {
+      if (!searchBox.current?.contains(event.target as Node)) setSearchOpen(false);
+    }
+    window.addEventListener("mousedown", onPointer);
+    return () => window.removeEventListener("mousedown", onPointer);
+  }, []);
+
   const asOf = todayIso();
   const windowStart = addDays(asOf, -27);
   const weekday = WEEKDAYS[new Date(`${asOf}T12:00:00`).getDay()];
@@ -146,6 +159,20 @@ export default function AdminHomePage() {
     () => students.filter((student) => needsClassPlacement({ ...student, class: classOf(student) }, holdingId)),
     [holdingId, students],
   );
+  const searchable = useMemo(
+    () => students.filter((student) => student.status !== "unenrolled" && student.status !== "declined"),
+    [students],
+  );
+  const matches = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return [];
+    return searchable
+      .filter((student) => {
+        const klass = classPlaceLabel({ status: student.status, class: classOf(student) });
+        return `${studentName(student)} ${klass}`.toLowerCase().includes(needle);
+      })
+      .slice(0, 8);
+  }, [query, searchable]);
   const realClasses = useMemo(
     () => classes.filter((item) => !isAssessmentClass(item)),
     [classes],
@@ -342,6 +369,25 @@ export default function AdminHomePage() {
     return rows.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 10);
   }, [attendance, invoices, progress, realClasses, roster, students, windowStart]);
 
+  const needle = query.trim().toLowerCase();
+  const visibleAttention = needle
+    ? needsAttention.filter((item) => `${item.name} ${item.reason}`.toLowerCase().includes(needle))
+    : needsAttention;
+  const visibleActivity = needle
+    ? recentActivity.filter((item) => `${item.text} ${item.meta}`.toLowerCase().includes(needle))
+    : recentActivity;
+
+  function openStudent(id: string) {
+    setSearchOpen(false);
+    setQuery("");
+    router.push(`/admin/students/${id}`);
+  }
+
+  function onSearch(event: FormEvent) {
+    event.preventDefault();
+    if (matches[0]) openStudent(matches[0].id);
+  }
+
   return (
     <div className="page-stack">
       <section className="card hero">
@@ -356,6 +402,45 @@ export default function AdminHomePage() {
           <SchoolImage src={schoolImageUrl} name={user?.tenantName} alt="" />
         </div>
       </section>
+
+      <div className="teacher-search admin-search" ref={searchBox}>
+        <form onSubmit={onSearch}>
+          <input
+            className="input"
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setSearchOpen(true);
+            }}
+            onFocus={() => setSearchOpen(true)}
+            placeholder="Search a student, class, or alert..."
+            autoComplete="off"
+          />
+        </form>
+        {searchOpen && query.trim() ? (
+          <div className="student-picker-menu">
+            <div className="student-picker-list">
+              {matches.map((student) => (
+                <button
+                  key={student.id}
+                  type="button"
+                  className="student-pick"
+                  onClick={() => openStudent(student.id)}
+                >
+                  <span className="student-pick-mark">{student.firstName.charAt(0)}</span>
+                  <span>
+                    {studentName(student)}
+                    <span className="record-meta" style={{ display: "block" }}>
+                      {classPlaceLabel({ status: student.status, class: classOf(student) })}
+                    </span>
+                  </span>
+                </button>
+              ))}
+              {matches.length === 0 ? <p className="record-meta">No student matches that name.</p> : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
 
       <section>
         <h2 className="teacher-panel-title">Today at a Glance</h2>
@@ -374,11 +459,13 @@ export default function AdminHomePage() {
           <h2 className="teacher-panel-title">Needs Attention</h2>
           {!ready ? (
             <p className="record-meta" style={{ marginTop: "0.65rem" }}>Loading school alerts.</p>
-          ) : needsAttention.length === 0 ? (
-            <p className="record-meta" style={{ marginTop: "0.65rem" }}>No unpaid tuition, attendance, or homework alerts right now.</p>
+          ) : visibleAttention.length === 0 ? (
+            <p className="record-meta" style={{ marginTop: "0.65rem" }}>
+              {needle ? "No alerts match that search." : "No unpaid tuition, attendance, or homework alerts right now."}
+            </p>
           ) : (
             <div className="record-list">
-              {needsAttention.map((item) => (
+              {visibleAttention.map((item) => (
                 <Link key={item.id} href={item.href} className="record-card teacher-feed-row">
                   <div>
                     <p className="record-title">{item.name}</p>
@@ -395,11 +482,13 @@ export default function AdminHomePage() {
           <h2 className="teacher-panel-title">Recent Activity</h2>
           {!ready ? (
             <p className="record-meta" style={{ marginTop: "0.65rem" }}>Loading recent activity.</p>
-          ) : recentActivity.length === 0 ? (
-            <p className="record-meta" style={{ marginTop: "0.65rem" }}>New enrollments, payments, progress, and attendance will show here.</p>
+          ) : visibleActivity.length === 0 ? (
+            <p className="record-meta" style={{ marginTop: "0.65rem" }}>
+              {needle ? "No activity matches that search." : "New enrollments, payments, progress, and attendance will show here."}
+            </p>
           ) : (
             <div className="record-list">
-              {recentActivity.map((item) => (
+              {visibleActivity.map((item) => (
                 <Link key={item.id} href={item.href} className="record-card teacher-feed-row">
                   <div>
                     <p className="record-title">{item.text}</p>

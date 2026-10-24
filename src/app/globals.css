@@ -2161,6 +2161,11 @@ body:has(.teacher-dock) .site-footer {
   margin-top: 0.85rem;
 }
 
+.admin-search {
+  max-width: 36rem;
+  margin-top: 0;
+}
+
 .teacher-stat-link {
   color: inherit;
   text-decoration: none;
