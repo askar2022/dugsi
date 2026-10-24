@@ -5,19 +5,35 @@ function greeting(name?: string | null) {
   return name ? `Assalamu alaikum, ${name}.` : "Assalamu alaikum.";
 }
 
+function childList(names: string[]) {
+  const clean = names.map((name) => name.trim()).filter(Boolean);
+  if (clean.length === 0) return "your child";
+  if (clean.length === 1) return clean[0];
+  if (clean.length === 2) return `${clean[0]} and ${clean[1]}`;
+  return `${clean.slice(0, -1).join(", ")}, and ${clean[clean.length - 1]}`;
+}
+
 export function enrollmentReceivedEmail(input: {
   schoolName: string;
   parentName?: string | null;
-  childName: string;
+  childName?: string;
+  childNames?: string[];
 }) {
+  const names = input.childNames?.length ? input.childNames : input.childName ? [input.childName] : [];
+  const list = childList(names);
+  const waiting =
+    names.length > 1
+      ? "They are enrolled and waiting for assessment."
+      : `${list} is enrolled and waiting for assessment.`;
   return {
-    subject: `${input.schoolName} received an enrollment application`,
+    subject: `${input.schoolName} received your enrollment`,
     body: [
       greeting(input.parentName),
       "",
-      `${input.schoolName} received your application for ${input.childName}.`,
-      "The child is waiting for assessment. The office will place them in a class after that.",
-      "You do not need a portal account yet.",
+      `${input.schoolName} received your enrollment for ${list}.`,
+      waiting,
+      "The school will contact you.",
+      "You do not need an account yet.",
     ].join("\n"),
   };
 }
