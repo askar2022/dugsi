@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { homeworkAssignedToStudent } from "@/lib/performance";
 import { homeworkCompletionCounts } from "@/lib/homework";
 import { normalizeProgressStatus } from "@/lib/progress-status";
+import { nextClassDate } from "@/lib/class-schedule";
 import { quranPortion } from "@/lib/quran";
 import type { Session } from "@/lib/types";
 
@@ -46,8 +47,6 @@ type Homework = {
 type Attention = { id: string; name: string; reason: string; href: string };
 type Activity = { id: string; text: string; meta: string; href: string; at: string };
 
-const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -74,14 +73,6 @@ function studentName(student: { firstName: string; lastName: string }) {
 
 function latestProgress(progress: Progress[], studentId: string) {
   return progress.find((item) => item.studentId === studentId || item.student?.id === studentId) ?? null;
-}
-
-function nextClassDate(dayOfWeek?: string | null, now = new Date()) {
-  const target = WEEKDAYS.findIndex((day) => day.toLowerCase() === (dayOfWeek ?? "").toLowerCase());
-  const date = new Date(now);
-  if (target < 0) return date;
-  date.setDate(date.getDate() + ((target - date.getDay() + 7) % 7));
-  return date;
 }
 
 function formatLongDate(date: Date) {
