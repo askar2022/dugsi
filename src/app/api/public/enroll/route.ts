@@ -1,7 +1,5 @@
 import { ensureWaitingStudent } from "@/lib/assessment-class";
 import { findParentIdByEmail } from "@/lib/parent-link";
-import { sendTenantEmail } from "@/lib/email";
-import { enrollmentReceivedEmail } from "@/lib/email-messages";
 import { error, json } from "@/lib/http";
 import { normalizeSchoolCode } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -79,19 +77,6 @@ export async function POST(request: Request) {
       status: "waiting_assessment",
     });
   }
-
-  const copy = enrollmentReceivedEmail({
-    schoolName: tenant.name,
-    parentName: extras.guardianName,
-    childName: `${application.firstName} ${application.lastName}`,
-  });
-  await sendTenantEmail({
-    tenantId: tenant.id,
-    toEmail: extras.guardianEmail,
-    subject: copy.subject,
-    body: copy.body,
-    event: "student_enrolled",
-  });
 
   return json({ ok: true, schoolName: tenant.name }, 201);
 }

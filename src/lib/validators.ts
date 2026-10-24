@@ -158,6 +158,12 @@ export const publicEnrollSchema = z.object({
   agreeFeeAndEnroll: z.literal(true),
 });
 
+export const publicEnrollFinishSchema = z.object({
+  schoolCode: z.string().min(2),
+  parentEmail: z.string().email(),
+  parentName: z.string().min(2).optional(),
+});
+
 export const settingsSchema = z.object({
   name: z.string().min(3).optional(),
   phone: z.string().optional(),

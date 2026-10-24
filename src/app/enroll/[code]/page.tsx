@@ -32,8 +32,10 @@ const emptyParent: ParentInfo = {
 };
 const emptyChild = { firstName: "", lastName: "", age: "", notes: "" };
 
-function parentStorageKey(code: string) {
-  return `dugsi-enroll-parent:${code}`;
+type SavedFamily = { parent: ParentInfo; children: string[]; emailed: boolean };
+
+function familyStorageKey(code: string) {
+  return `dugsi-enroll-family:${code}`;
 }
 
 function parentReady(parent: ParentInfo) {
@@ -49,21 +51,33 @@ function parentReady(parent: ParentInfo) {
   );
 }
 
-function readSavedParent(code: string): ParentInfo | null {
+function readSavedFamily(code: string): SavedFamily | null {
   if (!code) return null;
   try {
-    const raw = window.sessionStorage.getItem(parentStorageKey(code));
-    if (!raw) return null;
-    const parsed = { ...emptyParent, ...(JSON.parse(raw) as Partial<ParentInfo>) };
-    return parentReady(parsed) ? parsed : null;
+    const raw = window.sessionStorage.getItem(familyStorageKey(code));
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<SavedFamily>;
+      const parent = { ...emptyParent, ...(parsed.parent ?? {}) };
+      if (parentReady(parent)) {
+        return {
+          parent,
+          children: Array.isArray(parsed.children) ? parsed.children.filter(Boolean) : [],
+          emailed: Boolean(parsed.emailed),
+        };
+      }
+    }
+    const legacy = window.sessionStorage.getItem(`dugsi-enroll-parent:${code}`);
+    if (!legacy) return null;
+    const parent = { ...emptyParent, ...(JSON.parse(legacy) as Partial<ParentInfo>) };
+    return parentReady(parent) ? { parent, children: [], emailed: false } : null;
   } catch {
     return null;
   }
 }
 
-function writeSavedParent(code: string, parent: ParentInfo) {
+function writeSavedFamily(code: string, parent: ParentInfo, children: string[], emailed: boolean) {
   if (!code || !parentReady(parent)) return;
-  window.sessionStorage.setItem(parentStorageKey(code), JSON.stringify(parent));
+  window.sessionStorage.setItem(familyStorageKey(code), JSON.stringify({ parent, children, emailed }));
 }
 
 function parentAddress(parent: ParentInfo) {
@@ -79,7 +93,9 @@ export default function PublicEnrollPage() {
   const [parent, setParent] = useState(emptyParent);
   const [child, setChild] = useState(emptyChild);
   const [agreed, setAgreed] = useState(false);
-  const [doneChild, setDoneChild] = useState("");
+  const [doneChildren, setDoneChildren] = useState<string[]>([]);
+  const [showDone, setShowDone] = useState(false);
+  const [emailed, setEmailed] = useState(false);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
@@ -92,17 +108,20 @@ export default function PublicEnrollPage() {
 
   useEffect(() => {
     if (!school?.code) return;
-    const saved = readSavedParent(school.code);
+    const saved = readSavedFamily(school.code);
     if (!saved) return;
-    setParent(saved);
-    setChild((current) => (current.lastName ? current : { ...current, lastName: saved.lastName }));
-    setStep(2);
+    setParent(saved.parent);
+    setDoneChildren(saved.children);
+    setEmailed(saved.emailed);
+    setChild((current) => (current.lastName ? current : { ...current, lastName: saved.parent.lastName }));
+    if (saved.children.length && !saved.emailed) setShowDone(true);
+    else setStep(2);
   }, [school?.code]);
 
   function goToChild(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    writeSavedParent(school?.code ?? schoolCode, parent);
+    writeSavedFamily(school?.code ?? schoolCode, parent, doneChildren, emailed);
     setChild((current) => (current.lastName ? current : { ...current, lastName: parent.lastName }));
     setStep(2);
   }
@@ -110,9 +129,32 @@ export default function PublicEnrollPage() {
   function startAnother() {
     setChild({ ...emptyChild, lastName: parent.lastName });
     setAgreed(false);
-    setDoneChild("");
+    setEmailed(false);
+    setShowDone(false);
     setError("");
     setStep(parentReady(parent) ? 2 : 1);
+  }
+
+  async function finishAll() {
+    if (!school) return;
+    setPending(true);
+    setError("");
+    try {
+      await api("/api/public/enroll/finish", {
+        method: "POST",
+        body: JSON.stringify({
+          schoolCode: school.code,
+          parentEmail: parent.parentEmail,
+          parentName: `${parent.firstName} ${parent.lastName}`.trim(),
+        }),
+      });
+      setEmailed(true);
+      writeSavedFamily(school.code, parent, doneChildren, true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send the confirmation email.");
+    } finally {
+      setPending(false);
+    }
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -140,10 +182,12 @@ export default function PublicEnrollPage() {
           agreeFeeAndEnroll: agreed,
         }),
       });
-      writeSavedParent(school.code, parent);
+      const children = doneChildren.includes(childName) ? doneChildren : [...doneChildren, childName];
+      writeSavedFamily(school.code, parent, children, false);
       setChild(emptyChild);
       setAgreed(false);
-      setDoneChild(childName);
+      setDoneChildren(children);
+      setShowDone(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send that application.");
     } finally {
@@ -187,24 +231,47 @@ export default function PublicEnrollPage() {
       <PublicHeader variant="school" schoolName={school.name} schoolCode={school.code} homeHref={`/enroll/${school.code}`} />
       <div className="flex justify-center px-4 pb-16">
         <div className="card parent-form w-full max-w-xl">
-          {doneChild ? (
+          {showDone ? (
             <div className="grid gap-4">
               <div>
-                <p className="hero-kicker">Application received</p>
+                <p className="hero-kicker">{emailed ? "Confirmation emailed" : "Application received"}</p>
                 <h1 className="page-title">{school.name}</h1>
               </div>
-              <p className="empty-state-title">{doneChild} is waiting for assessment.</p>
-              <p className="page-copy">
-                The office received this application. They will assess the child and then place them in a class. You do not need an account yet.
+              <p className="empty-state-title">
+                {emailed
+                  ? "Check your email. The school will contact you."
+                  : `${doneChildren[doneChildren.length - 1]} is waiting for assessment.`}
               </p>
-              {savedParent ? (
+              <p className="page-copy">
+                {emailed
+                  ? `We emailed ${parent.parentEmail} to confirm ${doneChildren.join(", ")} ${doneChildren.length === 1 ? "is" : "are"} enrolled and waiting for assessment.`
+                  : "Add every child first. When you are finished, we email the parent a confirmation. The school will contact you."}
+              </p>
+              <p className="record-meta">
+                {doneChildren.map((name) => (
+                  <span key={name} style={{ display: "block" }}>{name}</span>
+                ))}
+              </p>
+              {emailed ? null : savedParent ? (
                 <p className="record-meta">
                   {parent.firstName} {parent.lastName} and this address stay on file. A sibling only needs student information.
                 </p>
               ) : null}
-              <button className="btn btn-primary parent-form-submit" type="button" onClick={startAnother}>
-                Enroll another child
-              </button>
+              {emailed ? (
+                <button className="btn btn-ghost parent-form-submit" type="button" onClick={startAnother}>
+                  Enroll another child
+                </button>
+              ) : (
+                <div style={{ display: "grid", gap: "0.6rem" }}>
+                  <button className="btn btn-primary parent-form-submit" type="button" disabled={pending} onClick={() => void finishAll()}>
+                    {pending ? "Sending email..." : "I'm finished — email my confirmation"}
+                  </button>
+                  <button className="btn btn-ghost parent-form-submit" type="button" disabled={pending} onClick={startAnother}>
+                    Enroll another child
+                  </button>
+                </div>
+              )}
+              {error ? <p className="text-sm text-late">{error}</p> : null}
             </div>
           ) : (
             <>
