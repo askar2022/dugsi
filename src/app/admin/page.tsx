@@ -308,9 +308,11 @@ export default function AdminHomePage() {
       });
     }
 
+    const seenProgress = new Set<string>();
     for (const item of progress) {
       const student = roster.find((row) => row.id === item.studentId || row.id === one(item.student)?.id);
-      if (!student) continue;
+      if (!student || seenProgress.has(student.id)) continue;
+      seenProgress.add(student.id);
       rows.push({
         id: `progress-${item.id ?? item.studentId}-${item.date}`,
         text: `Teacher updated progress · ${studentName(student)}`,
@@ -401,7 +403,10 @@ export default function AdminHomePage() {
                 <Link key={item.id} href={item.href} className="record-card teacher-feed-row">
                   <div>
                     <p className="record-title">{item.text}</p>
-                    <p className="record-meta">{item.meta}{item.at ? ` · ${formatShortDate(item.at)}` : ""}</p>
+                    <p className="record-meta">
+                      {item.meta}
+                      {item.at && !item.meta.includes(formatShortDate(item.at)) ? ` · ${formatShortDate(item.at)}` : ""}
+                    </p>
                   </div>
                 </Link>
               ))}
