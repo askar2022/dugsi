@@ -39,6 +39,7 @@ export default function ParentStudentsPage() {
   const { children, ready, reload } = useParentFamily();
   const [busy, setBusy] = useState("");
   const [progress, setProgress] = useState<Progress[]>([]);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     api<{ progress: Progress[] }>("/api/progress")
@@ -55,6 +56,25 @@ export default function ParentStudentsPage() {
     }
     return map;
   }, [progress]);
+
+  const rows = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return children.filter((student) => {
+      if (!needle) return true;
+      const latest = latestByChild.get(student.id);
+      const haystack = [
+        childName(student),
+        classPlaceLabel(student),
+        student.status,
+        latest?.surah,
+        latest?.juz,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(needle);
+    });
+  }, [children, latestByChild, query]);
 
   async function unenroll(id: string, name: string) {
     const ok = window.confirm(`Unenroll ${name} from this dugsi? The school keeps the record.`);
@@ -85,6 +105,17 @@ export default function ParentStudentsPage() {
           text="Use Online Enrollment to add a child to your family record."
         />
       ) : (
+        <>
+          <input
+            className="input"
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search a child, class, or Surah..."
+          />
+          {rows.length === 0 ? (
+            <EmptyState title="No matching children" text="No child matches that search." />
+          ) : (
         <div className="card table-wrap p-2">
           <table className="family-table">
             <thead>
@@ -99,7 +130,7 @@ export default function ParentStudentsPage() {
               </tr>
             </thead>
             <tbody>
-              {children.map((student) => {
+              {rows.map((student) => {
                 const latest = latestByChild.get(student.id);
                 return (
                   <tr key={student.id} className={`is-${studentStatus(student.status)}`}>
@@ -129,6 +160,8 @@ export default function ParentStudentsPage() {
             </tbody>
           </table>
         </div>
+          )}
+        </>
       )}
     </div>
   );
