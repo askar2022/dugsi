@@ -2198,6 +2198,13 @@ body:has(.teacher-dock) .site-footer {
   border-color: var(--green);
 }
 
+.admin-glance {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+  margin-top: 0.85rem;
+}
+
 .homework-view-filters,
 .progress-view-filters {
   display: grid;
@@ -2425,6 +2432,10 @@ body:has(.teacher-dock) .site-footer {
   .teacher-panels {
     grid-template-columns: 1fr 1fr;
     align-items: start;
+  }
+
+  .admin-glance {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .homework-view-filters {
