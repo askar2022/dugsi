@@ -14,7 +14,8 @@ export type EmailEvent =
   | "friday_teacher"
   | "friday_admin"
   | "friday_admin_month"
-  | "password_reset";
+  | "password_reset"
+  | "admin_login_code";
 
 function fromAddress() {
   const raw = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || "fariin@ourdugsi.com";
@@ -47,6 +48,10 @@ async function deliverWithResend(input: { toEmail: string; subject: string; body
   }
 
   return { status: "sent" as const, error: null };
+}
+
+export async function sendPlainEmail(input: { toEmail: string; subject: string; body: string }) {
+  return deliverWithResend(input);
 }
 
 export async function sendTenantEmail(input: {

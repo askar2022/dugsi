@@ -190,4 +190,11 @@ export const settingsSchema = z.object({
   city: z.string().optional(),
   welcomeNote: z.string().optional(),
   pageColor: z.enum(["green", "navy", "teal", "burgundy", "brown"]).optional(),
+  securityEmail: z.string().email().optional(),
+});
+
+export const adminCodeSchema = z.object({
+  code: z.string().regex(/^\d{6}$/).optional(),
+  email: z.string().email().optional(),
+  resend: z.boolean().optional(),
 });

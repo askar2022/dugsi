@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect } from "react";
 import { useState } from "react";
+import { AdminCodeStep } from "@/components/auth/AdminCodeStep";
 import { FormField } from "@/components/forms/FormField";
 import { PublicHeader } from "@/components/PublicHeader";
 import { api } from "@/lib/api";
 import { schoolLoginPath } from "@/lib/login-path";
-import type { Session } from "@/lib/types";
 
 function LoginForm() {
   const router = useRouter();
@@ -18,6 +18,9 @@ function LoginForm() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
+  const [codeStep, setCodeStep] = useState<{ sentTo?: string | null; needsEmail?: boolean } | null>(
+    params.get("code") === "1" ? { needsEmail: false } : null,
+  );
 
   useEffect(() => {
     if (portal === "parent") {
@@ -43,7 +46,7 @@ function LoginForm() {
     setError("");
     const form = new FormData(event.currentTarget);
     try {
-      await api<{ user: Session }>("/api/auth/login", {
+      const data = await api<{ needsCode?: boolean; needsEmail?: boolean; sentTo?: string | null }>("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({
           schoolCode: form.get("schoolCode"),
@@ -52,6 +55,10 @@ function LoginForm() {
           portal: "admin",
         }),
       });
+      if (data.needsCode) {
+        setCodeStep({ sentTo: data.sentTo, needsEmail: data.needsEmail });
+        return;
+      }
       router.replace(params.get("next") || "/admin");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not sign in.");
@@ -64,14 +71,24 @@ function LoginForm() {
     <div className="min-h-screen">
       <PublicHeader />
       <div className="login-shell">
-        <form onSubmit={onSubmit} className="card login-form space-y-4 p-6">
+        <div className="card login-form space-y-4 p-6">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-gold">Our Dugsi</p>
             <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">Admin sign in</h1>
             <p className="mt-2 text-sm text-muted">
-              For the office that runs a school. Teachers and parents sign in on that school’s own page.
+              {codeStep
+                ? "Enter the 6-digit code we emailed. Teachers and parents do not use this code."
+                : "For the office that runs a school. We will email a 6-digit code. Teachers and parents sign in on that school’s own page."}
             </p>
           </div>
+          {codeStep ? (
+            <AdminCodeStep
+              sentTo={codeStep.sentTo}
+              needsEmail={codeStep.needsEmail}
+              onDone={() => router.replace(params.get("next") || "/admin")}
+            />
+          ) : (
+            <form onSubmit={onSubmit} className="space-y-4">
           <FormField label="School code">
             <input className="input" name="schoolCode" required autoComplete="organization" />
           </FormField>
@@ -119,7 +136,9 @@ function LoginForm() {
           <p className="text-sm text-muted">
             New school? <Link className="text-green underline" href="/register">Create</Link>
           </p>
-        </form>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );

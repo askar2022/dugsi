@@ -90,6 +90,14 @@ export async function POST(request: Request) {
     await admin.from("Tenant").delete().eq("id", tenant.id);
     return error(profileError.message);
   }
+  if (parsed.data.email) {
+    const { saveAdminSecurityEmail } = await import("@/lib/admin-otp");
+    try {
+      await saveAdminSecurityEmail(admin, created.user.id, parsed.data.email);
+    } catch {
+      // Column may not be pasted yet. The admin can add the email on first sign-in.
+    }
+  }
 
   return json(
     {

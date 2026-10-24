@@ -27,8 +27,14 @@ export async function GET(request: NextRequest) {
       throw new ApiError("School not found.");
     }
     const schoolImageUrl = await signedSchoolImageUrl(supabase, session.tenantId);
+    const { data: me } = await supabase
+      .from("User")
+      .select("securityEmail")
+      .eq("id", session.userId)
+      .maybeSingle();
     return json({
       tenant: { ...tenant, pageColor: "pageColor" in tenant && tenant.pageColor ? tenant.pageColor : "green", schoolImageUrl },
+      securityEmail: me && "securityEmail" in me ? me.securityEmail ?? "" : "",
       enrollUrl: session.tenantSlug ? `/s/${session.tenantSlug}` : null,
     });
   } catch (err) {
@@ -43,14 +49,18 @@ export async function PATCH(request: NextRequest) {
     if (!parsed.success) {
       throw new ApiError("Check the school settings and try again.");
     }
+    const { securityEmail, ...tenantPatch } = parsed.data;
+    if (securityEmail) {
+      await supabase.from("User").update({ securityEmail: securityEmail.trim().toLowerCase() }).eq("id", session.userId);
+    }
     let { data: tenant, error } = await supabase
       .from("Tenant")
-      .update(parsed.data)
+      .update(tenantPatch)
       .eq("id", session.tenantId)
       .select("*")
       .single();
-    if (error && parsed.data.pageColor) {
-      const { pageColor: _pageColor, ...rest } = parsed.data;
+    if (error && tenantPatch.pageColor) {
+      const { pageColor: _pageColor, ...rest } = tenantPatch;
       const retry = await supabase
         .from("Tenant")
         .update(rest)

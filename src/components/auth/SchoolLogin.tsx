@@ -5,6 +5,7 @@ import { FormEvent, Suspense, useEffect, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SchoolTheme } from "@/components/SchoolTheme";
+import { AdminCodeStep } from "@/components/auth/AdminCodeStep";
 import { api } from "@/lib/api";
 import { portalForRole, type Session } from "@/lib/types";
 
@@ -31,7 +32,7 @@ const COPY = {
     artAlt: "Welcome back, Admin",
     kicker: "Office",
     heading: "Admin",
-    text: "Assalamu alaikum. Sign in with your own username and password.",
+    text: "Assalamu alaikum. Sign in with your own password. We will email a 6-digit code.",
   },
   staff: {
     art: "/teacher_image.png",
@@ -57,6 +58,27 @@ function SchoolLoginForm({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
+  const [codeStep, setCodeStep] = useState<{ sentTo?: string | null; needsEmail?: boolean } | null>(
+    params.get("code") === "1" && portal === "admin" ? { needsEmail: false } : null,
+  );
+
+  function goHome(role?: Session["role"]) {
+    const next = params.get("next");
+    const home = role ? portalForRole(role) : "/admin";
+    const safeNext =
+      portal === "parent"
+        ? next?.startsWith("/parent")
+          ? next
+          : home
+        : portal === "admin"
+          ? next?.startsWith("/admin")
+            ? next
+            : "/admin"
+          : next?.startsWith("/teacher")
+            ? next
+            : "/teacher";
+    router.replace(safeNext);
+  }
 
   useEffect(() => {
     if (!schoolCode) {
@@ -74,7 +96,7 @@ function SchoolLoginForm({
     setError("");
     const form = new FormData(event.currentTarget);
     try {
-      const data = await api<{ user: Session }>("/api/auth/login", {
+      const data = await api<{ user?: Session; needsCode?: boolean; needsEmail?: boolean; sentTo?: string | null }>("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({
           schoolCode: form.get("schoolCode"),
@@ -83,21 +105,11 @@ function SchoolLoginForm({
           portal,
         }),
       });
-      const next = params.get("next");
-      const home = portalForRole(data.user.role);
-      const safeNext =
-        portal === "parent"
-          ? next?.startsWith("/parent")
-            ? next
-            : home
-          : portal === "admin"
-            ? next?.startsWith("/admin")
-              ? next
-              : "/admin"
-            : next?.startsWith("/teacher")
-              ? next
-              : "/teacher";
-      router.replace(safeNext);
+      if (data.needsCode) {
+        setCodeStep({ sentTo: data.sentTo, needsEmail: data.needsEmail });
+        return;
+      }
+      goHome(data.user?.role);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not sign in.");
     } finally {
@@ -148,34 +160,42 @@ function SchoolLoginForm({
             alt={copy.artAlt}
           />
         </section>
-        <form onSubmit={onSubmit} className="card login-form space-y-4 p-6">
+        <div className="card login-form space-y-4 p-6">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-gold">{copy.kicker}</p>
             <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">{copy.heading}</h1>
-            <p className="mt-2 text-sm text-muted">{copy.text}</p>
+            <p className="mt-2 text-sm text-muted">
+              {codeStep ? "Enter the 6-digit code we emailed. Teachers and parents do not use this code." : copy.text}
+            </p>
           </div>
-          {school || schoolCode ? (
-            <input type="hidden" name="schoolCode" value={school?.code ?? schoolCode} />
+          {codeStep ? (
+            <AdminCodeStep sentTo={codeStep.sentTo} needsEmail={codeStep.needsEmail} onDone={() => goHome("ADMIN")} />
           ) : (
-            <FormField label="School code">
-              <input className="input" name="schoolCode" required autoComplete="organization" />
-            </FormField>
+            <form onSubmit={onSubmit} className="space-y-4">
+              {school || schoolCode ? (
+                <input type="hidden" name="schoolCode" value={school?.code ?? schoolCode} />
+              ) : (
+                <FormField label="School code">
+                  <input className="input" name="schoolCode" required autoComplete="organization" />
+                </FormField>
+              )}
+              <FormField label="Username">
+                <input className="input" name="email" type="text" required autoComplete="username" />
+              </FormField>
+              <FormField label="Password">
+                <input className="input" name="password" type="password" required autoComplete="current-password" />
+              </FormField>
+              {error ? <p className="text-sm text-late">{error}</p> : null}
+              {message ? <p className="text-sm text-paid">{message}</p> : null}
+              <button className="btn btn-primary w-full" disabled={pending}>
+                {pending ? "Signing in..." : "Sign in"}
+              </button>
+              <button className="btn btn-ghost w-full" type="button" disabled={pending} onClick={() => void onForgot()}>
+                Reset password
+              </button>
+            </form>
           )}
-          <FormField label="Username">
-            <input className="input" name="email" type="text" required autoComplete="username" />
-          </FormField>
-          <FormField label="Password">
-            <input className="input" name="password" type="password" required autoComplete="current-password" />
-          </FormField>
-          {error ? <p className="text-sm text-late">{error}</p> : null}
-          {message ? <p className="text-sm text-paid">{message}</p> : null}
-          <button className="btn btn-primary w-full" disabled={pending}>
-            {pending ? "Signing in..." : "Sign in"}
-          </button>
-          <button className="btn btn-ghost w-full" type="button" disabled={pending} onClick={() => void onForgot()}>
-            Reset password
-          </button>
-        </form>
+        </div>
       </div>
     </div>
     </SchoolTheme>

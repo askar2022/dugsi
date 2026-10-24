@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { isAssessmentClass } from "@/lib/assessment-class";
 import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
+import { saveAdminSecurityEmail } from "@/lib/admin-otp";
 import { ensureSchoolLogin, parentUsernameLabel } from "@/lib/parent-account";
 import { needsAssignedClass, portalForPosition, STAFF_POSITIONS } from "@/lib/staff-positions";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -100,6 +101,9 @@ export async function POST(request: NextRequest) {
       });
       userId = created.userId;
       loginEmail = created.email;
+      if ((portal === "ADMIN" || portal === "STAFF") && parsed.data.email) {
+        await saveAdminSecurityEmail(writer, created.userId, parsed.data.email);
+      }
     }
 
     const { data: staff, error } = await writer
