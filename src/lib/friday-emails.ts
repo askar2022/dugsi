@@ -63,8 +63,8 @@ function brandedHtml(input: {
   greeting: string;
   intro: string;
   inner: string;
-  buttonLabel: string;
-  buttonHref: string;
+  buttonLabel?: string;
+  buttonHref?: string;
 }) {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -86,13 +86,13 @@ function brandedHtml(input: {
               <p style="margin:0 0 10px;font-family:Georgia,serif;font-size:18px;">${escapeHtml(input.greeting)}</p>
               <p style="margin:0 0 22px;font-size:15px;line-height:1.55;color:#3f4a43;">${escapeHtml(input.intro)}</p>
               ${input.inner}
-              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 18px;">
+              ${input.buttonLabel && input.buttonHref ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 18px;">
                 <tr>
                   <td style="background:#0b3d2e;border-radius:999px;">
                     <a href="${escapeHtml(input.buttonHref)}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:700;text-decoration:none;">${escapeHtml(input.buttonLabel)}</a>
                   </td>
                 </tr>
-              </table>
+              </table>` : ""}
             </td>
           </tr>
           <tr>
@@ -310,6 +310,7 @@ export function fridayAdminEmail(input: {
   weekLabel: string;
   weekMarker?: string;
   school: SchoolWeek;
+  preview?: boolean;
 }): FridayEmailCopy {
   const href = portalUrl("admin", input.schoolCode);
   return {
@@ -325,7 +326,7 @@ export function fridayAdminEmail(input: {
       "Teachers",
       ...teacherLines(input.school.classes).map((item) => `• ${item}`),
       "",
-      `Open your page: ${href}`,
+      input.preview ? "" : `Open your page: ${href}`,
       input.weekMarker ?? "",
     ].filter(Boolean).join("\n"),
     html: brandedHtml({
@@ -336,8 +337,8 @@ export function fridayAdminEmail(input: {
       greeting: greeting(input.adminName),
       intro: "Here is this week’s pulse for your Dugsi. It is a snapshot, not the full report.",
       inner: `${schoolPulseHtml(input.school)}${sectionTitle("Teachers")}${teacherHtml(input.school.classes)}`,
-      buttonLabel: "Open your Dugsi",
-      buttonHref: href,
+      buttonLabel: input.preview ? undefined : "Open your Dugsi",
+      buttonHref: input.preview ? undefined : href,
     }),
   };
 }
