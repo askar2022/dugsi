@@ -330,7 +330,7 @@ export default function AdminProgressPage() {
           <p className="page-copy">No students match. Teachers save Quran progress from their class page.</p>
         ) : (
           visible.map((row) => (
-            <Link key={row.student.id} href={`/admin/students/${row.student.id}`} className="progress-student-card">
+            <Link key={row.student.id} href={`/admin/students/${row.student.id}?from=progress`} className="progress-student-card">
               <p className="record-title">{row.student.firstName} {row.student.lastName}</p>
               <p className="record-meta">
                 {row.student.class?.name ?? "No class"}
@@ -366,11 +366,11 @@ export default function AdminProgressPage() {
               visible.map((row) => (
                 <tr
                   key={row.student.id}
-                  onClick={() => router.push(`/admin/students/${row.student.id}`)}
+                  onClick={() => router.push(`/admin/students/${row.student.id}?from=progress`)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault();
-                      router.push(`/admin/students/${row.student.id}`);
+                      router.push(`/admin/students/${row.student.id}?from=progress`);
                     }
                   }}
                   tabIndex={0}

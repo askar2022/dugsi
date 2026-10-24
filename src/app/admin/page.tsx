@@ -240,7 +240,7 @@ export default function AdminHomePage() {
           id: `${student.id}-behind`,
           name: studentName(student),
           reason: tone === "contact_parent" ? "Falling behind · needs support" : "Falling behind · needs practice",
-          href: `/admin/students/${student.id}`,
+          href: `/admin/students/${student.id}?from=overview`,
           tone,
         });
       }
@@ -283,7 +283,7 @@ export default function AdminHomePage() {
           id: `${student.id}-late`,
           name: studentName(student),
           reason: `${lateCount} late arrivals this month`,
-          href: `/admin/students/${student.id}`,
+          href: `/admin/students/${student.id}?from=overview`,
           tone: "late",
         });
       }
@@ -298,7 +298,7 @@ export default function AdminHomePage() {
           id: `${student.id}-hw`,
           name: studentName(student),
           reason: "Incomplete homework",
-          href: `/admin/students/${student.id}`,
+          href: `/admin/students/${student.id}?from=overview`,
           tone: "needs_help",
         });
       }
@@ -317,7 +317,7 @@ export default function AdminHomePage() {
         id: `enroll-${student.id}`,
         text: `${studentName(student)} enrolled`,
         meta: classOf(student)?.name || "New student",
-        href: `/admin/students/${student.id}`,
+        href: `/admin/students/${student.id}?from=overview`,
         at: student.createdAt,
       });
     }
@@ -344,7 +344,7 @@ export default function AdminHomePage() {
         id: `progress-${item.id ?? item.studentId}-${item.date}`,
         text: `Teacher updated progress · ${studentName(student)}`,
         meta: quranPortion(item) || item.surah,
-        href: `/admin/students/${student.id}`,
+        href: `/admin/students/${student.id}?from=overview`,
         at: item.createdAt || `${item.date}T12:00:00`,
       });
     }
@@ -380,7 +380,7 @@ export default function AdminHomePage() {
   function openStudent(id: string) {
     setSearchOpen(false);
     setQuery("");
-    router.push(`/admin/students/${id}`);
+    router.push(`/admin/students/${id}?from=overview`);
   }
 
   function onSearch(event: FormEvent) {
