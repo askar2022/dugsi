@@ -3,6 +3,7 @@ import { ensureAssessmentClass, ensureWaitingStudent } from "@/lib/assessment-cl
 import { sendTenantEmail } from "@/lib/email";
 import { enrollmentAcceptedEmail } from "@/lib/email-messages";
 import { findParentIdByEmail } from "@/lib/parent-link";
+import { inviteSchoolUser } from "@/lib/invite";
 import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -59,7 +60,19 @@ export async function PATCH(
         .eq("tenantId", session.tenantId)
         .maybeSingle();
       if (!application) throw new ApiError("Application not found.", 404);
-      const parentId = await findParentIdByEmail(admin, session.tenantId, application.parentEmail);
+      let parentId = await findParentIdByEmail(admin, session.tenantId, application.parentEmail);
+      if (!parentId && application.parentEmail && session.tenantSlug) {
+        const invited = await inviteSchoolUser({
+          tenantId: session.tenantId,
+          tenantSlug: session.tenantSlug,
+          tenantName: session.tenantName,
+          email: application.parentEmail,
+          name: application.parentName || "Parent",
+          role: "PARENT",
+          phone: application.parentPhone,
+        });
+        parentId = invited.userId;
+      }
       const placed = await ensureWaitingStudent(admin, session.tenantId, {
         studentId: application.studentId,
         firstName: application.firstName,
@@ -108,16 +121,18 @@ export async function PATCH(
     const lastName = application?.lastName ?? studentRow?.lastName ?? "";
     const notes = extra.notes ?? (application?.notes && !application?.address ? application.notes : extra.notes) ?? null;
 
-    let parentId = studentRow?.parentId ?? null;
-    if (!parentId && parentEmail) {
-      const { data: existing } = await admin
-        .from("User")
-        .select("id")
-        .eq("tenantId", session.tenantId)
-        .eq("role", "PARENT")
-        .eq("email", parentEmail)
-        .maybeSingle();
-      parentId = existing?.id ?? null;
+    let parentId = studentRow?.parentId ?? (parentEmail ? await findParentIdByEmail(admin, session.tenantId, parentEmail) : null);
+    if (!parentId && parentEmail && session.tenantSlug) {
+      const invited = await inviteSchoolUser({
+        tenantId: session.tenantId,
+        tenantSlug: session.tenantSlug,
+        tenantName: session.tenantName,
+        email: parentEmail,
+        name: parentName || "Parent",
+        role: "PARENT",
+        phone: parentPhone,
+      });
+      parentId = invited.userId;
     }
 
     const holding = await ensureAssessmentClass(admin, session.tenantId);

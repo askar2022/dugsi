@@ -33,7 +33,7 @@ export function enrollmentReceivedEmail(input: {
       `${input.schoolName} received your enrollment for ${list}.`,
       waiting,
       "The school will contact you.",
-      "You do not need an account yet.",
+      "Sign in on the school page with your own username and password.",
     ].join("\n"),
   };
 }
@@ -49,7 +49,7 @@ export function enrollmentAcceptedEmail(input: {
       greeting(input.parentName),
       "",
       `${input.schoolName} accepted ${input.childName}. The child is waiting for assessment.`,
-      "The office will place them in the right class after that. You do not need a portal login yet.",
+      "The office will place them in the right class after that. Sign in with your own username and password.",
     ].join("\n"),
   };
 }
@@ -69,7 +69,7 @@ export function enrollmentConfirmedEmail(input: {
       greeting(input.parentName),
       "",
       `Good news. ${classLine}`,
-      "Teachers and the office will use this record. You do not need a portal login for enrollment.",
+      "Teachers and the office will use this record. Sign in with your own username and password to see your children.",
     ].join("\n"),
   };
 }
@@ -113,7 +113,7 @@ export function parentWelcomeEmail(input: {
       `You can now open the parent portal for ${input.schoolName}.`,
       input.inviteLink
         ? `Create your own password here: ${input.inviteLink}`
-        : `Sign in at ${getAppUrl()}${schoolLoginPath("parent", input.schoolCode)} with ${input.email}.`,
+        : `Sign in at ${getAppUrl()}${schoolLoginPath("parent", input.schoolCode)} with your username ${input.email} and your own password.`,
       input.schoolCode ? `School code: ${input.schoolCode}` : "",
     ].filter(Boolean).join("\n"),
   };
