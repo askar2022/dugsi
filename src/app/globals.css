@@ -838,7 +838,7 @@ body:has(.teacher-dock) .site-footer {
 .login-shell {
   display: grid;
   gap: 1.1rem;
-  width: min(52rem, calc(100% - 2rem));
+  width: min(32rem, calc(100% - 2rem));
   margin: 0 auto 3rem;
 }
 
@@ -846,6 +846,10 @@ body:has(.teacher-dock) .site-footer {
   width: 100%;
   max-width: 28rem;
   justify-self: center;
+}
+
+.login-shell.has-welcome {
+  width: min(32rem, calc(100% - 2rem));
 }
 
 .login-shell.has-welcome .login-form {
@@ -905,11 +909,6 @@ body:has(.teacher-dock) .site-footer {
 }
 
 @media (min-width: 800px) {
-  .login-shell.has-welcome {
-    grid-template-columns: 1.05fr 0.95fr;
-    align-items: start;
-  }
-
   .login-choose-grid {
     grid-template-columns: 1fr 1fr;
   }
