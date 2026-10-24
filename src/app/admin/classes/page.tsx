@@ -5,7 +5,13 @@ import { FormField } from "@/components/forms/FormField";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { isAssessmentClass } from "@/lib/assessment-class";
 import { api } from "@/lib/api";
-import { CLASS_DAYS, formatClassWhen } from "@/lib/class-schedule";
+import {
+  CLASS_DAY_OPTIONS,
+  CLASS_DAY_PRESETS,
+  formatClassWhen,
+  matchingDayPreset,
+  serializeClassDays,
+} from "@/lib/class-schedule";
 
 type SchoolClass = {
   id: string;
@@ -23,8 +29,10 @@ type Teacher = { id: string; name: string };
 export default function ClassesPage() {
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [days, setDays] = useState<string[]>(["Saturday"]);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const preset = matchingDayPreset(days);
 
   async function load() {
     const [classData, staffData] = await Promise.all([
@@ -39,9 +47,20 @@ export default function ClassesPage() {
     load();
   }, []);
 
+  function toggleDay(day: string) {
+    setDays((current) => (
+      current.includes(day) ? current.filter((item) => item !== day) : [...current, day]
+    ));
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    const selected = serializeClassDays(days);
+    if (!selected) {
+      setError("Choose the days this class meets.");
+      return;
+    }
     const form = event.currentTarget;
     const data = Object.fromEntries(new FormData(form).entries());
     setPending(true);
@@ -50,7 +69,7 @@ export default function ClassesPage() {
         method: "POST",
         body: JSON.stringify({
           name: data.name,
-          dayOfWeek: data.dayOfWeek,
+          dayOfWeek: selected,
           startTime: data.startTime || undefined,
           endTime: data.endTime || undefined,
           teacherId: data.teacherId || undefined,
@@ -58,6 +77,7 @@ export default function ClassesPage() {
         }),
       });
       form.reset();
+      setDays(["Saturday"]);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add that class.");
@@ -75,19 +95,41 @@ export default function ClassesPage() {
     <div className="page-stack">
       <PageHeader
         title="Classes"
-        description="Group students by schedule and teacher. Each child’s Qur’an level stays on their assessment and progress record."
+        description="Each class has its own days. The same dugsi can run weekend classes and weekday classes at the same time."
       />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Class Name">
           <input className="input" name="name" required placeholder="Saturday Morning Class" />
         </FormField>
-        <FormField label="Day">
-          <select className="select" name="dayOfWeek" required defaultValue="Saturday">
-            {CLASS_DAYS.map((day) => (
-              <option key={day.value} value={day.value}>{day.label}</option>
+        <div className="md:col-span-2">
+          <p className="metric-label">Meeting Days</p>
+          <div className="class-day-presets">
+            {CLASS_DAY_PRESETS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`class-day-preset${preset === item.id ? " is-on" : ""}`}
+                onClick={() => {
+                  if (item.days) setDays([...item.days]);
+                }}
+              >
+                {item.label}
+              </button>
             ))}
-          </select>
-        </FormField>
+          </div>
+          <div className="class-days">
+            {CLASS_DAY_OPTIONS.map((day) => (
+              <label key={day} className="class-day">
+                <input
+                  type="checkbox"
+                  checked={days.includes(day)}
+                  onChange={() => toggleDay(day)}
+                />
+                {day}
+              </label>
+            ))}
+          </div>
+        </div>
         <FormField label="Start Time">
           <input className="input" name="startTime" type="time" required />
         </FormField>
