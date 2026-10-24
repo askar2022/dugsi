@@ -99,8 +99,8 @@ export function SchoolPerformanceCard({
       <Bar value={item.onTrackCount} max={item.students} tone="paid" />
       <div className="perf-stats">
         <Stat value={of(item.onTrackCount, item.students)} label="On Track" tone="paid" />
-        <Stat value={of(item.attentionCount, item.students)} label="Needs Attention" tone="due" />
-        <Stat value={of(item.supportCount, item.students)} label="Support Needed" tone="late" />
+        <Stat value={of(item.attentionCount, item.students)} label="Needs Practice" tone="due" />
+        <Stat value={of(item.supportCount, item.students)} label="Needs Support" tone="late" />
       </div>
     </article>
   );
@@ -127,8 +127,8 @@ export function ClassPerformanceCard({
       <Bar value={item.onTrackCount} max={item.students} tone={item.rating === "support_needed" ? "late" : item.rating === "needs_attention" ? "due" : "paid"} />
       <div className="perf-stats">
         <Stat value={of(item.onTrackCount, item.students)} label="On Track" tone="paid" />
-        <Stat value={of(item.attentionCount, item.students)} label="Needs Attention" tone="due" />
-        <Stat value={of(item.supportCount, item.students)} label="Support Needed" tone="late" />
+        <Stat value={of(item.attentionCount, item.students)} label="Needs Practice" tone="due" />
+        <Stat value={of(item.supportCount, item.students)} label="Needs Support" tone="late" />
       </div>
       <div className="perf-stats">
         <Stat value={item.homeworkAssigned ? of(item.homeworkReviewed, item.homeworkAssigned) : "—"} label="Homework reviewed" tone="muted" />

@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { ASSESSMENT_CLASS_LEVEL, ASSESSMENT_CLASS_NAME, needsClassPlacement } from "@/lib/assessment-class";
+import { computeInvoiceStatus } from "@/lib/billing";
 import { handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { normalizeProgressStatus } from "@/lib/progress-status";
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
     const [students, classes, invoices, expenses, staff, progress] = await Promise.all([
       admin.from("Student").select("id, status, classId").eq("tenantId", session.tenantId),
       admin.from("Class").select("id, name, level").eq("tenantId", session.tenantId),
-      admin.from("Invoice").select("amount, status").eq("tenantId", session.tenantId),
+      admin.from("Invoice").select("amount, status, dueDate, paidDate").eq("tenantId", session.tenantId),
       admin.from("Expense").select("amount, category").eq("tenantId", session.tenantId),
       admin.from("Staff").select("id").eq("tenantId", session.tenantId),
       admin.from("QuranProgress").select("studentId, status, date").eq("tenantId", session.tenantId).order("date", { ascending: false }),
@@ -65,11 +66,17 @@ export async function GET(request: NextRequest) {
         ).length,
         staff: staff.data?.length ?? 0,
         progress: progressCounts,
-        tuition: {
-          paid: invoiceRows.filter((item) => item.status === "paid").reduce((sum, item) => sum + item.amount, 0),
-          due: invoiceRows.filter((item) => item.status === "due").reduce((sum, item) => sum + item.amount, 0),
-          late: invoiceRows.filter((item) => item.status === "late").reduce((sum, item) => sum + item.amount, 0),
-        },
+        tuition: invoiceRows.reduce(
+          (sum, item) => {
+            const status = computeInvoiceStatus({
+              paidDate: item.paidDate,
+              dueDate: item.dueDate,
+            });
+            sum[status] += Number(item.amount || 0);
+            return sum;
+          },
+          { paid: 0, due: 0, late: 0 },
+        ),
         expenses: expenseTotals,
         expenseTotal: Object.values(expenseTotals).reduce((sum, value) => sum + value, 0),
       },

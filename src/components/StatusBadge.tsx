@@ -33,7 +33,7 @@ const TONES: Record<string, string> = {
 
 const LABELS: Record<string, string> = {
   on_track: "On Track",
-  needs_practice: "Needs Attention",
+  needs_practice: "Needs Practice",
   contact_parent: "Needs Support",
   done: "Done",
   needs_help: "Need Help",

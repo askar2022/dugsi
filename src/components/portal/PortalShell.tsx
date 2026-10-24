@@ -61,9 +61,9 @@ const NAV: Record<string, NavSection[]> = {
     {
       label: "Reports & Settings",
       items: [
+        { href: "/admin/progress", label: "Qur’an Progress", icon: BookOpen },
         { href: "/admin/performance", label: "Performance", icon: Activity },
-        { href: "/admin/reports", label: "Reports", icon: FileBarChart },
-        { href: "/admin/progress", label: "Quran Progress", icon: BookOpen },
+        { href: "/admin/reports", label: "Administrative Reports", icon: FileBarChart },
         { href: "/admin/settings", label: "Settings", icon: Settings },
       ],
     },
