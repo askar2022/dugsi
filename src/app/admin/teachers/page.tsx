@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { api } from "@/lib/api";
 
-type Teacher = { id: string; name: string; email: string; phone: string | null };
+type Teacher = { id: string; name: string; email: string; username?: string; phone: string | null };
 
 export default function TeachersPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -18,26 +18,26 @@ export default function TeachersPage() {
     const needle = query.trim().toLowerCase();
     if (!needle) return teachers;
     return teachers.filter((teacher) =>
-      `${teacher.name} ${teacher.email} ${teacher.phone ?? ""}`.toLowerCase().includes(needle),
+      `${teacher.name} ${teacher.username ?? ""} ${teacher.email} ${teacher.phone ?? ""}`.toLowerCase().includes(needle),
     );
   }, [query, teachers]);
 
   return (
     <div className="page-stack">
-      <PageHeader title="Teachers" description="Teachers at your school." />
+      <PageHeader title="Teachers" description="Each teacher has their own username and password. Add or reset logins under Staff." />
       <input
         className="input"
         type="search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
-        placeholder="Search a teacher, email, or phone..."
+        placeholder="Search a teacher, username, or phone..."
       />
       <div className="card table-wrap p-2">
         <table>
           <thead>
             <tr>
               <th>Name</th>
-              <th>Email</th>
+              <th>Username</th>
               <th>Phone</th>
             </tr>
           </thead>
@@ -54,7 +54,7 @@ export default function TeachersPage() {
               rows.map((teacher) => (
                 <tr key={teacher.id}>
                   <td>{teacher.name}</td>
-                  <td>{teacher.email}</td>
+                  <td>{teacher.username ?? teacher.email}</td>
                   <td>{teacher.phone ?? "—"}</td>
                 </tr>
               ))

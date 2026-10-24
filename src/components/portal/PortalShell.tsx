@@ -12,6 +12,7 @@ import {
   FileBarChart,
   GraduationCap,
   Home,
+  KeyRound,
   List,
   LogOut,
   Menu,
@@ -91,6 +92,10 @@ const NAV: Record<string, NavSection[]> = {
         { href: "/teacher/homework/view", label: "View Homework", icon: List },
       ],
     },
+    {
+      label: "Account",
+      items: [{ href: "/teacher/password", label: "Password", icon: KeyRound }],
+    },
   ],
   PARENT: [
     {
@@ -102,6 +107,7 @@ const NAV: Record<string, NavSection[]> = {
         { href: "/parent/homework", label: "Homework", icon: ClipboardList },
         { href: "/parent/progress", label: "Child Progress", icon: BookOpen },
         { href: "/parent/billing", label: "Tuition", icon: Receipt },
+        { href: "/parent/password", label: "Password", icon: KeyRound },
       ],
     },
   ],

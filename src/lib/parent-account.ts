@@ -2,6 +2,15 @@ import { createClient } from "@supabase/supabase-js";
 import { ApiError } from "@/lib/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/config";
+import type { Role } from "@/lib/types";
+
+const LOGIN_ROLES: Role[] = ["PARENT", "TEACHER", "ADMIN", "STAFF"];
+
+function roleWord(role: Role) {
+  if (role === "TEACHER") return "teacher";
+  if (role === "ADMIN" || role === "STAFF") return "admin";
+  return "parent";
+}
 
 export function parentAuthEmail(username: string, schoolCode: string) {
   const value = username.trim().toLowerCase();
@@ -65,6 +74,102 @@ export async function resolveSchoolLoginEmail(input: {
   return match?.email ?? synthetic;
 }
 
+export function isDeliverableEmail(email: string) {
+  const value = email.trim().toLowerCase();
+  return value.includes("@") && !value.endsWith(".dugsi");
+}
+
+export async function setLoginPassword(userId: string, password: string) {
+  if (password.trim().length < 8) {
+    throw new ApiError("Use at least 8 characters for the password.");
+  }
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(userId, { password: password.trim() });
+  if (error) {
+    throw new ApiError(error.message || "Could not reset that password.");
+  }
+}
+
+export async function ensureSchoolLogin(input: {
+  tenantId: string;
+  tenantSlug: string;
+  tenantName?: string | null;
+  name: string;
+  username: string;
+  password?: string | null;
+  phone?: string | null;
+  role: Role;
+  requirePassword?: boolean;
+}) {
+  if (!LOGIN_ROLES.includes(input.role)) {
+    throw new ApiError("That role cannot have a school login.");
+  }
+  const email = parentAuthEmail(input.username, input.tenantSlug);
+  const admin = createAdminClient();
+  const { data: existing } = await admin
+    .from("User")
+    .select("id, name, role")
+    .eq("tenantId", input.tenantId)
+    .eq("email", email)
+    .maybeSingle();
+  const word = roleWord(input.role);
+
+  if (existing?.id) {
+    if (existing.role !== input.role) {
+      throw new ApiError(
+        `${parentUsernameLabel(email, input.tenantSlug)} already belongs to ${existing.name}. Use a different username.`,
+      );
+    }
+    if (input.password) {
+      const ok = await passwordMatches(email, input.password);
+      if (!ok) {
+        throw new ApiError(`That username is already used. Enter this ${word}’s own password, or choose a new username.`);
+      }
+    } else if (input.requirePassword) {
+      throw new ApiError(`Enter this ${word}’s password.`);
+    }
+    return { userId: existing.id, email, created: false };
+  }
+
+  if (!input.password) {
+    throw new ApiError(`Each ${word} needs their own username and password.`);
+  }
+
+  const { data: created, error } = await admin.auth.admin.createUser({
+    email,
+    password: input.password,
+    email_confirm: true,
+    user_metadata: { name: input.name },
+    app_metadata: {
+      role: input.role,
+      tenant_id: input.tenantId,
+      tenant_slug: input.tenantSlug,
+      tenant_name: input.tenantName ?? null,
+    },
+  });
+  if (error && /already|registered|exists/i.test(error.message)) {
+    throw new ApiError(`That username already has a login. Use this ${word}’s own password, or choose a new username.`);
+  }
+  if (error || !created.user) {
+    throw new ApiError(error?.message || `Could not create that ${word} login.`);
+  }
+
+  const { error: profileError } = await admin.from("User").upsert({
+    id: created.user.id,
+    tenantId: input.tenantId,
+    email,
+    name: input.name,
+    phone: input.phone ?? null,
+    role: input.role,
+    status: "active",
+  });
+  if (profileError) {
+    throw new ApiError(profileError.message || `Could not save that ${word} login.`);
+  }
+
+  return { userId: created.user.id, email, created: true };
+}
+
 export async function ensureParentLogin(input: {
   tenantId: string;
   tenantSlug: string;
@@ -75,67 +180,5 @@ export async function ensureParentLogin(input: {
   phone?: string | null;
   requirePassword?: boolean;
 }) {
-  const email = parentAuthEmail(input.username, input.tenantSlug);
-  const admin = createAdminClient();
-  const { data: existing } = await admin
-    .from("User")
-    .select("id, name, role")
-    .eq("tenantId", input.tenantId)
-    .eq("email", email)
-    .maybeSingle();
-
-  if (existing?.id) {
-    if (existing.role !== "PARENT") {
-      throw new ApiError(
-        `${parentUsernameLabel(email, input.tenantSlug)} already belongs to ${existing.name}. Use a different username.`,
-      );
-    }
-    if (input.password) {
-      const ok = await passwordMatches(email, input.password);
-      if (!ok) {
-        throw new ApiError("That username is already used. Enter this parent’s own password, or choose a new username.");
-      }
-    } else if (input.requirePassword) {
-      throw new ApiError("Enter this parent’s password.");
-    }
-    return { userId: existing.id, email, created: false };
-  }
-
-  if (!input.password) {
-    throw new ApiError("Each parent needs their own username and password.");
-  }
-
-  const { data: created, error } = await admin.auth.admin.createUser({
-    email,
-    password: input.password,
-    email_confirm: true,
-    user_metadata: { name: input.name },
-    app_metadata: {
-      role: "PARENT",
-      tenant_id: input.tenantId,
-      tenant_slug: input.tenantSlug,
-      tenant_name: input.tenantName ?? null,
-    },
-  });
-  if (error && /already|registered|exists/i.test(error.message)) {
-    throw new ApiError("That username already has a login. Use this parent’s own password, or choose a new username.");
-  }
-  if (error || !created.user) {
-    throw new ApiError(error?.message || "Could not create that parent login.");
-  }
-
-  const { error: profileError } = await admin.from("User").upsert({
-    id: created.user.id,
-    tenantId: input.tenantId,
-    email,
-    name: input.name,
-    phone: input.phone ?? null,
-    role: "PARENT",
-    status: "active",
-  });
-  if (profileError) {
-    throw new ApiError(profileError.message || "Could not save that parent login.");
-  }
-
-  return { userId: created.user.id, email, created: true };
+  return ensureSchoolLogin({ ...input, role: "PARENT" });
 }

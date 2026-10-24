@@ -17,7 +17,8 @@ export const registerTenantSchema = z.object({
   dugsiName: z.string().min(3),
   schoolCode: schoolCodeSchema,
   adminName: z.string().min(2),
-  email: z.string().min(3),
+  username: z.string().min(3).optional(),
+  email: z.string().min(3).optional(),
   password: z.string().min(8),
   phone: z.string().optional(),
   city: z.string().optional(),
@@ -55,7 +56,9 @@ export const parentSchema = z.object({
 
 export const staffSchema = z.object({
   name: z.string().min(2),
-  email: z.string().email(),
+  username: z.string().min(3).optional(),
+  email: z.string().min(3).optional(),
+  password: z.string().min(8).optional(),
   phone: z.string().min(7),
   title: z.string().min(2),
   classId: z.string().optional(),
@@ -63,6 +66,20 @@ export const staffSchema = z.object({
   startDate: z.string().optional(),
   salary: z.number().optional(),
   notes: z.string().optional(),
+});
+
+export const forgotPasswordSchema = z.object({
+  schoolCode: z.string().min(2),
+  username: z.string().min(3),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(8),
+  password: z.string().min(8),
+});
+
+export const resetPasswordSchema = z.object({
+  password: z.string().min(8),
 });
 
 export const classSchema = z.object({

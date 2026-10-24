@@ -19,6 +19,8 @@ type Parent = {
 export default function ParentsPage() {
   const [parents, setParents] = useState<Parent[]>([]);
   const [query, setQuery] = useState("");
+  const [resetId, setResetId] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -52,6 +54,21 @@ export default function ParentsPage() {
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save that parent login.");
+    }
+  }
+
+  async function saveReset(parent: Parent) {
+    setError("");
+    try {
+      await api(`/api/parents/${parent.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ password: resetPassword }),
+      });
+      setResetId("");
+      setResetPassword("");
+      setMessage(`Password reset for ${parent.name}.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not reset that password.");
     }
   }
 
@@ -89,12 +106,13 @@ export default function ParentsPage() {
               <th>Phone</th>
               <th>Children</th>
               <th>Portal</th>
+              <th>Password</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={5}>No parents yet. Approve an application, or create a login here.</td>
+                <td colSpan={6}>No parents yet. Approve an application, or create a login here.</td>
               </tr>
             ) : (
               rows.map((parent) => (
@@ -108,6 +126,32 @@ export default function ParentsPage() {
                       : "—"}
                   </td>
                   <td><StatusBadge status={parent.status} /></td>
+                  <td>
+                    {resetId === parent.id ? (
+                      <span style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                        <input
+                          className="input"
+                          type="password"
+                          minLength={8}
+                          placeholder="New password"
+                          value={resetPassword}
+                          onChange={(event) => setResetPassword(event.target.value)}
+                        />
+                        <button
+                          className="btn btn-primary py-2 text-sm"
+                          type="button"
+                          disabled={resetPassword.length < 8}
+                          onClick={() => void saveReset(parent)}
+                        >
+                          Save
+                        </button>
+                      </span>
+                    ) : (
+                      <button className="btn btn-ghost py-2 text-sm" type="button" onClick={() => { setResetId(parent.id); setResetPassword(""); }}>
+                        Reset password
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))
             )}

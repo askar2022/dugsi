@@ -98,6 +98,24 @@ export function teacherWelcomeEmail(input: {
   };
 }
 
+export function passwordResetEmail(input: {
+  schoolName: string;
+  name?: string | null;
+  resetLink: string;
+}) {
+  return {
+    subject: `Reset your password for ${input.schoolName}`,
+    body: [
+      greeting(input.name),
+      "",
+      `Reset your own password for ${input.schoolName} here:`,
+      input.resetLink,
+      "",
+      "This login is only for you. Do not share it.",
+    ].join("\n"),
+  };
+}
+
 export function parentWelcomeEmail(input: {
   schoolName: string;
   parentName: string;

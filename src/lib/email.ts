@@ -13,7 +13,8 @@ export type EmailEvent =
   | "friday_parent"
   | "friday_teacher"
   | "friday_admin"
-  | "friday_admin_month";
+  | "friday_admin_month"
+  | "password_reset";
 
 function fromAddress() {
   const raw = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || "fariin@ourdugsi.com";

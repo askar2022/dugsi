@@ -1,7 +1,7 @@
 import { applyCors, error, json } from "@/lib/http";
 import { normalizeSchoolCode } from "@/lib/auth";
+import { parentAuthEmail } from "@/lib/parent-account";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createCookieClient, publicUser } from "@/lib/supabase/request";
 import { registerTenantSchema } from "@/lib/validators";
 
 export async function OPTIONS() {
@@ -12,12 +12,17 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = registerTenantSchema.safeParse(body);
   if (!parsed.success) {
-    return error("Check the school name, school code, and admin details.");
+    return error("Check the school name, school code, admin username, and password.");
   }
 
   const slug = normalizeSchoolCode(parsed.data.schoolCode);
   if (!slug || slug === "platform") {
     return error("Choose a different school code.");
+  }
+
+  const username = (parsed.data.username || parsed.data.email || "").trim();
+  if (username.length < 3) {
+    return error("Enter an admin username.");
   }
 
   const admin = createAdminClient();
@@ -26,17 +31,23 @@ export async function POST(request: Request) {
     return error("That school code is already in use. Pick another.");
   }
 
-  const email = parsed.data.email.trim().toLowerCase();
+  let email = "";
+  try {
+    email = parentAuthEmail(username, slug);
+  } catch (err) {
+    return error(err instanceof Error ? err.message : "Choose a different username.");
+  }
+
   const name = parsed.data.dugsiName.trim();
   const { data: tenant, error: tenantError } = await admin
     .from("Tenant")
     .insert({
       name,
       slug,
-      email,
+      email: parsed.data.email?.trim().toLowerCase() || email,
       phone: parsed.data.phone,
       city: parsed.data.city,
-      status: "active",
+      status: "pending",
       welcomeNote: `Assalamu alaikum and welcome to ${name}.`,
     })
     .select("*")
@@ -80,28 +91,11 @@ export async function POST(request: Request) {
     return error(profileError.message);
   }
 
-  const supabase = await createCookieClient();
-  const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
-    email,
-    password: parsed.data.password,
-  });
-  if (signInError || !sessionData.session) {
-    return error("School created. Sign in with your school code and email.");
-  }
-
   return json(
     {
-      token: sessionData.session.access_token,
-      user: publicUser({
-        userId: created.user.id,
-        email,
-        name: parsed.data.adminName.trim(),
-        role: "ADMIN",
-        tenantId: tenant.id,
-        tenantSlug: tenant.slug,
-        tenantName: tenant.name,
-      }),
-      tenant: { id: tenant.id, name: tenant.name, slug: tenant.slug },
+      pending: true,
+      tenant: { id: tenant.id, name: tenant.name, slug: tenant.slug, status: tenant.status },
+      message: "Your dugsi is waiting for OurDugsi to approve it. The admin login is ready after approval.",
     },
     201,
   );

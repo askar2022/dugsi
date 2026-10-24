@@ -72,6 +72,10 @@ export async function POST(request: Request) {
       await supabase.auth.signOut();
       return error("Those details do not match a school account.", 401);
     }
+    if (tenant.status === "pending") {
+      await supabase.auth.signOut();
+      return error("This dugsi is waiting for OurDugsi to approve it.", 403);
+    }
 
     const { data: byId } = await admin
       .from("User")
