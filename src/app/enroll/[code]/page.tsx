@@ -9,8 +9,18 @@ import { SchoolTheme } from "@/components/SchoolTheme";
 import { api } from "@/lib/api";
 
 type School = { name: string; city: string | null; code: string; pageColor?: string | null };
+type ParentInfo = {
+  firstName: string;
+  lastName: string;
+  parentEmail: string;
+  parentPhone: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+};
 
-const emptyParent = {
+const emptyParent: ParentInfo = {
   firstName: "",
   lastName: "",
   parentEmail: "",
@@ -21,6 +31,44 @@ const emptyParent = {
   zip: "",
 };
 const emptyChild = { firstName: "", lastName: "", age: "", notes: "" };
+
+function parentStorageKey(code: string) {
+  return `dugsi-enroll-parent:${code}`;
+}
+
+function parentReady(parent: ParentInfo) {
+  return Boolean(
+    parent.firstName.trim() &&
+      parent.lastName.trim() &&
+      parent.parentEmail.trim() &&
+      parent.parentPhone.trim() &&
+      parent.address.trim() &&
+      parent.city.trim() &&
+      parent.state.trim() &&
+      parent.zip.trim(),
+  );
+}
+
+function readSavedParent(code: string): ParentInfo | null {
+  if (!code) return null;
+  try {
+    const raw = window.sessionStorage.getItem(parentStorageKey(code));
+    if (!raw) return null;
+    const parsed = { ...emptyParent, ...(JSON.parse(raw) as Partial<ParentInfo>) };
+    return parentReady(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSavedParent(code: string, parent: ParentInfo) {
+  if (!code || !parentReady(parent)) return;
+  window.sessionStorage.setItem(parentStorageKey(code), JSON.stringify(parent));
+}
+
+function parentAddress(parent: ParentInfo) {
+  return [parent.address, parent.city, parent.state, parent.zip].filter(Boolean).join(", ");
+}
 
 export default function PublicEnrollPage() {
   const params = useParams<{ code: string }>();
@@ -42,19 +90,29 @@ export default function PublicEnrollPage() {
       .catch(() => setMissing(true));
   }, [params.code]);
 
+  useEffect(() => {
+    if (!school?.code) return;
+    const saved = readSavedParent(school.code);
+    if (!saved) return;
+    setParent(saved);
+    setChild((current) => (current.lastName ? current : { ...current, lastName: saved.lastName }));
+    setStep(2);
+  }, [school?.code]);
+
   function goToChild(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    writeSavedParent(school?.code ?? schoolCode, parent);
+    setChild((current) => (current.lastName ? current : { ...current, lastName: parent.lastName }));
     setStep(2);
   }
 
   function startAnother() {
-    setParent(emptyParent);
-    setChild(emptyChild);
+    setChild({ ...emptyChild, lastName: parent.lastName });
     setAgreed(false);
-    setStep(1);
     setDoneChild("");
     setError("");
+    setStep(parentReady(parent) ? 2 : 1);
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -82,10 +140,9 @@ export default function PublicEnrollPage() {
           agreeFeeAndEnroll: agreed,
         }),
       });
-      setParent(emptyParent);
+      writeSavedParent(school.code, parent);
       setChild(emptyChild);
       setAgreed(false);
-      setStep(1);
       setDoneChild(childName);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send that application.");
@@ -121,6 +178,8 @@ export default function PublicEnrollPage() {
     );
   }
 
+  const savedParent = parentReady(parent);
+
   return (
     <SchoolTheme pageColor={school.pageColor}>
     <div className="min-h-screen">
@@ -138,6 +197,11 @@ export default function PublicEnrollPage() {
               <p className="page-copy">
                 The office received this application. They will assess the child and then place them in a class. You do not need an account yet.
               </p>
+              {savedParent ? (
+                <p className="record-meta">
+                  {parent.firstName} {parent.lastName} and this address stay on file. A sibling only needs student information.
+                </p>
+              ) : null}
               <button className="btn btn-primary parent-form-submit" type="button" onClick={startAnother}>
                 Enroll another child
               </button>
@@ -148,13 +212,14 @@ export default function PublicEnrollPage() {
             <p className="hero-kicker">Enroll your child</p>
             <h1 className="page-title">{school.name}</h1>
             <p className="metric-label" style={{ marginTop: "0.75rem" }}>
-              {step === 1 ? "Page 1 of 2 · Parent" : "Page 2 of 2 · Child"}
+              {step === 1 ? "Parent details once" : savedParent ? "Student information" : "Page 2 of 2 · Child"}
             </p>
           </div>
 
           {step === 1 ? (
             <form onSubmit={goToChild} className="grid gap-4">
               <h2 className="page-title" style={{ fontSize: "1.3rem" }}>Parent / guardian</h2>
+              <p className="page-copy">Enter this once. If you add another child, we keep the parent and address.</p>
               <FormField label="First name">
                 <input className="input" required value={parent.firstName} onChange={(event) => setParent({ ...parent, firstName: event.target.value })} />
               </FormField>
@@ -185,6 +250,14 @@ export default function PublicEnrollPage() {
             </form>
           ) : (
             <form onSubmit={onSubmit} className="grid gap-4">
+              {savedParent ? (
+                <div>
+                  <p className="metric-label">Parent on this application</p>
+                  <p className="record-title">{parent.firstName} {parent.lastName}</p>
+                  <p className="record-meta">{parent.parentEmail} · {parent.parentPhone}</p>
+                  <p className="record-meta">{parentAddress(parent)}</p>
+                </div>
+              ) : null}
               <h2 className="page-title" style={{ fontSize: "1.3rem" }}>Child</h2>
               <FormField label="First name">
                 <input className="input" required value={child.firstName} onChange={(event) => setChild({ ...child, firstName: event.target.value })} />
@@ -207,7 +280,7 @@ export default function PublicEnrollPage() {
                   {pending ? "Sending..." : "Submit application"}
                 </button>
                 <button className="btn btn-ghost parent-form-submit" type="button" onClick={() => setStep(1)}>
-                  Back to parent
+                  Change parent or address
                 </button>
               </div>
             </form>
