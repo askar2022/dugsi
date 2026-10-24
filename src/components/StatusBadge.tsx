@@ -27,6 +27,7 @@ const TONES: Record<string, string> = {
   support_needed: "bg-red-50 text-late",
   needs_help: "bg-red-50 text-late",
   assigned: "bg-gold-soft text-due",
+  inactive: "bg-gray-100 text-muted",
   no_record: "progress-badge-none",
 };
 
