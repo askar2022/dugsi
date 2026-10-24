@@ -878,6 +878,19 @@ body:has(.teacher-dock) .site-footer {
   background: #f7f3ea;
 }
 
+.login-no-account {
+  margin: 0.15rem 0 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.login-no-account a {
+  color: var(--green);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
 .login-choose {
   width: 100%;
 }
