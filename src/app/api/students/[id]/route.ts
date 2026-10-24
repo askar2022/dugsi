@@ -2,11 +2,13 @@ import { NextRequest } from "next/server";
 import { isAssessmentClass } from "@/lib/assessment-class";
 import { sendTenantEmail } from "@/lib/email";
 import { enrollmentConfirmedEmail } from "@/lib/email-messages";
+import { assessmentFromNotes, mergeAssessmentNotes } from "@/lib/enrollment-pipeline";
 import { ApiError, getTenantStudent, handleApiError, teacherAssignedClassIds } from "@/lib/guard";
 import { json } from "@/lib/http";
+import { juzFor, surahByName } from "@/lib/quran";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
-import { studentSchema } from "@/lib/validators";
+import { assessmentSchema, studentSchema } from "@/lib/validators";
 
 export async function GET(
   request: NextRequest,
@@ -58,6 +60,69 @@ export async function PATCH(
         .single();
       throwIfError(error, "Could not unenroll that child.");
       return json({ student: updated });
+    }
+
+    if (body.action === "assess") {
+      const { session } = await requireAuthedTenant(request, ["ADMIN", "STAFF"]);
+      const parsed = assessmentSchema.safeParse(body);
+      if (!parsed.success) throw new ApiError("Enter the reading level, Juz, Surah, ayah, and recommended class.");
+      const admin = createAdminClient();
+      const { data: student } = await admin
+        .from("Student")
+        .select("id, notes, status")
+        .eq("id", id)
+        .eq("tenantId", session.tenantId)
+        .maybeSingle();
+      if (!student) throw new ApiError("Could not find that child.", 404);
+      if (student.status === "enrolled") throw new ApiError("That child is already enrolled.");
+      const { data: schoolClass } = await admin
+        .from("Class")
+        .select("id, name, level")
+        .eq("id", parsed.data.recommendedClassId)
+        .eq("tenantId", session.tenantId)
+        .maybeSingle();
+      if (!schoolClass || isAssessmentClass(schoolClass)) {
+        throw new ApiError("Choose a real class for the recommendation.");
+      }
+      const assessment = {
+        readingLevel: parsed.data.readingLevel.trim(),
+        juz: parsed.data.juz,
+        surah: parsed.data.surah.trim(),
+        ayah: parsed.data.ayah,
+        notes: parsed.data.notes?.trim() || "",
+        recommendedClassId: schoolClass.id,
+        assessedAt: new Date().toISOString().slice(0, 10),
+      };
+      const { data: updated, error } = await admin
+        .from("Student")
+        .update({
+          status: "ready_for_class",
+          notes: mergeAssessmentNotes(student.notes, assessment),
+        })
+        .eq("id", id)
+        .eq("tenantId", session.tenantId)
+        .select("id, firstName, lastName, status, notes")
+        .single();
+      throwIfError(error, "Could not save the assessment.");
+      const matched = surahByName(assessment.surah);
+      await admin.from("QuranProgress").insert({
+        tenantId: session.tenantId,
+        studentId: id,
+        surah: assessment.surah,
+        ayahFrom: assessment.ayah,
+        ayahTo: assessment.ayah,
+        juz: assessment.juz || (matched ? juzFor(matched.number, assessment.ayah) : null),
+        date: assessment.assessedAt,
+        status: "on_track",
+        notes: assessment.notes || "Enrollment assessment",
+        recordedById: session.userId,
+      });
+      await admin
+        .from("EnrollmentApplication")
+        .update({ status: "ready_for_class" })
+        .eq("tenantId", session.tenantId)
+        .eq("studentId", id);
+      return json({ student: { ...updated, assessment: assessmentFromNotes(updated?.notes) } });
     }
 
     if (body.action === "place") {

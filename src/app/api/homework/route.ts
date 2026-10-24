@@ -120,7 +120,8 @@ export async function POST(request: NextRequest) {
       .neq("status", "unenrolled")
       .neq("status", "declined")
       .neq("status", "pending")
-      .neq("status", "waiting_assessment");
+      .neq("status", "waiting_assessment")
+      .neq("status", "ready_for_class");
     if (selectedIds.length > 1) studentsQuery = studentsQuery.in("id", selectedIds);
     else if (targetStudent) studentsQuery = studentsQuery.eq("id", targetStudent.id);
     const { data: students } = await studentsQuery;

@@ -1,6 +1,12 @@
 import { NextRequest } from "next/server";
-import { ensureAssessmentClass, ensureWaitingStudent, needsClassPlacement } from "@/lib/assessment-class";
+import { ensureAssessmentClass, ensureWaitingStudent, isAssessmentClass, needsClassPlacement } from "@/lib/assessment-class";
 import { findParentIdByEmail } from "@/lib/parent-link";
+import {
+  assessmentFromNotes,
+  assessmentLabel,
+  enrollmentStage,
+  parseEnrollmentNotes,
+} from "@/lib/enrollment-pipeline";
 import { handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -38,22 +44,7 @@ type WaitingRow = {
 };
 
 function guardianFromNotes(notes: string | null) {
-  try {
-    return notes ? JSON.parse(notes) as {
-      guardianName?: string;
-      guardianEmail?: string;
-      guardianPhone?: string;
-      address?: string;
-      city?: string;
-      state?: string;
-      zip?: string;
-      age?: number;
-      agreedFeeAndEnroll?: boolean;
-      notes?: string;
-    } : {};
-  } catch {
-    return {};
-  }
+  return parseEnrollmentNotes(notes);
 }
 
 function one<T>(value: T | T[] | null | undefined) {
@@ -120,7 +111,7 @@ export async function GET(request: NextRequest) {
 
     const { data: students } = await admin
       .from("Student")
-      .select("id, firstName, lastName, notes, status, classId, class:Class(id, name, level), parent:User!parentId(name, email, phone)")
+      .select("id, firstName, lastName, notes, status, classId, createdAt, class:Class(id, name, level), parent:User!parentId(name, email, phone)")
       .eq("tenantId", session.tenantId)
       .order("createdAt", { ascending: false });
 
@@ -140,34 +131,96 @@ export async function GET(request: NextRequest) {
       (rows ?? []).filter((item) => item.studentId).map((item) => [item.studentId as string, item]),
     );
     const waiting: WaitingRow[] = [];
+    const seen = new Set<string>();
+    const pipeline: Array<{
+      id: string;
+      studentId: string | null;
+      applicationId: string | null;
+      firstName: string;
+      lastName: string;
+      parentName: string;
+      submittedAt: string | null;
+      assessmentLabel: string;
+      readingLevel: string;
+      stage: string;
+      status: string;
+      recommendedClassId: string;
+      classId: string | null;
+      className: string | null;
+    }> = [];
 
     for (const item of students ?? []) {
+      if (item.status === "declined" || item.status === "unenrolled") continue;
       const klass = one(item.class);
       const parent = one(item.parent);
       const extra = guardianFromNotes(item.notes);
-      if (!needsClassPlacement({ status: item.status, classId: item.classId, class: klass }, holding.id)) {
-        continue;
-      }
+      const assessment = assessmentFromNotes(item.notes);
       const application = applicationByStudent.get(item.id);
-      waiting.push({
+      const stage = enrollmentStage({
+        status: item.status,
+        hasStudent: true,
+        assessment,
+      });
+      if (needsClassPlacement({ status: item.status, classId: item.classId, class: klass }, holding.id) && stage !== "ready") {
+        waiting.push({
+          id: item.id,
+          applicationId: application?.id ?? null,
+          firstName: item.firstName,
+          lastName: item.lastName,
+          parentName: extra.guardianName ?? parent?.name ?? application?.parentName ?? "—",
+          parentEmail: extra.guardianEmail ?? parent?.email ?? application?.parentEmail ?? "",
+          parentPhone: extra.guardianPhone ?? parent?.phone ?? application?.parentPhone ?? null,
+          address: extra.address ?? application?.address ?? null,
+          age: extra.age ?? application?.age ?? null,
+          status: item.status,
+          classId: item.classId,
+          className: klass?.name ?? holding.name,
+        });
+      }
+      seen.add(item.id);
+      pipeline.push({
         id: item.id,
+        studentId: item.id,
         applicationId: application?.id ?? null,
         firstName: item.firstName,
         lastName: item.lastName,
         parentName: extra.guardianName ?? parent?.name ?? application?.parentName ?? "—",
-        parentEmail: extra.guardianEmail ?? parent?.email ?? application?.parentEmail ?? "",
-        parentPhone: extra.guardianPhone ?? parent?.phone ?? application?.parentPhone ?? null,
-        address: extra.address ?? application?.address ?? null,
-        age: extra.age ?? application?.age ?? null,
-        status: "waiting_assessment",
+        submittedAt: application?.createdAt ?? item.createdAt ?? null,
+        assessmentLabel: assessmentLabel(assessment),
+        readingLevel: assessment?.readingLevel ?? "",
+        stage,
+        status: stage === "ready" ? "ready_for_class" : stage === "submitted" ? "submitted" : item.status,
+        recommendedClassId: assessment?.recommendedClassId ?? "",
         classId: item.classId,
-        className: klass?.name ?? holding.name,
+        className: isAssessmentClass(klass) ? null : klass?.name ?? null,
+      });
+    }
+
+    for (const item of rows ?? []) {
+      if (item.studentId && seen.has(item.studentId)) continue;
+      if (item.status === "declined") continue;
+      pipeline.push({
+        id: item.id,
+        studentId: item.studentId ?? null,
+        applicationId: item.id,
+        firstName: item.firstName,
+        lastName: item.lastName,
+        parentName: item.parentName,
+        submittedAt: item.createdAt ?? null,
+        assessmentLabel: "Not completed",
+        readingLevel: "",
+        stage: "submitted",
+        status: "submitted",
+        recommendedClassId: "",
+        classId: null,
+        className: null,
       });
     }
 
     return json({
       applications,
       waiting,
+      pipeline,
       enrollUrl: `/s/${session.tenantSlug}`,
       schoolCode: session.tenantSlug,
     });

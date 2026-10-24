@@ -66,7 +66,7 @@ export default function ParentHomeworkPage() {
   }, []);
 
   const classId = isAssessmentClass(child?.class) ? null : child?.classId ?? child?.class?.id ?? null;
-  const waiting = child?.status === "waiting_assessment" || child?.status === "pending" || !classId;
+  const waiting = child?.status === "waiting_assessment" || child?.status === "pending" || child?.status === "ready_for_class" || !classId;
   const rows = child && classId && !waiting
     ? homework.filter((item) =>
         item.studentId

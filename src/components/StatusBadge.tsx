@@ -13,6 +13,8 @@ const TONES: Record<string, string> = {
   pending: "bg-gold-soft text-due",
   accepted: "bg-gold-soft text-due",
   waiting_assessment: "bg-gold-soft text-due",
+  ready_for_class: "bg-gold-soft text-due",
+  submitted: "bg-gold-soft text-due",
   invited: "bg-gold-soft text-due",
   needs_practice: "bg-gold-soft text-due",
   declined: "bg-red-50 text-late",
@@ -44,8 +46,10 @@ const LABELS: Record<string, string> = {
   needs_attention: "Needs Attention",
   support_needed: "Support Needed",
   strong_support: "Strong Support",
-  waiting_assessment: "Waiting for assessment",
-  accepted: "Waiting for assessment",
+  waiting_assessment: "Waiting for Assessment",
+  accepted: "Waiting for Assessment",
+  ready_for_class: "Ready for Class",
+  submitted: "Application Submitted",
 };
 
 export function StatusBadge({ status }: { status: string }) {
