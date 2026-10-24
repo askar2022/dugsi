@@ -1,7 +1,7 @@
 import { sendTenantEmail } from "@/lib/email";
 import { fridayAdminEmail, fridayAdminMonthEmail, fridayParentEmail, fridayTeacherEmail } from "@/lib/friday-emails";
 import { loadTenantFridayData, type Person } from "@/lib/friday-snapshot";
-import { chicagoNow, fridayWindows, isFirstFriday, mostRecentFriday, previousMonth } from "@/lib/friday-weeks";
+import { chicagoNow, fridayWindows, isFirstFriday, previousMonth } from "@/lib/friday-weeks";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const NOOR_WATCH: Person = {
@@ -147,50 +147,4 @@ export async function runFridaySnapshots(asOf = chicagoNow()) {
   }
 
   return { parentEmails, teacherEmails, adminEmails, adminMonthEmails, weekday: asOf.weekday, date: asOf.date };
-}
-
-export async function sendLeadershipFridayReport(tenantId: string) {
-  const asOf = chicagoNow();
-  const friday = mostRecentFriday(asOf.date);
-  const { thisWeek, lastWeek } = fridayWindows(friday);
-  const weekMarker = `Snapshot week ${thisWeek.start}/${thisWeek.end}`;
-  const weekLabel = `Week ${thisWeek.start} to ${thisWeek.end}. ${weekMarker}`;
-  const admin = createAdminClient();
-  const { data: tenant } = await admin
-    .from("Tenant")
-    .select("id, name, slug")
-    .eq("id", tenantId)
-    .maybeSingle();
-  if (!tenant) return { sent: 0, skipped: 0, weekLabel };
-
-  const data = await loadTenantFridayData({
-    tenantId: tenant.id,
-    thisWeek,
-    lastWeek,
-    asOf: asOf.date,
-  });
-  let sent = 0;
-  let skipped = 0;
-  for (const office of adminRecipients(tenant.slug, data.admins)) {
-    if (await alreadySent(admin, tenant.id, "friday_admin", office.email, weekMarker)) {
-      skipped += 1;
-      continue;
-    }
-    const copy = fridayAdminEmail({
-      schoolName: tenant.name,
-      adminName: office.name,
-      schoolCode: tenant.slug,
-      weekLabel,
-      school: data.week,
-    });
-    await sendTenantEmail({
-      tenantId: tenant.id,
-      toEmail: office.email,
-      subject: copy.subject,
-      body: copy.body,
-      event: "friday_admin",
-    });
-    sent += 1;
-  }
-  return { sent, skipped, weekLabel };
 }

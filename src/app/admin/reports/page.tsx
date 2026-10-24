@@ -16,6 +16,14 @@ type Report = {
   expenseTotal: number;
 };
 
+type FridayEmail = {
+  subject: string;
+  body: string;
+  toEmail: string;
+  createdAt: string;
+  status: string;
+};
+
 function money(value: number) {
   return `$${Number(value || 0).toFixed(0)}`;
 }
@@ -23,8 +31,10 @@ function money(value: number) {
 export default function ReportsPage() {
   const [report, setReport] = useState<Report | null>(null);
   const [schoolName, setSchoolName] = useState("Administrative Reports");
-  const [fridayNote, setFridayNote] = useState("");
+  const [fridayOpen, setFridayOpen] = useState(false);
   const [fridayPending, setFridayPending] = useState(false);
+  const [fridayError, setFridayError] = useState("");
+  const [fridayEmail, setFridayEmail] = useState<FridayEmail | null>(null);
 
   useEffect(() => {
     api<{ report: Report }>("/api/reports").then((data) => setReport(data.report));
@@ -32,6 +42,15 @@ export default function ReportsPage() {
       .then((data) => setSchoolName(data.user.tenantName ?? "Administrative Reports"))
       .catch(() => setSchoolName("Administrative Reports"));
   }, []);
+
+  useEffect(() => {
+    if (!fridayOpen) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setFridayOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fridayOpen]);
 
   const waiting = report?.waiting ?? report?.pending ?? 0;
 
@@ -77,22 +96,30 @@ export default function ReportsPage() {
     });
   }
 
-  async function emailFridayReport() {
-    setFridayNote("");
+  function sentWhen(value?: string | null) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+
+  async function openFridayReport() {
+    setFridayError("");
     setFridayPending(true);
+    setFridayOpen(true);
     try {
-      const data = await api<{ report: { sent: number; skipped: number; weekLabel: string } }>("/api/reports/friday", {
-        method: "POST",
-      });
-      if (data.report.sent) {
-        setFridayNote(`Friday leadership email sent. ${data.report.weekLabel}`);
-      } else if (data.report.skipped) {
-        setFridayNote(`Already sent this week. ${data.report.weekLabel}`);
-      } else {
-        setFridayNote("No leadership recipients were found.");
-      }
+      const data = await api<{ friday: { lastSent: FridayEmail | null } }>("/api/reports/friday");
+      setFridayEmail(data.friday.lastSent);
     } catch (err) {
-      setFridayNote(err instanceof Error ? err.message : "Could not send the Friday report.");
+      setFridayEmail(null);
+      setFridayError(err instanceof Error ? err.message : "Could not load the last Friday email.");
     } finally {
       setFridayPending(false);
     }
@@ -202,12 +229,9 @@ export default function ReportsPage() {
                 <Link href="/admin/expenses" className="btn btn-ghost">Open</Link>
               </div>
               <div className="report-official-row">
-                <div>
-                  <p className="report-official-label">Weekly leadership report</p>
-                  {fridayNote ? <p className="report-note">{fridayNote}</p> : null}
-                </div>
-                <button type="button" className="btn btn-ghost" disabled={fridayPending} onClick={emailFridayReport}>
-                  {fridayPending ? "Sending..." : "Email Friday Report"}
+                <p className="report-official-label">Weekly leadership report</p>
+                <button type="button" className="btn btn-ghost" disabled={fridayPending} onClick={openFridayReport}>
+                  {fridayPending ? "Opening..." : "View Friday Report"}
                 </button>
               </div>
               <div className="report-official-row">
@@ -221,6 +245,32 @@ export default function ReportsPage() {
           </section>
         </>
       )}
+
+      {fridayOpen ? (
+        <div className="report-modal" onClick={() => setFridayOpen(false)}>
+          <div className="report-modal-panel" onClick={(event) => event.stopPropagation()} role="dialog" aria-labelledby="friday-report-title">
+            <div className="report-modal-top">
+              <h2 id="friday-report-title" className="report-section-title">Friday leadership email</h2>
+              <button type="button" className="btn btn-ghost" onClick={() => setFridayOpen(false)}>Close</button>
+            </div>
+            <p className="report-note">
+              This email is sent automatically on Friday. Nothing was sent just now.
+            </p>
+            {fridayPending ? <p className="page-copy">Loading the last Friday email...</p> : null}
+            {fridayError ? <p className="mt-0 text-sm text-late">{fridayError}</p> : null}
+            {!fridayPending && !fridayError && !fridayEmail ? (
+              <p className="page-copy">No Friday leadership email has been sent yet.</p>
+            ) : null}
+            {fridayEmail ? (
+              <>
+                <p className="record-meta">Sent {sentWhen(fridayEmail.createdAt)}</p>
+                <p className="record-title">{fridayEmail.subject}</p>
+                <p className="report-email">{fridayEmail.body}</p>
+              </>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
