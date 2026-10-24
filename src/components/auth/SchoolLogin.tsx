@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
@@ -193,6 +194,14 @@ function SchoolLoginForm({
               <button className="btn btn-ghost w-full" type="button" disabled={pending} onClick={() => void onForgot()}>
                 Reset password
               </button>
+              {portal === "parent" ? (
+                <p className="login-no-account">
+                  Do not have an account?{" "}
+                  <Link href={school?.code || schoolCode ? `/enroll/${school?.code ?? schoolCode}` : "/enroll"}>
+                    Enroll your child
+                  </Link>
+                </p>
+              ) : null}
             </form>
           )}
         </div>
