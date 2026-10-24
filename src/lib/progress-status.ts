@@ -3,9 +3,9 @@ export const PROGRESS_STATUSES = ["on_track", "needs_practice", "contact_parent"
 export type ProgressStatus = (typeof PROGRESS_STATUSES)[number];
 
 export const PROGRESS_LABELS: Record<ProgressStatus, string> = {
-  on_track: "On track",
-  needs_practice: "Needs practice",
-  contact_parent: "Contact parent",
+  on_track: "On Track",
+  needs_practice: "Needs Attention",
+  contact_parent: "Needs Support",
 };
 
 export function normalizeProgressStatus(value?: string | null): ProgressStatus {
@@ -21,8 +21,8 @@ export function classSupportTone(counts: { on_track: number; needs_practice: num
 }
 
 export const SUPPORT_LABELS: Record<string, string> = {
-  on_track: "On track",
-  needs_practice: "Needs practice",
-  contact_parent: "Needs support",
-  no_record: "No record yet",
+  on_track: "On Track",
+  needs_practice: "Needs Attention",
+  contact_parent: "Needs Support",
+  no_record: "No Record",
 };
