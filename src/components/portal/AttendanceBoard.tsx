@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/portal/EmptyState";
 import { FormField } from "@/components/forms/FormField";
 import { PageHeader } from "@/components/portal/PageHeader";
+import { AttendanceStatusSelect, type AttendanceMark } from "@/components/portal/AttendanceStatusSelect";
 import { isAssessmentClass } from "@/lib/assessment-class";
 import { api } from "@/lib/api";
 
@@ -16,14 +17,6 @@ type SchoolClass = {
   teacher?: { id: string; name: string } | { id: string; name: string }[] | null;
 };
 type Attendance = { studentId: string; status: string };
-type Mark = "present" | "absent" | "late" | "excused";
-
-const MARKS: Array<{ value: Mark; label: string }> = [
-  { value: "present", label: "Present" },
-  { value: "absent", label: "Absent" },
-  { value: "late", label: "Late" },
-  { value: "excused", label: "Excused" },
-];
 
 function teacherOf(item: SchoolClass) {
   const value = item.teacher;
@@ -36,7 +29,8 @@ export function AttendanceBoard({ showTeacherFilter }: { showTeacherFilter: bool
   const [teacherId, setTeacherId] = useState("");
   const [classId, setClassId] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [marks, setMarks] = useState<Record<string, Mark>>({});
+  const [marks, setMarks] = useState<Record<string, AttendanceMark>>({});
+  const [openId, setOpenId] = useState("");
   const [query, setQuery] = useState("");
   const [exceptionsOnly, setExceptionsOnly] = useState(false);
   const [message, setMessage] = useState("");
@@ -96,11 +90,12 @@ export function AttendanceBoard({ showTeacherFilter }: { showTeacherFilter: bool
     if (!classId || !date) return;
     api<{ attendance: Attendance[] }>(`/api/attendance?classId=${encodeURIComponent(classId)}&date=${encodeURIComponent(date)}`)
       .then((data) => {
-        const next: Record<string, Mark> = {};
+        const next: Record<string, AttendanceMark> = {};
         for (const row of data.attendance) {
-          next[row.studentId] = row.status as Mark;
+          next[row.studentId] = row.status as AttendanceMark;
         }
         setMarks(next);
+        setOpenId("");
         setExceptionsOnly(false);
       })
       .catch(() => setMarks({}));
@@ -183,9 +178,9 @@ export function AttendanceBoard({ showTeacherFilter }: { showTeacherFilter: bool
             <div className="attend-actions">
               <button
                 type="button"
-                className="btn btn-ghost"
+                className="btn btn-primary"
                 onClick={() => {
-                  const next: Record<string, Mark> = {};
+                  const next: Record<string, AttendanceMark> = {};
                   for (const student of roster) next[student.id] = "present";
                   setMarks(next);
                 }}
@@ -220,22 +215,24 @@ export function AttendanceBoard({ showTeacherFilter }: { showTeacherFilter: bool
         />
       ) : (
         <div className="attend-list">
+          <div className="attend-head">
+            <span>Student</span>
+            <span className="attend-head-status">Attendance Status</span>
+          </div>
           {visible.map((student) => {
             const value = marks[student.id] ?? "present";
             return (
-              <label key={student.id} className="attend-row">
+              <div key={student.id} className={`attend-row${openId === student.id ? " is-open" : ""}`}>
                 <span className="attend-name">{student.firstName} {student.lastName}</span>
-                <select
-                  className={`attend-select is-${value}`}
-                  aria-label={`Attendance for ${student.firstName} ${student.lastName}`}
+                <AttendanceStatusSelect
                   value={value}
-                  onChange={(event) => setMarks((current) => ({ ...current, [student.id]: event.target.value as Mark }))}
-                >
-                  {MARKS.map((mark) => (
-                    <option key={mark.value} value={mark.value}>{mark.label}</option>
-                  ))}
-                </select>
-              </label>
+                  open={openId === student.id}
+                  label={`Attendance for ${student.firstName} ${student.lastName}`}
+                  onOpen={() => setOpenId(student.id)}
+                  onClose={() => setOpenId("")}
+                  onChange={(next) => setMarks((current) => ({ ...current, [student.id]: next }))}
+                />
+              </div>
             );
           })}
         </div>
