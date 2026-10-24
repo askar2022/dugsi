@@ -25,6 +25,7 @@ function one<T>(value: T | T[] | null | undefined) {
 export default function ParentAttendancePage() {
   const { children, ready } = useParentFamily();
   const [marks, setMarks] = useState<Mark[]>([]);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     api<{ attendance: Mark[] }>("/api/attendance")
@@ -48,6 +49,14 @@ export default function ParentAttendancePage() {
     });
   }, [children, marks]);
 
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return rows;
+    return rows.filter((row) =>
+      [row.name, row.className, row.date, row.status.replaceAll("_", " ")].join(" ").toLowerCase().includes(needle),
+    );
+  }, [query, rows]);
+
   return (
     <div className="page-stack">
       <PageHeader
@@ -62,6 +71,17 @@ export default function ParentAttendancePage() {
           text="Use Online Enrollment to add a child to your family record."
         />
       ) : (
+        <>
+          <input
+            className="input"
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search a child, class, date, or status..."
+          />
+          {visible.length === 0 ? (
+            <EmptyState title="No matching attendance" text="No child matches that search." />
+          ) : (
         <div className="card table-wrap p-2">
           <table className="family-table">
             <thead>
@@ -73,7 +93,7 @@ export default function ParentAttendancePage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {visible.map((row) => (
                 <tr key={row.id} className={`is-${row.status}`}>
                   <td>{row.name}</td>
                   <td>{row.className}</td>
@@ -84,6 +104,8 @@ export default function ParentAttendancePage() {
             </tbody>
           </table>
         </div>
+          )}
+        </>
       )}
     </div>
   );
