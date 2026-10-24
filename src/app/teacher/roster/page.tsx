@@ -31,7 +31,8 @@ function isActiveStudent(student: Student) {
     student.status !== "unenrolled" &&
     student.status !== "declined" &&
     student.status !== "pending" &&
-    student.status !== "waiting_assessment"
+    student.status !== "waiting_assessment" &&
+    student.status !== "ready_for_class"
   );
 }
 

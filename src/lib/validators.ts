@@ -23,6 +23,15 @@ export const registerTenantSchema = z.object({
   city: z.string().optional(),
 });
 
+export const assessmentSchema = z.object({
+  readingLevel: z.string().min(1),
+  juz: z.number().int().min(1).max(30),
+  surah: z.string().min(1),
+  ayah: z.number().int().min(1),
+  notes: z.string().optional(),
+  recommendedClassId: z.string().min(1),
+});
+
 export const studentSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),

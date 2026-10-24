@@ -17,8 +17,12 @@ export function needsClassPlacement(
   },
   assessmentClassId?: string | null,
 ) {
-  if (student.status === "declined" || student.status === "unenrolled") return false;
-  if (student.status === "waiting_assessment" || student.status === "pending") return true;
+  if (student.status === "declined" || student.status === "unenrolled" || student.status === "enrolled") return false;
+  if (
+    student.status === "waiting_assessment"
+    || student.status === "pending"
+    || student.status === "ready_for_class"
+  ) return true;
   const classId = student.classId ?? student.class?.id ?? null;
   if (!classId) return true;
   if (assessmentClassId && classId === assessmentClassId) return true;
@@ -29,6 +33,7 @@ export function classPlaceLabel(student: {
   status?: string | null;
   class?: { name?: string | null; level?: string | null } | null;
 }) {
+  if (student.status === "ready_for_class") return "Ready for class";
   if (student.status === "waiting_assessment" || student.status === "pending" || isAssessmentClass(student.class)) {
     return ASSESSMENT_CLASS_NAME;
   }
@@ -51,6 +56,15 @@ export async function ensureWaitingStudent(
 ) {
   const holding = await ensureAssessmentClass(admin, tenantId);
   if (input.studentId) {
+    const { data: existing } = await admin
+      .from("Student")
+      .select("id, status")
+      .eq("id", input.studentId)
+      .eq("tenantId", tenantId)
+      .maybeSingle();
+    if (existing?.status === "enrolled" || existing?.status === "ready_for_class") {
+      return { studentId: input.studentId, holding };
+    }
     const { error } = await admin
       .from("Student")
       .update({

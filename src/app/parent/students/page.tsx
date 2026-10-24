@@ -31,7 +31,7 @@ function enrolledOn(value?: string | null) {
 
 function studentStatus(status: string) {
   if (status === "unenrolled") return "unenrolled";
-  if (status === "waiting_assessment" || status === "pending") return "waiting_assessment";
+  if (status === "waiting_assessment" || status === "pending" || status === "ready_for_class") return "waiting_assessment";
   return "enrolled";
 }
 

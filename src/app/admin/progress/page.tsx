@@ -120,6 +120,7 @@ export default function AdminProgressPage() {
             && student.status !== "declined"
             && student.status !== "waiting_assessment"
             && student.status !== "pending"
+            && student.status !== "ready_for_class"
             && !isAssessmentClass(student.class),
           )
           .map((student) => ({

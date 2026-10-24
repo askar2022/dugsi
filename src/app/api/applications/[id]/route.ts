@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
-import { ensureAssessmentClass } from "@/lib/assessment-class";
+import { ensureAssessmentClass, ensureWaitingStudent } from "@/lib/assessment-class";
 import { sendTenantEmail } from "@/lib/email";
 import { enrollmentAcceptedEmail } from "@/lib/email-messages";
+import { findParentIdByEmail } from "@/lib/parent-link";
 import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -47,7 +48,34 @@ export async function PATCH(
   try {
     const { session } = await requireAuthedTenant(request, ["ADMIN", "STAFF"]);
     const { id } = await context.params;
+    const body = await request.json().catch(() => ({}));
     const admin = createAdminClient();
+
+    if (body.action === "start") {
+      const { data: application } = await admin
+        .from("EnrollmentApplication")
+        .select("*")
+        .eq("id", id)
+        .eq("tenantId", session.tenantId)
+        .maybeSingle();
+      if (!application) throw new ApiError("Application not found.", 404);
+      const parentId = await findParentIdByEmail(admin, session.tenantId, application.parentEmail);
+      const placed = await ensureWaitingStudent(admin, session.tenantId, {
+        studentId: application.studentId,
+        firstName: application.firstName,
+        lastName: application.lastName,
+        age: application.age,
+        address: application.address,
+        gender: application.gender,
+        parentId,
+        notes: application.notes,
+      });
+      await admin
+        .from("EnrollmentApplication")
+        .update({ status: "waiting_assessment", studentId: placed.studentId })
+        .eq("id", id);
+      return json({ studentId: placed.studentId, status: "waiting_assessment" });
+    }
 
     const { data: application } = await admin
       .from("EnrollmentApplication")

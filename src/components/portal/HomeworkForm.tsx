@@ -57,7 +57,8 @@ function enrolledStudents(students: HomeworkStudent[], classId: string) {
       student.status !== "unenrolled" &&
       student.status !== "declined" &&
       student.status !== "waiting_assessment" &&
-      student.status !== "pending",
+      student.status !== "pending" &&
+      student.status !== "ready_for_class",
   );
 }
 
