@@ -17,7 +17,9 @@ export const CLASS_DAY_PRESETS = [
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-function knownDay(value: string) {
+type Weekday = (typeof CLASS_DAY_OPTIONS)[number];
+
+function knownDay(value: string): Weekday | null {
   const needle = value.trim().toLowerCase();
   return CLASS_DAY_OPTIONS.find((day) => day.toLowerCase() === needle) ?? null;
 }
@@ -25,7 +27,10 @@ function knownDay(value: string) {
 export function classDays(dayOfWeek?: string | null) {
   const raw = (dayOfWeek ?? "").trim();
   if (!raw) return [];
-  const parts = raw.split(/[,&]| and /i).map((part) => knownDay(part)).filter((day): day is string => Boolean(day));
+  const parts = raw
+    .split(/[,&]| and /i)
+    .map((part) => knownDay(part))
+    .filter((day): day is Weekday => day !== null);
   return CLASS_DAY_OPTIONS.filter((day) => parts.includes(day));
 }
 
