@@ -300,6 +300,7 @@ export default function ReportsPage() {
                 className="report-email-frame"
                 title={fridayEmail.subject}
                 srcDoc={fridayEmail.html}
+                sandbox=""
               />
             ) : null}
           </div>

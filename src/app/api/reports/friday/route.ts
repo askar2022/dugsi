@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
       weekLabel,
       weekMarker,
       school: snapshot.week,
+      preview: true,
     });
     const admin = createAdminClient();
     const { data, error } = await admin
