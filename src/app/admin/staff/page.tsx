@@ -3,63 +3,99 @@
 import { FormEvent, useEffect, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
 import { PageHeader } from "@/components/portal/PageHeader";
+import { StatusBadge } from "@/components/StatusBadge";
+import { isAssessmentClass } from "@/lib/assessment-class";
 import { api } from "@/lib/api";
+import {
+  needsAssignedClass,
+  portalForPosition,
+  portalLabel,
+  STAFF_POSITION_GROUPS,
+} from "@/lib/staff-positions";
 
 type Staff = {
   id: string;
   name: string;
   title: string;
   email: string | null;
-  salary: number | null;
+  phone: string | null;
+  status?: string | null;
   userId: string | null;
   user?: { role: string; status: string } | null;
 };
 
+type SchoolClass = { id: string; name: string; level?: string | null };
+
 export default function StaffPage() {
   const [staff, setStaff] = useState<Staff[]>([]);
+  const [classes, setClasses] = useState<SchoolClass[]>([]);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [position, setPosition] = useState("");
+  const [classId, setClassId] = useState("");
+  const [status, setStatus] = useState<"active" | "inactive">("active");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
+  const [pending, setPending] = useState(false);
+  const teaching = needsAssignedClass(position);
 
   async function load() {
-    const data = await api<{ staff: Staff[] }>("/api/staff");
-    setStaff(data.staff);
+    const [staffData, classData] = await Promise.all([
+      api<{ staff: Staff[] }>("/api/staff"),
+      api<{ classes: SchoolClass[] }>("/api/classes"),
+    ]);
+    setStaff(staffData.staff);
+    setClasses(classData.classes.filter((item) => !isAssessmentClass(item)));
   }
 
   useEffect(() => {
     load();
   }, []);
 
+  function resetForm() {
+    setName("");
+    setPhone("");
+    setEmail("");
+    setPosition("");
+    setClassId("");
+    setStatus("active");
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    const form = event.currentTarget;
-    const raw = Object.fromEntries(new FormData(form).entries());
-    const createLogin = raw.createLogin === "on";
-    if (createLogin && !raw.email) {
-      setError("Add an email so this person can create their own password.");
+    setMessage("");
+    if (teaching && !classId) {
+      setError("Assign a class for that teaching role.");
       return;
     }
+    setPending(true);
     try {
       await api("/api/staff", {
         method: "POST",
         body: JSON.stringify({
-          ...raw,
-          email: raw.email || undefined,
-          startDate: raw.startDate || undefined,
-          salary: raw.salary ? Number(raw.salary) : undefined,
-          createLogin,
+          name,
+          phone,
+          email,
+          title: position,
+          classId: teaching ? classId : undefined,
+          status,
         }),
       });
-      form.reset();
+      const portal = portalForPosition(position);
+      resetForm();
       setMessage(
-        createLogin
-          ? "Invitation sent. They will create their own password from the email."
-          : "Staff record saved. Send a login invitation when they should open the portal.",
+        portal && status === "active"
+          ? "Staff added. They will get an email to create their own password."
+          : "Staff added.",
       );
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save that teacher.");
+      setError(err instanceof Error ? err.message : "Could not save that staff member.");
+    } finally {
+      setPending(false);
     }
   }
 
@@ -67,10 +103,7 @@ export default function StaffPage() {
     setBusy(person.id);
     setError("");
     try {
-      await api(`/api/staff/${person.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ role: "TEACHER" }),
-      });
+      await api(`/api/staff/${person.id}`, { method: "PATCH", body: JSON.stringify({}) });
       setMessage(`Invitation sent to ${person.email}. They will create their own password.`);
       await load();
     } catch (err) {
@@ -84,28 +117,50 @@ export default function StaffPage() {
     <div className="page-stack">
       <PageHeader
         title="Staff"
-        description="Each teacher uses their own email and sets their own password. Do not reuse another staff member's email."
+        description="Add staff by position. The system opens the right portal, or none, from that position."
       />
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
-        <FormField label="Name"><input className="input" name="name" required /></FormField>
-        <FormField label="Title"><input className="input" name="title" placeholder="Teacher" required /></FormField>
-        <FormField label="Email"><input className="input" name="email" type="email" /></FormField>
-        <FormField label="Phone"><input className="input" name="phone" /></FormField>
-        <FormField label="Start date"><input className="input" name="startDate" type="date" /></FormField>
-        <FormField label="Salary record"><input className="input" name="salary" type="number" step="0.01" /></FormField>
-        <FormField label="Login role">
-          <select className="select" name="role" defaultValue="TEACHER">
-            <option value="TEACHER">Teacher</option>
-            <option value="STAFF">Staff</option>
-            <option value="ADMIN">Admin</option>
+        <FormField label="Full Name">
+          <input className="input" required value={name} onChange={(event) => setName(event.target.value)} />
+        </FormField>
+        <FormField label="Phone">
+          <input className="input" type="tel" required value={phone} onChange={(event) => setPhone(event.target.value)} />
+        </FormField>
+        <FormField label="Email">
+          <input className="input" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
+        </FormField>
+        <FormField label="Position">
+          <select className="select" required value={position} onChange={(event) => { setPosition(event.target.value); setClassId(""); }}>
+            <option value="">Choose a position</option>
+            {STAFF_POSITION_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.positions.map((item) => (
+                  <option key={item} value={item}>{item}</option>
+                ))}
+              </optgroup>
+            ))}
           </select>
         </FormField>
-        <label className="flex items-center gap-2 text-sm text-green md:col-span-2">
-          <input type="checkbox" name="createLogin" defaultChecked />
-          Send a login invitation
-        </label>
+        {teaching ? (
+          <FormField label="Assigned Class">
+            <select className="select" required value={classId} onChange={(event) => setClassId(event.target.value)}>
+              <option value="">{classes.length ? "Choose a class" : "Add a class first"}</option>
+              {classes.map((item) => (
+                <option key={item.id} value={item.id}>{item.name}</option>
+              ))}
+            </select>
+          </FormField>
+        ) : null}
+        <FormField label="Status">
+          <select className="select" value={status} onChange={(event) => setStatus(event.target.value as "active" | "inactive")}>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </FormField>
         <div className="md:col-span-2">
-          <button className="btn btn-primary">Save staff member</button>
+          <button className="btn btn-primary" disabled={pending}>
+            {pending ? "Saving..." : "Add Staff"}
+          </button>
           {error ? <p className="mt-3 text-sm text-late">{error}</p> : null}
           {message ? <p className="mt-3 text-sm text-paid">{message}</p> : null}
         </div>
@@ -115,35 +170,48 @@ export default function StaffPage() {
           <thead>
             <tr>
               <th>Name</th>
-              <th>Title</th>
+              <th>Position</th>
               <th>Email</th>
+              <th>Portal</th>
+              <th>Status</th>
               <th>Login</th>
             </tr>
           </thead>
           <tbody>
-            {staff.map((person) => (
-              <tr key={person.id}>
-                <td>{person.name}</td>
-                <td>{person.title}</td>
-                <td>{person.email ?? "—"}</td>
-                <td>
-                  {person.userId ? (
-                    person.user?.status === "invited" ? "Invitation sent" : "Ready"
-                  ) : person.email ? (
-                    <button
-                      className="btn btn-primary py-2 text-sm"
-                      type="button"
-                      disabled={Boolean(busy)}
-                      onClick={() => inviteLogin(person)}
-                    >
-                      {busy === person.id ? "Sending..." : "Send login invitation"}
-                    </button>
-                  ) : (
-                    "Add an email first"
-                  )}
-                </td>
+            {staff.length === 0 ? (
+              <tr>
+                <td colSpan={6}>No staff yet. Add a person above.</td>
               </tr>
-            ))}
+            ) : (
+              staff.map((person) => {
+                const portal = portalForPosition(person.title) ?? person.user?.role ?? null;
+                return (
+                  <tr key={person.id}>
+                    <td>{person.name}</td>
+                    <td>{person.title}</td>
+                    <td>{person.email ?? "—"}</td>
+                    <td>{portalLabel(portal)}</td>
+                    <td><StatusBadge status={person.status === "inactive" ? "inactive" : "active"} /></td>
+                    <td>
+                      {person.userId ? (
+                        person.user?.status === "invited" ? "Invitation sent" : "Ready"
+                      ) : portal && person.email && person.status !== "inactive" ? (
+                        <button
+                          className="btn btn-primary py-2 text-sm"
+                          type="button"
+                          disabled={Boolean(busy)}
+                          onClick={() => inviteLogin(person)}
+                        >
+                          {busy === person.id ? "Sending..." : "Send login invitation"}
+                        </button>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

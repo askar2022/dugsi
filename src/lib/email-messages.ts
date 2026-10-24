@@ -80,8 +80,9 @@ export function teacherWelcomeEmail(input: {
   title: string;
   inviteLink?: string | null;
   schoolCode?: string | null;
+  loginRole?: "admin" | "teacher" | "parent";
 }) {
-  const staffLogin = `${getAppUrl()}${schoolLoginPath("teacher", input.schoolCode)}`;
+  const staffLogin = `${getAppUrl()}${schoolLoginPath(input.loginRole ?? "teacher", input.schoolCode)}`;
   return {
     subject: `Welcome to ${input.schoolName}`,
     body: [

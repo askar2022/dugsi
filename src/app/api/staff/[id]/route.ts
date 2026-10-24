@@ -4,6 +4,7 @@ import { teacherWelcomeEmail } from "@/lib/email-messages";
 import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { inviteSchoolUser } from "@/lib/invite";
+import { portalForPosition } from "@/lib/staff-positions";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 
 export async function PATCH(
@@ -13,8 +14,7 @@ export async function PATCH(
   try {
     const { supabase, session } = await requireAuthedTenant(request, ["ADMIN"]);
     const { id } = await context.params;
-    const body = await request.json().catch(() => ({}));
-    const role = body.role === "ADMIN" || body.role === "STAFF" ? body.role : "TEACHER";
+    await request.json().catch(() => ({}));
 
     const { data: staff, error } = await supabase
       .from("Staff")
@@ -27,6 +27,11 @@ export async function PATCH(
     }
     if (staff.userId) {
       throw new ApiError("This staff member already has a login.");
+    }
+
+    const role = portalForPosition(staff.title);
+    if (!role) {
+      throw new ApiError("That position does not get a portal login.");
     }
 
     const invited = await inviteSchoolUser({
@@ -53,6 +58,7 @@ export async function PATCH(
       title: staff.title,
       inviteLink: invited.inviteLink,
       schoolCode: session.tenantSlug,
+      loginRole: role === "PARENT" ? "parent" : role === "TEACHER" ? "teacher" : "admin",
     });
     await sendTenantEmail({
       tenantId: session.tenantId,

@@ -53,15 +53,14 @@ export const parentSchema = z.object({
 
 export const staffSchema = z.object({
   name: z.string().min(2),
-  email: z.string().optional(),
-  phone: z.string().optional(),
+  email: z.string().email(),
+  phone: z.string().min(7),
   title: z.string().min(2),
+  classId: z.string().optional(),
+  status: z.enum(["active", "inactive"]).optional(),
   startDate: z.string().optional(),
   salary: z.number().optional(),
   notes: z.string().optional(),
-  createLogin: z.boolean().optional(),
-  password: z.string().optional(),
-  role: z.enum(["TEACHER", "STAFF", "ADMIN"]).optional(),
 });
 
 export const classSchema = z.object({
