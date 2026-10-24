@@ -2,6 +2,7 @@ import { sendTenantEmail } from "@/lib/email";
 import { enrollmentReceivedEmail } from "@/lib/email-messages";
 import { error, json } from "@/lib/http";
 import { normalizeSchoolCode } from "@/lib/auth";
+import { parentAuthEmail } from "@/lib/parent-account";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { publicEnrollFinishSchema } from "@/lib/validators";
 
@@ -9,11 +10,11 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = publicEnrollFinishSchema.safeParse(body);
   if (!parsed.success) {
-    return error("Enter the parent email used on the enrollment form.");
+    return error("Enter the parent username used on the enrollment form.");
   }
 
   const slug = normalizeSchoolCode(parsed.data.schoolCode);
-  const parentEmail = parsed.data.parentEmail.trim().toLowerCase();
+  const parentEmail = parentAuthEmail(parsed.data.parentEmail, slug);
   const admin = createAdminClient();
   const { data: tenant } = await admin
     .from("Tenant")
@@ -35,22 +36,25 @@ export async function POST(request: Request) {
     .map((row) => `${row.firstName} ${row.lastName}`.trim())
     .filter(Boolean);
   if (childNames.length === 0) {
-    return error("No enrollment was found for that email.", 404);
+    return error("No enrollment was found for that username.", 404);
   }
 
   const parentName = parsed.data.parentName?.trim() || applications?.[0]?.parentName || null;
-  const copy = enrollmentReceivedEmail({
-    schoolName: tenant.name,
-    parentName,
-    childNames,
-  });
-  await sendTenantEmail({
-    tenantId: tenant.id,
-    toEmail: parentEmail,
-    subject: copy.subject,
-    body: copy.body,
-    event: "student_enrolled",
-  });
+  const canEmail = parentEmail.includes("@") && !parentEmail.endsWith(".dugsi");
+  if (canEmail) {
+    const copy = enrollmentReceivedEmail({
+      schoolName: tenant.name,
+      parentName,
+      childNames,
+    });
+    await sendTenantEmail({
+      tenantId: tenant.id,
+      toEmail: parentEmail,
+      subject: copy.subject,
+      body: copy.body,
+      event: "student_enrolled",
+    });
+  }
 
-  return json({ ok: true, email: parentEmail, children: childNames });
+  return json({ ok: true, email: parentEmail, children: childNames, emailed: canEmail });
 }

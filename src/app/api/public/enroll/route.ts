@@ -1,7 +1,7 @@
 import { ensureWaitingStudent } from "@/lib/assessment-class";
-import { findParentIdByEmail } from "@/lib/parent-link";
 import { error, json } from "@/lib/http";
 import { normalizeSchoolCode } from "@/lib/auth";
+import { ensureParentLogin } from "@/lib/parent-account";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { publicEnrollSchema } from "@/lib/validators";
 
@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = publicEnrollSchema.safeParse(body);
   if (!parsed.success) {
-    return error("Enter the parent details, the child's age, and check that you agree to the fee and enrollment.");
+    return error("Enter the parent username, password, the child's age, and check that you agree to the fee and enrollment.");
   }
 
   const slug = normalizeSchoolCode(parsed.data.schoolCode);
@@ -22,9 +22,30 @@ export async function POST(request: Request) {
     .maybeSingle();
   if (!tenant) return error("School not found.", 404);
 
+  const username = parsed.data.parentUsername.trim();
+  let parentId: string | null = null;
+  let guardianEmail = "";
+  try {
+    const login = await ensureParentLogin({
+      tenantId: tenant.id,
+      tenantSlug: tenant.slug,
+      tenantName: tenant.name,
+      name: parsed.data.parentName.trim(),
+      username,
+      password: parsed.data.parentPassword,
+      phone: parsed.data.parentPhone.trim(),
+      requirePassword: true,
+    });
+    parentId = login.userId;
+    guardianEmail = login.email;
+  } catch (err) {
+    return error(err instanceof Error ? err.message : "Could not create that parent login.");
+  }
+
   const extras = {
     guardianName: parsed.data.parentName.trim(),
-    guardianEmail: parsed.data.parentEmail.trim().toLowerCase(),
+    guardianEmail,
+    guardianUsername: username,
     guardianPhone: parsed.data.parentPhone.trim(),
     address: parsed.data.address.trim(),
     city: parsed.data.city.trim(),
@@ -36,8 +57,6 @@ export async function POST(request: Request) {
   };
   const address = [extras.address, extras.city, extras.state, extras.zip].filter(Boolean).join(", ");
   const notes = JSON.stringify(extras);
-
-  const parentId = await findParentIdByEmail(admin, tenant.id, extras.guardianEmail);
   const { studentId } = await ensureWaitingStudent(admin, tenant.id, {
     firstName: parsed.data.firstName.trim(),
     lastName: parsed.data.lastName.trim(),

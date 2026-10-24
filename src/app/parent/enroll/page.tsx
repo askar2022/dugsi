@@ -44,7 +44,7 @@ export default function EnrollPage() {
     <div className="page-stack">
       <PageHeader
         title="Add another child"
-        description="If you already have a parent login, you can add another child. They wait for assessment until the office places them in a class."
+        description="You are signed in with your own parent login. Add another child here. They wait for assessment until the office places them in a class."
       />
       <form onSubmit={onSubmit} className="card parent-form">
         <FormField label="First name"><input className="input" name="firstName" autoComplete="given-name" required /></FormField>

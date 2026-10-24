@@ -1,5 +1,6 @@
 import { applyCors, error, json } from "@/lib/http";
 import { normalizeSchoolCode } from "@/lib/auth";
+import { resolveSchoolLoginEmail } from "@/lib/parent-account";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createCookieClient, publicUser } from "@/lib/supabase/request";
 import { loginSchema } from "@/lib/validators";
@@ -13,11 +14,29 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = loginSchema.safeParse(body);
   if (!parsed.success) {
-    return error("Enter your school code, email, and password.");
+    return error("Enter your school code, username, and password.");
   }
 
   const slug = normalizeSchoolCode(parsed.data.schoolCode);
-  const email = parsed.data.email.trim().toLowerCase();
+  const username = parsed.data.email.trim().toLowerCase();
+  const admin = createAdminClient();
+  let email = username;
+
+  if (slug && slug !== "platform") {
+    const { data: school } = await admin
+      .from("Tenant")
+      .select("id, slug")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (school) {
+      email = await resolveSchoolLoginEmail({
+        tenantId: school.id,
+        schoolCode: school.slug,
+        username,
+      });
+    }
+  }
+
   const supabase = await createCookieClient();
   const { data, error: signInError } = await supabase.auth.signInWithPassword({
     email,
@@ -28,7 +47,6 @@ export async function POST(request: Request) {
     return error("Those details do not match a school account.", 401);
   }
 
-  const admin = createAdminClient();
   let profile: { id: string; name: string; role: string; tenantId: string | null } | null = null;
   let tenant: { id: string; slug: string; name: string; status: string } | null = null;
 

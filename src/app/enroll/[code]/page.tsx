@@ -12,6 +12,8 @@ type School = { name: string; city: string | null; code: string; pageColor?: str
 type ParentInfo = {
   firstName: string;
   lastName: string;
+  username: string;
+  password: string;
   parentEmail: string;
   parentPhone: string;
   address: string;
@@ -23,6 +25,8 @@ type ParentInfo = {
 const emptyParent: ParentInfo = {
   firstName: "",
   lastName: "",
+  username: "",
+  password: "",
   parentEmail: "",
   parentPhone: "",
   address: "",
@@ -42,7 +46,8 @@ function parentReady(parent: ParentInfo) {
   return Boolean(
     parent.firstName.trim() &&
       parent.lastName.trim() &&
-      parent.parentEmail.trim() &&
+      parent.username.trim() &&
+      parent.password.trim().length >= 8 &&
       parent.parentPhone.trim() &&
       parent.address.trim() &&
       parent.city.trim() &&
@@ -58,6 +63,7 @@ function readSavedFamily(code: string): SavedFamily | null {
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<SavedFamily>;
       const parent = { ...emptyParent, ...(parsed.parent ?? {}) };
+      if (!parent.username && parent.parentEmail) parent.username = parent.parentEmail;
       if (parentReady(parent)) {
         return {
           parent,
@@ -144,7 +150,7 @@ export default function PublicEnrollPage() {
         method: "POST",
         body: JSON.stringify({
           schoolCode: school.code,
-          parentEmail: parent.parentEmail,
+          parentEmail: parent.parentEmail || parent.username,
           parentName: `${parent.firstName} ${parent.lastName}`.trim(),
         }),
       });
@@ -169,7 +175,9 @@ export default function PublicEnrollPage() {
         body: JSON.stringify({
           schoolCode: school.code,
           parentName: `${parent.firstName} ${parent.lastName}`.trim(),
-          parentEmail: parent.parentEmail,
+          parentUsername: parent.username,
+          parentPassword: parent.password,
+          parentEmail: parent.parentEmail || parent.username,
           parentPhone: parent.parentPhone,
           address: parent.address,
           city: parent.city,
@@ -239,13 +247,13 @@ export default function PublicEnrollPage() {
               </div>
               <p className="empty-state-title">
                 {emailed
-                  ? "Check your email. The school will contact you."
+                  ? "You can sign in with your username and password. The school will contact you."
                   : `${doneChildren[doneChildren.length - 1]} is waiting for assessment.`}
               </p>
               <p className="page-copy">
                 {emailed
-                  ? `We emailed ${parent.parentEmail} to confirm ${doneChildren.join(", ")} ${doneChildren.length === 1 ? "is" : "are"} enrolled and waiting for assessment.`
-                  : "Add every child first. When you are finished, we email the parent a confirmation. The school will contact you."}
+                  ? `We emailed ${parent.parentEmail || parent.username} to confirm ${doneChildren.join(", ")} ${doneChildren.length === 1 ? "is" : "are"} enrolled and waiting for assessment.`
+                  : "Add every child first. Sign in later with this parent’s own username and password. The school will contact you."}
               </p>
               <p className="record-meta">
                 {doneChildren.map((name) => (
@@ -264,7 +272,7 @@ export default function PublicEnrollPage() {
               ) : (
                 <div style={{ display: "grid", gap: "0.6rem" }}>
                   <button className="btn btn-primary parent-form-submit" type="button" disabled={pending} onClick={() => void finishAll()}>
-                    {pending ? "Sending email..." : "I'm finished — email my confirmation"}
+                    {pending ? "Saving..." : "I'm finished"}
                   </button>
                   <button className="btn btn-ghost parent-form-submit" type="button" disabled={pending} onClick={startAnother}>
                     Enroll another child
@@ -286,15 +294,18 @@ export default function PublicEnrollPage() {
           {step === 1 ? (
             <form onSubmit={goToChild} className="grid gap-4">
               <h2 className="page-title" style={{ fontSize: "1.3rem" }}>Parent / guardian</h2>
-              <p className="page-copy">Enter this once. If you add another child, we keep the parent and address.</p>
+              <p className="page-copy">Enter this once. Each parent uses their own username and password. Do not share one login with other families.</p>
               <FormField label="First name">
                 <input className="input" required value={parent.firstName} onChange={(event) => setParent({ ...parent, firstName: event.target.value })} />
               </FormField>
               <FormField label="Last name">
                 <input className="input" required value={parent.lastName} onChange={(event) => setParent({ ...parent, lastName: event.target.value })} />
               </FormField>
-              <FormField label="Your email">
-                <input className="input" type="email" required value={parent.parentEmail} onChange={(event) => setParent({ ...parent, parentEmail: event.target.value })} />
+              <FormField label="Username">
+                <input className="input" required minLength={3} autoComplete="username" value={parent.username} onChange={(event) => setParent({ ...parent, username: event.target.value })} />
+              </FormField>
+              <FormField label="Password">
+                <input className="input" type="password" required minLength={8} autoComplete="new-password" value={parent.password} onChange={(event) => setParent({ ...parent, password: event.target.value })} />
               </FormField>
               <FormField label="Phone">
                 <input className="input" type="tel" required value={parent.parentPhone} onChange={(event) => setParent({ ...parent, parentPhone: event.target.value })} />
@@ -321,7 +332,7 @@ export default function PublicEnrollPage() {
                 <div>
                   <p className="metric-label">Parent on this application</p>
                   <p className="record-title">{parent.firstName} {parent.lastName}</p>
-                  <p className="record-meta">{parent.parentEmail} · {parent.parentPhone}</p>
+                  <p className="record-meta">{parent.username} · {parent.parentPhone}</p>
                   <p className="record-meta">{parentAddress(parent)}</p>
                 </div>
               ) : null}

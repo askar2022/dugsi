@@ -17,7 +17,7 @@ const COPY = {
     artAlt: "Parent",
     kicker: "Welcome",
     heading: "Parent",
-    text: "Assalamu alaikum. Sign in to see your children.",
+    text: "Assalamu alaikum. Sign in with your own username and password.",
   },
   teacher: {
     art: "/teacher_image.png",
@@ -136,8 +136,14 @@ function SchoolLoginForm({
               <input className="input" name="schoolCode" required autoComplete="organization" />
             </FormField>
           )}
-          <FormField label="Email">
-            <input className="input" name="email" type="email" required autoComplete="username" />
+          <FormField label={portal === "parent" ? "Username" : "Email"}>
+            <input
+              className="input"
+              name="email"
+              type={portal === "parent" ? "text" : "email"}
+              required
+              autoComplete="username"
+            />
           </FormField>
           <FormField label="Password">
             <input className="input" name="password" type="password" required autoComplete="current-password" />
