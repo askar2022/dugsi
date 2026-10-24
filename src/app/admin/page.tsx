@@ -7,6 +7,7 @@ import { SchoolImage } from "@/components/portal/SchoolImage";
 import { StatusBadge } from "@/components/StatusBadge";
 import { classPlaceLabel, isAssessmentClass, needsClassPlacement } from "@/lib/assessment-class";
 import { api } from "@/lib/api";
+import { classMeetsOn } from "@/lib/class-schedule";
 import { homeworkAssignedToStudent } from "@/lib/performance";
 import { normalizeProgressStatus } from "@/lib/progress-status";
 import { quranPortion } from "@/lib/quran";
@@ -183,7 +184,7 @@ export default function AdminHomePage() {
   );
 
   const glance = useMemo(() => {
-    const todayClasses = realClasses.filter((item) => (item.dayOfWeek ?? "").toLowerCase() === weekday.toLowerCase());
+    const todayClasses = realClasses.filter((item) => classMeetsOn(item.dayOfWeek, weekday));
     const todayRoster = todayClasses.length
       ? roster.filter((student) => todayClasses.some((klass) => klass.id === (student.classId ?? classOf(student)?.id)))
       : [];
@@ -246,7 +247,7 @@ export default function AdminHomePage() {
       }
     }
 
-    const todayClasses = realClasses.filter((item) => (item.dayOfWeek ?? "").toLowerCase() === weekday.toLowerCase());
+    const todayClasses = realClasses.filter((item) => classMeetsOn(item.dayOfWeek, weekday));
     for (const klass of todayClasses) {
       const kids = roster.filter((student) => (student.classId ?? classOf(student)?.id) === klass.id);
       const marked = kids.filter((student) => attendance.some((row) => row.studentId === student.id && row.date === asOf));

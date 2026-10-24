@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { isAssessmentClass } from "@/lib/assessment-class";
+import { assistantIdFromRoom, roomForAssistant } from "@/lib/class-schedule";
 import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -23,10 +24,15 @@ export async function GET(request: NextRequest) {
       return !isAssessmentClass(item);
     });
     return json({
-      classes: visible.map((item) => ({
-        ...item,
-        _count: { students: item.students?.length ?? 0 },
-      })),
+      classes: visible.map((item) => {
+        const assistantId = assistantIdFromRoom(item.room);
+        return {
+          ...item,
+          room: assistantId ? null : item.room,
+          assistantId,
+          _count: { students: item.students?.length ?? 0 },
+        };
+      }),
     });
   } catch (err) {
     return handleApiError(err);
@@ -45,12 +51,11 @@ export async function POST(request: NextRequest) {
       .insert({
         tenantId: session.tenantId,
         name: parsed.data.name.trim(),
-        level: parsed.data.level,
-        dayOfWeek: parsed.data.dayOfWeek,
-        startTime: parsed.data.startTime,
-        endTime: parsed.data.endTime,
-        room: parsed.data.room,
+        dayOfWeek: parsed.data.dayOfWeek || null,
+        startTime: parsed.data.startTime || null,
+        endTime: parsed.data.endTime || null,
         teacherId: parsed.data.teacherId || null,
+        room: roomForAssistant(parsed.data.assistantId || null),
       })
       .select("*")
       .single();

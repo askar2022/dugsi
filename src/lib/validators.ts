@@ -65,12 +65,11 @@ export const staffSchema = z.object({
 
 export const classSchema = z.object({
   name: z.string().min(2),
-  level: z.string().optional(),
-  dayOfWeek: z.string().optional(),
+  dayOfWeek: z.enum(["Saturday", "Sunday", "Saturday & Sunday"]).optional(),
   startTime: z.string().optional(),
   endTime: z.string().optional(),
-  room: z.string().optional(),
   teacherId: z.string().optional(),
+  assistantId: z.string().optional(),
 });
 
 export const attendanceSchema = z.object({
