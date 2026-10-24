@@ -89,7 +89,7 @@ export async function runSchoolReminders() {
     const windowEnd = addDays(today.date, 3);
     const { data: homework } = await admin
       .from("Homework")
-      .select("id, tenantId, title, dueDate, classId, studentId, tenant:Tenant(name)")
+      .select("id, tenantId, title, dueDate, classId, studentId, completions:HomeworkCompletion(studentId), tenant:Tenant(name)")
       .not("dueDate", "is", null)
       .gte("dueDate", today.date)
       .lte("dueDate", windowEnd);
@@ -102,7 +102,9 @@ export async function runSchoolReminders() {
         .select("firstName, lastName, parent:User!parentId(name, email)")
         .eq("tenantId", item.tenantId)
         .eq("classId", item.classId);
+      const assignedIds = (item.completions ?? []).map((row) => row.studentId);
       if (item.studentId) studentsQuery = studentsQuery.eq("id", item.studentId);
+      else if (assignedIds.length) studentsQuery = studentsQuery.in("id", assignedIds);
       const { data: students } = await studentsQuery;
 
       const sent = new Set<string>();

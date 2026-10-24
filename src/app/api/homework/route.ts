@@ -32,7 +32,12 @@ export async function GET(request: NextRequest) {
         .eq("parentId", session.userId)
         .eq("tenantId", session.tenantId);
       const kidIds = new Set((kids ?? []).map((kid) => kid.id));
-      rows = rows.filter((item) => !item.studentId || kidIds.has(item.studentId));
+      rows = rows.filter((item) => {
+        if (item.studentId) return kidIds.has(item.studentId);
+        const assigned = (item.completions ?? []).map((row: { studentId: string }) => row.studentId);
+        if (assigned.length) return assigned.some((id: string) => kidIds.has(id));
+        return true;
+      });
     }
     return json({ homework: rows });
   } catch (err) {
@@ -48,9 +53,16 @@ export async function POST(request: NextRequest) {
       throw new ApiError("Enter the class, homework type, Surah, and ayah range.");
     }
     const { schoolClass } = await getTenantClass(request, parsed.data.classId);
+    const selectedIds = (parsed.data.studentIds ?? []).filter(Boolean);
+    const singleId =
+      parsed.data.studentId && parsed.data.studentId !== "all"
+        ? parsed.data.studentId
+        : selectedIds.length === 1
+          ? selectedIds[0]
+          : null;
     let targetStudent: { id: string; firstName: string; lastName: string } | null = null;
-    if (parsed.data.studentId && parsed.data.studentId !== "all") {
-      const { student } = await getTenantStudent(request, parsed.data.studentId);
+    if (singleId) {
+      const { student } = await getTenantStudent(request, singleId);
       if (student.classId !== schoolClass.id) {
         throw new ApiError("That student is not in the selected class.");
       }
@@ -75,7 +87,7 @@ export async function POST(request: NextRequest) {
       .insert({
         tenantId: session.tenantId,
         classId: schoolClass.id,
-        studentId: targetStudent?.id ?? null,
+        studentId: selectedIds.length > 1 ? null : targetStudent?.id ?? null,
         kind: parsed.data.kind,
         surah: parsed.data.surah,
         ayahFrom: parsed.data.ayahFrom,
@@ -83,7 +95,7 @@ export async function POST(request: NextRequest) {
         juz: juz ?? null,
         title,
         description: parsed.data.description,
-        assignedDate: parsed.data.assignedDate,
+        assignedDate: parsed.data.assignedDate || new Date().toISOString().slice(0, 10),
         dueDate: parsed.data.dueDate,
         assignedById: session.userId,
       })
@@ -98,8 +110,11 @@ export async function POST(request: NextRequest) {
       .eq("tenantId", session.tenantId)
       .eq("classId", schoolClass.id)
       .neq("status", "unenrolled")
-      .neq("status", "declined");
-    if (targetStudent) studentsQuery = studentsQuery.eq("id", targetStudent.id);
+      .neq("status", "declined")
+      .neq("status", "pending")
+      .neq("status", "waiting_assessment");
+    if (selectedIds.length > 1) studentsQuery = studentsQuery.in("id", selectedIds);
+    else if (targetStudent) studentsQuery = studentsQuery.eq("id", targetStudent.id);
     const { data: students } = await studentsQuery;
 
     if (students?.length) {

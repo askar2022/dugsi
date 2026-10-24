@@ -78,9 +78,16 @@ export async function PATCH(
       throw new ApiError("Enter the class, homework type, Surah, and ayah range.");
     }
     const { schoolClass } = await getTenantClass(request, parsed.data.classId);
+    const selectedIds = (parsed.data.studentIds ?? []).filter(Boolean);
+    const singleId =
+      parsed.data.studentId && parsed.data.studentId !== "all"
+        ? parsed.data.studentId
+        : selectedIds.length === 1
+          ? selectedIds[0]
+          : null;
     let targetStudent: { id: string } | null = null;
-    if (parsed.data.studentId && parsed.data.studentId !== "all") {
-      const { student } = await getTenantStudent(request, parsed.data.studentId);
+    if (singleId) {
+      const { student } = await getTenantStudent(request, singleId);
       if (student.classId !== schoolClass.id) {
         throw new ApiError("That student is not in the selected class.");
       }
@@ -103,7 +110,7 @@ export async function PATCH(
     const admin = createAdminClient();
     const { data: existing, error: foundError } = await admin
       .from("Homework")
-      .select("id, classId, studentId")
+      .select("id, classId, studentId, assignedDate")
       .eq("id", id)
       .eq("tenantId", session.tenantId)
       .maybeSingle();
@@ -114,7 +121,7 @@ export async function PATCH(
       .from("Homework")
       .update({
         classId: schoolClass.id,
-        studentId: targetStudent?.id ?? null,
+        studentId: selectedIds.length > 1 ? null : targetStudent?.id ?? null,
         kind: parsed.data.kind,
         surah: parsed.data.surah,
         ayahFrom: parsed.data.ayahFrom,
@@ -122,7 +129,7 @@ export async function PATCH(
         juz: juz ?? null,
         title,
         description: parsed.data.description,
-        assignedDate: parsed.data.assignedDate,
+        assignedDate: parsed.data.assignedDate || existing.assignedDate || new Date().toISOString().slice(0, 10),
         dueDate: parsed.data.dueDate || null,
       })
       .eq("id", id)
@@ -131,32 +138,57 @@ export async function PATCH(
       .single();
     throwIfError(error, "Could not update homework.");
 
-    const assignmentChanged = existing.classId !== schoolClass.id || existing.studentId !== (targetStudent?.id ?? null);
-    if (assignmentChanged) {
-      let studentsQuery = admin
-        .from("Student")
-        .select("id")
-        .eq("tenantId", session.tenantId)
-        .eq("classId", schoolClass.id)
-        .neq("status", "unenrolled")
-        .neq("status", "declined");
-      if (targetStudent) studentsQuery = studentsQuery.eq("id", targetStudent.id);
-      const { data: students } = await studentsQuery;
-      const keepIds = (students ?? []).map((student) => student.id);
-      if (keepIds.length) {
-        await admin.from("HomeworkCompletion").delete().eq("homeworkId", id).not("studentId", "in", `(${keepIds.join(",")})`);
-        const { data: current } = await admin.from("HomeworkCompletion").select("studentId").eq("homeworkId", id);
-        const have = new Set((current ?? []).map((row) => row.studentId));
-        const missing = keepIds.filter((studentId) => !have.has(studentId));
-        if (missing.length) {
-          await admin.from("HomeworkCompletion").insert(
-            missing.map((studentId) => ({ homeworkId: id, studentId, status: "assigned" })),
-          );
-        }
+    let studentsQuery = admin
+      .from("Student")
+      .select("id")
+      .eq("tenantId", session.tenantId)
+      .eq("classId", schoolClass.id)
+      .neq("status", "unenrolled")
+      .neq("status", "declined")
+      .neq("status", "pending")
+      .neq("status", "waiting_assessment");
+    if (selectedIds.length > 1) studentsQuery = studentsQuery.in("id", selectedIds);
+    else if (targetStudent) studentsQuery = studentsQuery.eq("id", targetStudent.id);
+    const { data: students } = await studentsQuery;
+    const keepIds = (students ?? []).map((student) => student.id);
+    if (keepIds.length) {
+      await admin.from("HomeworkCompletion").delete().eq("homeworkId", id).not("studentId", "in", `(${keepIds.join(",")})`);
+      const { data: current } = await admin.from("HomeworkCompletion").select("studentId").eq("homeworkId", id);
+      const have = new Set((current ?? []).map((row) => row.studentId));
+      const missing = keepIds.filter((studentId) => !have.has(studentId));
+      if (missing.length) {
+        await admin.from("HomeworkCompletion").insert(
+          missing.map((studentId) => ({ homeworkId: id, studentId, status: "assigned" })),
+        );
       }
     }
 
     return json({ homework });
+  } catch (err) {
+    return handleApiError(err);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await context.params;
+    const { session } = await requireAuthedTenant(request, ["ADMIN", "STAFF", "TEACHER"]);
+    const admin = createAdminClient();
+    const { data: existing, error: foundError } = await admin
+      .from("Homework")
+      .select("id, classId")
+      .eq("id", id)
+      .eq("tenantId", session.tenantId)
+      .maybeSingle();
+    throwIfError(foundError, "Could not find that homework.");
+    if (!existing) throw new ApiError("Homework not found.", 404);
+    await getTenantClass(request, existing.classId);
+    const { error } = await admin.from("Homework").delete().eq("id", id).eq("tenantId", session.tenantId);
+    throwIfError(error, "Could not delete that homework.");
+    return json({ ok: true });
   } catch (err) {
     return handleApiError(err);
   }

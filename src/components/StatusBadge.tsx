@@ -38,7 +38,7 @@ const LABELS: Record<string, string> = {
   reading: "Reading",
   memorization: "Memorization",
   review: "Review",
-  written: "Written work",
+  written: "Written Work",
   no_record: "No Record",
   needs_support: "Needs Support",
   needs_attention: "Needs Attention",

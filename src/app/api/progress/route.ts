@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
     let query = reader
       .from("QuranProgress")
-      .select("*, student:Student(id, firstName, lastName, class:Class(id, name, level))")
+      .select("*, student:Student(id, firstName, lastName, class:Class(id, name, level, teacherId, teacher:User!teacherId(id, name)))")
       .eq("tenantId", session.tenantId)
       .order("date", { ascending: false });
     if (session.role === "PARENT") {

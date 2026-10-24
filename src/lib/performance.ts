@@ -104,10 +104,11 @@ export function homeworkFollowUp(assigned: number, reviewed: number, done = 0) {
 }
 
 export function homeworkAssignedToStudent(
-  item: { classId: string; studentId?: string | null },
+  item: { classId: string; studentId?: string | null; completions?: Array<{ studentId: string }> | null },
   student: { id: string; classId?: string | null },
 ) {
   if (item.studentId) return item.studentId === student.id;
+  if (item.completions?.length) return item.completions.some((row) => row.studentId === student.id);
   return Boolean(student.classId && item.classId === student.classId);
 }
 

@@ -1941,6 +1941,10 @@ body:has(.teacher-dock) .site-footer {
   color: var(--green);
 }
 
+.progress-stat-value.is-text {
+  font-size: 1.15rem;
+}
+
 .progress-stat.is-on .progress-stat-value {
   color: var(--paid);
 }
@@ -2081,6 +2085,218 @@ body:has(.teacher-dock) .site-footer {
   margin-top: 0.7rem;
 }
 
+.homework-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem 1rem;
+}
+
+.teacher-welcome {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.teacher-welcome .page-copy {
+  margin-top: 0.15rem;
+}
+
+.teacher-search {
+  position: relative;
+  max-width: 28rem;
+  margin-top: 0.85rem;
+}
+
+.teacher-stat-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.teacher-stat-link:hover {
+  border-color: var(--green);
+}
+
+.teacher-panels {
+  display: grid;
+  gap: 1rem;
+}
+
+.teacher-panel {
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+.teacher-panel-title {
+  margin: 0;
+  color: var(--green);
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.25rem;
+}
+
+.teacher-feed-row {
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  background: var(--cream);
+  color: inherit;
+  text-decoration: none;
+}
+
+.teacher-feed-row:hover {
+  border-color: var(--green);
+}
+
+.homework-view-filters,
+.progress-view-filters {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.homework-drawer-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.homework-toolbar {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.homework-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.homework-tab {
+  min-height: 2.6rem;
+  padding: 0.45rem 0.85rem;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.homework-tab.is-on {
+  color: var(--green);
+  box-shadow: inset 0 -2px 0 var(--green);
+}
+
+.homework-mini {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.85rem 0.95rem 0.9rem;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 0.95rem;
+}
+
+.homework-mini-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+}
+
+.homework-mini .homework-portion {
+  margin: 0.2rem 0 0;
+}
+
+.homework-state {
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.homework-state.is-current {
+  color: var(--paid);
+}
+
+.homework-state.is-completed {
+  color: var(--paid);
+}
+
+.homework-state.is-past {
+  color: var(--late);
+}
+
+.homework-bar {
+  height: 0.35rem;
+  overflow: hidden;
+  margin: 0.4rem 0 0.15rem;
+  border-radius: 999px;
+  background: var(--cream-deep);
+}
+
+.homework-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--paid);
+}
+
+.homework-mini-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.homework-table tbody tr {
+  cursor: default;
+}
+
+.homework-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(6, 40, 30, 0.42);
+}
+
+.homework-drawer-panel {
+  display: grid;
+  align-content: start;
+  gap: 0.85rem;
+  width: min(32rem, 100vw);
+  height: 100%;
+  overflow: auto;
+  padding: 1.15rem 1.1rem calc(1.4rem + env(safe-area-inset-bottom));
+  background: var(--cream);
+  box-shadow: -18px 0 40px rgba(6, 40, 30, 0.18);
+}
+
+.homework-drawer-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.homework-pick-list {
+  display: grid;
+  gap: 0.45rem;
+  max-height: 14rem;
+  overflow: auto;
+  padding: 0.15rem 0.1rem 0.15rem 0;
+}
+
+.homework-pick {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 2.7rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  background: white;
+  color: var(--green);
+  font-weight: 650;
+}
+
 .progress-desktop {
   display: none;
 }
@@ -2137,6 +2353,7 @@ body:has(.teacher-dock) .site-footer {
   .teacher-form .parent-form-submit,
   .teacher-form .parent-notes,
   .teacher-form .progress-tone,
+  .teacher-form .homework-form-actions,
   .homework-form .homework-actions,
   .homework-form .homework-form-actions,
   .homework-form .homework-edit-note {
@@ -2145,6 +2362,24 @@ body:has(.teacher-dock) .site-footer {
 
   .homework-filter-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .homework-toolbar {
+    grid-template-columns: 1fr 10.5rem;
+    align-items: center;
+  }
+
+  .teacher-panels {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+
+  .homework-view-filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .progress-view-filters {
+    grid-template-columns: 1fr 1fr;
   }
 
   .progress-summary {

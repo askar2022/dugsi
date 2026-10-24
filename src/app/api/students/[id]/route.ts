@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { isAssessmentClass } from "@/lib/assessment-class";
 import { sendTenantEmail } from "@/lib/email";
 import { enrollmentConfirmedEmail } from "@/lib/email-messages";
-import { ApiError, getTenantStudent, handleApiError } from "@/lib/guard";
+import { ApiError, getTenantStudent, handleApiError, teacherAssignedClassIds } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
@@ -14,8 +14,17 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params;
-    const { student } = await getTenantStudent(request, id);
-    return json({ student });
+    const { student, session, supabase } = await getTenantStudent(request, id);
+    const assignedClassIds = await teacherAssignedClassIds(supabase, session);
+    if (assignedClassIds && (!student.classId || !assignedClassIds.includes(student.classId))) {
+      throw new ApiError("You can only view students in your class.", 403);
+    }
+    const admin = createAdminClient();
+    const parentId = student.parentId as string | null | undefined;
+    const { data: parent } = parentId
+      ? await admin.from("User").select("id, name, email, phone").eq("id", parentId).maybeSingle()
+      : { data: null };
+    return json({ student: { ...student, parent: parent ?? student.parent ?? null } });
   } catch (err) {
     return handleApiError(err);
   }
