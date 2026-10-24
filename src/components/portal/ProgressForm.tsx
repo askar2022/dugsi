@@ -150,7 +150,7 @@ export function ProgressForm({
       </FormField>
       <FormField label="Progress Status">
         <select
-          className={`select progress-status-select is-${status}`}
+          className="select"
           value={status}
           onChange={(event) => setStatus(event.target.value as ProgressStatus)}
         >
