@@ -11,7 +11,7 @@ const MUTED = "#6b7280";
 const PAID = "#047857";
 const DUE = "#b45309";
 const LATE = "#b91c1c";
-const DEFAULT_IMAGE = "/ourdugsi-landing.jpg";
+const DEFAULT_IMAGE = "/ourdugsi_LandingPage.png";
 
 export type LeadershipReportInput = {
   schoolName: string;

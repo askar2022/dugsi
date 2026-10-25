@@ -51,7 +51,7 @@ export function PublicHeader(props: PlatformProps | SchoolProps) {
   return (
     <header className="school-top mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
       <Link href="/">
-        <p className="text-xs uppercase tracking-[0.24em] text-gold">Our Dugsi</p>
+        <p className="text-xs uppercase tracking-[0.24em] text-gold">OurDugsi</p>
         <p className="font-[family-name:var(--font-fraunces)] text-2xl text-green">Dugsi</p>
       </Link>
       <nav className="flex flex-wrap gap-3">

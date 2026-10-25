@@ -15,7 +15,7 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: "Dugsi",
-  description: "Our Dugsi is the home for opening a school. Each dugsi has its own page for families.",
+  description: "OurDugsi is the home for opening a school. Each dugsi has its own page for families.",
 };
 
 export const viewport: Viewport = {
