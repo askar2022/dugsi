@@ -56,7 +56,7 @@ export default function RegisterPage() {
           <p className="text-xs uppercase tracking-[0.2em] text-gold">New school</p>
           <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">Register a dugsi</h1>
           <p className="mt-2 text-sm text-muted">
-            Create the school on Our Dugsi. A super admin must approve it before the office can sign in. Each admin uses their own username and password.
+            Create the school on OurDugsi. A super admin must approve it before the office can sign in. Each admin uses their own username and password.
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">

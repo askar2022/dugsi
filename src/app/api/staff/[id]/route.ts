@@ -21,6 +21,23 @@ export async function PATCH(
       .single();
     throwIfError(error, "Staff member not found.");
 
+    if (body.status === "active" || body.status === "inactive") {
+      const { error: staffError } = await supabase
+        .from("Staff")
+        .update({ status: body.status })
+        .eq("id", id);
+      throwIfError(staffError, "Could not update that staff status.");
+      if (staff.userId) {
+        const { error: userError } = await supabase
+          .from("User")
+          .update({ status: body.status })
+          .eq("id", staff.userId)
+          .eq("tenantId", session.tenantId);
+        throwIfError(userError, "Could not update that login.");
+      }
+      return json({ ok: true });
+    }
+
     if (typeof body.password === "string" && staff.userId) {
       await setLoginPassword(staff.userId, body.password);
       return json({ ok: true });

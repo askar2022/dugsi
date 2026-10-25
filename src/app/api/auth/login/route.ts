@@ -55,13 +55,13 @@ export async function POST(request: Request) {
     return error("Those details do not match a school account.", 401);
   }
 
-  let profile: { id: string; name: string; role: string; tenantId: string | null } | null = null;
+  let profile: { id: string; name: string; role: string; tenantId: string | null; status?: string | null } | null = null;
   let tenant: { id: string; slug: string; name: string; status: string; email?: string | null } | null = null;
 
   if (slug === "platform") {
     const { data: row } = await admin
       .from("User")
-      .select("id, name, role, tenantId")
+      .select("id, name, role, tenantId, status")
       .eq("id", data.user.id)
       .maybeSingle();
     profile = row;
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
 
     const { data: byId } = await admin
       .from("User")
-      .select("id, name, role, tenantId")
+      .select("id, name, role, tenantId, status")
       .eq("id", data.user.id)
       .eq("tenantId", tenant.id)
       .maybeSingle();
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
     if (!profile) {
       const { data: byEmail } = await admin
         .from("User")
-        .select("id, name, role, tenantId")
+        .select("id, name, role, tenantId, status")
         .eq("email", email)
         .eq("tenantId", tenant.id)
         .maybeSingle();
@@ -104,6 +104,15 @@ export async function POST(request: Request) {
     if (!profile) {
       await supabase.auth.signOut();
       return error("Those details do not match a school account.", 401);
+    }
+    if (profile.status === "inactive") {
+      await supabase.auth.signOut();
+      return error(
+        profile.role === "TEACHER"
+          ? "The office has not approved this teacher login yet."
+          : "This login is not active yet. Ask the office.",
+        403,
+      );
     }
     if (parsed.data.portal === "parent" && profile.role !== "PARENT") {
       await supabase.auth.signOut();

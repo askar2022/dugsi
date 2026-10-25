@@ -73,7 +73,7 @@ function LoginForm() {
       <div className="login-shell">
         <div className="card login-form space-y-4 p-6">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-gold">Our Dugsi</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-gold">OurDugsi</p>
             <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">Admin sign in</h1>
             <p className="mt-2 text-sm text-muted">
               {codeStep

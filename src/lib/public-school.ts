@@ -41,6 +41,6 @@ export async function getPublicSchool(code: string): Promise<PublicSchool | null
     welcomeNote: tenant.welcomeNote,
     pageColor: "pageColor" in tenant && tenant.pageColor ? String(tenant.pageColor) : "green",
     code: slug,
-    imageUrl: imageUrl ?? (slug === "noor" ? "/ourdugsi-landing.jpg" : null),
+    imageUrl: imageUrl ?? (slug === "noor" ? "/ourdugsi_LandingPage.png" : null),
   };
 }

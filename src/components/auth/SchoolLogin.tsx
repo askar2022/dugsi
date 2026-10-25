@@ -202,6 +202,14 @@ function SchoolLoginForm({
                   </Link>
                 </p>
               ) : null}
+              {portal === "teacher" || portal === "staff" ? (
+                <p className="login-no-account">
+                  Do not have an account?{" "}
+                  <Link href={school?.code || schoolCode ? `/join/${school?.code ?? schoolCode}` : "/join"}>
+                    Create account
+                  </Link>
+                </p>
+              ) : null}
             </form>
           )}
         </div>

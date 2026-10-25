@@ -100,6 +100,7 @@ export async function ensureSchoolLogin(input: {
   phone?: string | null;
   role: Role;
   requirePassword?: boolean;
+  status?: "active" | "inactive";
 }) {
   if (!LOGIN_ROLES.includes(input.role)) {
     throw new ApiError("That role cannot have a school login.");
@@ -161,7 +162,7 @@ export async function ensureSchoolLogin(input: {
     name: input.name,
     phone: input.phone ?? null,
     role: input.role,
-    status: "active",
+    status: input.status ?? "active",
   });
   if (profileError) {
     throw new ApiError(profileError.message || `Could not save that ${word} login.`);
