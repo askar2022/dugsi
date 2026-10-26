@@ -2,7 +2,7 @@ import { sendTenantEmail } from "@/lib/email";
 import { enrollmentReceivedEmail } from "@/lib/email-messages";
 import { error, json } from "@/lib/http";
 import { normalizeSchoolCode } from "@/lib/auth";
-import { parentAuthEmail } from "@/lib/parent-account";
+import { parentAuthEmail, resetEmailDestination } from "@/lib/parent-account";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { publicEnrollFinishSchema } from "@/lib/validators";
 
@@ -40,8 +40,14 @@ export async function POST(request: Request) {
   }
 
   const parentName = parsed.data.parentName?.trim() || applications?.[0]?.parentName || null;
-  const canEmail = parentEmail.includes("@") && !parentEmail.endsWith(".dugsi");
-  if (canEmail) {
+  const firstParent = await admin
+    .from("User")
+    .select("email, securityEmail")
+    .eq("tenantId", tenant.id)
+    .eq("email", parentEmail)
+    .maybeSingle();
+  const dest = resetEmailDestination(firstParent.data);
+  if (dest) {
     const copy = enrollmentReceivedEmail({
       schoolName: tenant.name,
       parentName,
@@ -49,12 +55,12 @@ export async function POST(request: Request) {
     });
     await sendTenantEmail({
       tenantId: tenant.id,
-      toEmail: parentEmail,
+      toEmail: dest,
       subject: copy.subject,
       body: copy.body,
       event: "student_enrolled",
     });
   }
 
-  return json({ ok: true, email: parentEmail, children: childNames, emailed: canEmail });
+  return json({ ok: true, email: dest ?? parentEmail, children: childNames, emailed: Boolean(dest) });
 }

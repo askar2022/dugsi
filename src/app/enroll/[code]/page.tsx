@@ -48,6 +48,7 @@ function parentReady(parent: ParentInfo) {
       parent.lastName.trim() &&
       parent.username.trim() &&
       parent.password.trim().length >= 8 &&
+      parent.parentEmail.includes("@") &&
       parent.parentPhone.trim() &&
       parent.address.trim() &&
       parent.city.trim() &&
@@ -294,7 +295,7 @@ export default function PublicEnrollPage() {
           {step === 1 ? (
             <form onSubmit={goToChild} className="grid gap-4">
               <h2 className="page-title" style={{ fontSize: "1.3rem" }}>Parent / guardian</h2>
-              <p className="page-copy">Enter this once. Each parent uses their own username and password. Do not share one login with other families.</p>
+              <p className="page-copy">Enter this once. Each parent uses their own username and password. We use the email only if this parent forgets the password. Do not share one login with other families.</p>
               <FormField label="First name">
                 <input className="input" required value={parent.firstName} onChange={(event) => setParent({ ...parent, firstName: event.target.value })} />
               </FormField>
@@ -306,6 +307,9 @@ export default function PublicEnrollPage() {
               </FormField>
               <FormField label="Password">
                 <input className="input" type="password" required minLength={8} autoComplete="new-password" value={parent.password} onChange={(event) => setParent({ ...parent, password: event.target.value })} />
+              </FormField>
+              <FormField label="Email for password reset">
+                <input className="input" type="email" required autoComplete="email" value={parent.parentEmail} onChange={(event) => setParent({ ...parent, parentEmail: event.target.value })} />
               </FormField>
               <FormField label="Phone">
                 <input className="input" type="tel" required value={parent.parentPhone} onChange={(event) => setParent({ ...parent, parentPhone: event.target.value })} />

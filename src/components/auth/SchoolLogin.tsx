@@ -19,7 +19,7 @@ const COPY = {
     artAlt: "Parent",
     kicker: "Welcome",
     heading: "Parent",
-    text: "Assalamu alaikum. Sign in with your own username and password.",
+    text: "Assalamu alaikum. Sign in with your own username and password. If you forget it, click Reset password and we email a link.",
   },
   teacher: {
     art: "/teacher_image.png",
@@ -134,7 +134,7 @@ function SchoolLoginForm({
         method: "POST",
         body: JSON.stringify({ schoolCode: code, username }),
       });
-      setMessage(data.message || "If this login can receive email, a reset link was sent. Otherwise ask the office.");
+      setMessage(data.message || "If this login has an email, a reset link was sent. Otherwise ask the office.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not start a password reset.");
     } finally {

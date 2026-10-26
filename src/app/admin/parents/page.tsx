@@ -84,6 +84,9 @@ export default function ParentsPage() {
         <FormField label="Password">
           <input className="input" name="password" type="password" required minLength={8} autoComplete="new-password" />
         </FormField>
+        <FormField label="Email for password reset">
+          <input className="input" name="email" type="email" autoComplete="off" />
+        </FormField>
         <FormField label="Phone"><input className="input" name="phone" /></FormField>
         <div className="md:col-span-2">
           <button className="btn btn-primary">Save parent login</button>
