@@ -3,7 +3,7 @@ import { sendTenantEmail } from "@/lib/email";
 import { parentWelcomeEmail } from "@/lib/email-messages";
 import { ApiError, handleApiError } from "@/lib/guard";
 import { json } from "@/lib/http";
-import { ensureParentLogin, parentUsernameLabel } from "@/lib/parent-account";
+import { ensureParentLogin, isDeliverableEmail, parentUsernameLabel, saveSecurityEmail } from "@/lib/parent-account";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 import { parentSchema } from "@/lib/validators";
 
@@ -56,6 +56,13 @@ export async function POST(request: NextRequest) {
     });
 
     const loginEmail = created.email;
+    if (parsed.data.email && isDeliverableEmail(parsed.data.email)) {
+      try {
+        await saveSecurityEmail(created.userId, parsed.data.email);
+      } catch {
+        // Column may not be pasted yet.
+      }
+    }
     if (loginEmail.includes("@") && !loginEmail.endsWith(".dugsi")) {
       const copy = parentWelcomeEmail({
         schoolName: session.tenantName ?? "your school",

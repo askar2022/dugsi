@@ -79,6 +79,26 @@ export function isDeliverableEmail(email: string) {
   return value.includes("@") && !value.endsWith(".dugsi");
 }
 
+export function resetEmailDestination(user: { email?: string | null; securityEmail?: string | null } | null) {
+  const security = user?.securityEmail?.trim().toLowerCase() ?? "";
+  if (security && isDeliverableEmail(security)) return security;
+  if (user?.email && isDeliverableEmail(user.email)) return user.email;
+  return null;
+}
+
+export async function saveSecurityEmail(userId: string, email: string) {
+  const value = email.trim().toLowerCase();
+  if (!isDeliverableEmail(value)) {
+    throw new ApiError("Enter a real email so we can send a password reset link.");
+  }
+  const admin = createAdminClient();
+  const { error } = await admin.from("User").update({ securityEmail: value }).eq("id", userId);
+  if (error && !/securityEmail|column/i.test(error.message)) {
+    throw new ApiError(error.message || "Could not save that email.");
+  }
+  return value;
+}
+
 export async function setLoginPassword(userId: string, password: string) {
   if (password.trim().length < 8) {
     throw new ApiError("Use at least 8 characters for the password.");

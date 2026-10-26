@@ -49,7 +49,7 @@ export const studentSchema = z.object({
 export const parentSchema = z.object({
   name: z.string().min(2),
   username: z.string().min(3).optional(),
-  email: z.string().min(3).optional(),
+  email: z.string().optional(),
   password: z.string().min(8),
   phone: z.string().optional(),
 });
@@ -171,7 +171,7 @@ export const publicEnrollSchema = z.object({
   parentName: z.string().min(2),
   parentUsername: z.string().min(3),
   parentPassword: z.string().min(8),
-  parentEmail: z.string().optional(),
+  parentEmail: z.string().email(),
   parentPhone: z.string().min(7),
   address: z.string().min(4),
   city: z.string().min(2),

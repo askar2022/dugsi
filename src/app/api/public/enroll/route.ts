@@ -1,7 +1,7 @@
 import { ensureWaitingStudent } from "@/lib/assessment-class";
 import { error, json } from "@/lib/http";
 import { normalizeSchoolCode } from "@/lib/auth";
-import { ensureParentLogin } from "@/lib/parent-account";
+import { ensureParentLogin, isDeliverableEmail, saveSecurityEmail } from "@/lib/parent-account";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { publicEnrollSchema } from "@/lib/validators";
 
@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = publicEnrollSchema.safeParse(body);
   if (!parsed.success) {
-    return error("Enter the parent username, password, the child's age, and check that you agree to the fee and enrollment.");
+    return error("Enter the parent username, password, email, the child's age, and check that you agree to the fee and enrollment.");
   }
 
   const slug = normalizeSchoolCode(parsed.data.schoolCode);
@@ -38,6 +38,13 @@ export async function POST(request: Request) {
     });
     parentId = login.userId;
     guardianEmail = login.email;
+    if (isDeliverableEmail(parsed.data.parentEmail)) {
+      try {
+        await saveSecurityEmail(login.userId, parsed.data.parentEmail);
+      } catch {
+        // Column may not be pasted yet. The parent can add the email after sign-in.
+      }
+    }
   } catch (err) {
     return error(err instanceof Error ? err.message : "Could not create that parent login.");
   }

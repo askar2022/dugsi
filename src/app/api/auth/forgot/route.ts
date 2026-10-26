@@ -3,7 +3,7 @@ import { normalizeSchoolCode } from "@/lib/auth";
 import { sendTenantEmail } from "@/lib/email";
 import { passwordResetEmail } from "@/lib/email-messages";
 import { getAppUrl } from "@/lib/env";
-import { isDeliverableEmail, resolveSchoolLoginEmail } from "@/lib/parent-account";
+import { resetEmailDestination, resolveSchoolLoginEmail } from "@/lib/parent-account";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { forgotPasswordSchema } from "@/lib/validators";
 
@@ -34,17 +34,28 @@ export async function POST(request: Request) {
     schoolCode: tenant.slug,
     username: parsed.data.username,
   });
-  const { data: user } = await admin
+  const first = await admin
     .from("User")
-    .select("id, name, email")
+    .select("id, name, email, securityEmail")
     .eq("tenantId", tenant.id)
     .eq("email", email)
     .maybeSingle();
-  if (!user || !isDeliverableEmail(user.email)) {
+  const user =
+    first.data ??
+    (
+      await admin
+        .from("User")
+        .select("id, name, email")
+        .eq("tenantId", tenant.id)
+        .eq("email", email)
+        .maybeSingle()
+    ).data;
+  const dest = resetEmailDestination(user);
+  if (!user || !dest) {
     return json({
       ok: true,
       emailed: false,
-      message: "Ask the office or super admin to reset this password.",
+      message: "Add an email on the Password page after you sign in, or ask the office to reset this password.",
     });
   }
 
@@ -68,7 +79,7 @@ export async function POST(request: Request) {
   });
   await sendTenantEmail({
     tenantId: tenant.id,
-    toEmail: user.email,
+    toEmail: dest,
     subject: copy.subject,
     body: copy.body,
     event: "password_reset",
