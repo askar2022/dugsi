@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
-import { ADMIN_OTP_COOKIE } from "@/lib/admin-otp";
+import { ADMIN_OTP_COOKIE, isDemoSchool } from "@/lib/admin-otp";
 import { roleLoginPath } from "@/lib/login-path";
 import { SCHOOL_COOKIE, schoolFromCookie } from "@/lib/school-cookie";
 import { applySupabaseEnv } from "@/lib/supabase-env";
@@ -57,11 +57,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL(portalForRole(role), request.url));
   }
 
+  const school = schoolFromCookie(request.cookies.get(SCHOOL_COOKIE)?.value);
   if (
     (roleNeeded === "ADMIN" || roleNeeded === "PLATFORM") &&
-    request.cookies.get(ADMIN_OTP_COOKIE)?.value === "pending"
+    request.cookies.get(ADMIN_OTP_COOKIE)?.value === "pending" &&
+    !isDemoSchool(school)
   ) {
-    const school = schoolFromCookie(request.cookies.get(SCHOOL_COOKIE)?.value);
     const loginPath = roleLoginPath(roleNeeded, school, pathname);
     const url = new URL(loginPath, request.url);
     url.searchParams.set("code", "1");
