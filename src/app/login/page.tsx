@@ -8,6 +8,7 @@ import { AdminCodeStep } from "@/components/auth/AdminCodeStep";
 import { FormField } from "@/components/forms/FormField";
 import { PublicHeader } from "@/components/PublicHeader";
 import { api } from "@/lib/api";
+import { skipAdminLoginCode } from "@/lib/demo-school";
 import { schoolLoginPath } from "@/lib/login-path";
 
 function LoginForm() {
@@ -55,7 +56,13 @@ function LoginForm() {
           portal: "admin",
         }),
       });
-      if (data.needsCode) {
+      if (
+        data.needsCode &&
+        !skipAdminLoginCode({
+          slug: String(form.get("schoolCode") ?? schoolCode),
+          email: String(form.get("email") ?? ""),
+        })
+      ) {
         setCodeStep({ sentTo: data.sentTo, needsEmail: data.needsEmail });
         return;
       }
