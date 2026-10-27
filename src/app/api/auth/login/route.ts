@@ -4,6 +4,7 @@ import {
   attachAdminOtpCookies,
   clearAdminOtpCookies,
   isAdminLoginRole,
+  isDemoSchool,
   maskEmail,
 } from "@/lib/admin-otp";
 import { sendAdminLoginCode } from "@/lib/admin-otp-send";
@@ -157,7 +158,8 @@ export async function POST(request: Request) {
     tenantName: tenant?.name ?? null,
   });
 
-  const wantsAdminCode = parsed.data.portal === "admin" || slug === "platform";
+  const wantsAdminCode =
+    (parsed.data.portal === "admin" || slug === "platform") && !isDemoSchool(slug);
   if (wantsAdminCode && isAdminLoginRole(profile.role)) {
     const dest = await adminCodeDestination(admin, {
       userId: profile.id,

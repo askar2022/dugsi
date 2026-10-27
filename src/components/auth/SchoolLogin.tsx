@@ -7,6 +7,7 @@ import { FormField } from "@/components/forms/FormField";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SchoolTheme } from "@/components/SchoolTheme";
 import { AdminCodeStep } from "@/components/auth/AdminCodeStep";
+import { isDemoSchool } from "@/lib/admin-otp";
 import { api } from "@/lib/api";
 import { portalForRole, type Session } from "@/lib/types";
 
@@ -55,12 +56,15 @@ function SchoolLoginForm({
   const params = useSearchParams();
   const schoolCode = (schoolCodeProp ?? params.get("school") ?? "").trim().toLowerCase();
   const copy = COPY[portal];
+  const demoAdmin = portal === "admin" && isDemoSchool(schoolCode);
   const [school, setSchool] = useState<School | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
   const [codeStep, setCodeStep] = useState<{ sentTo?: string | null; needsEmail?: boolean } | null>(
-    params.get("code") === "1" && portal === "admin" ? { needsEmail: true } : null,
+    params.get("code") === "1" && portal === "admin" && !isDemoSchool(schoolCode)
+      ? { needsEmail: true }
+      : null,
   );
 
   function goHome(role?: Session["role"]) {
@@ -166,7 +170,11 @@ function SchoolLoginForm({
             <p className="text-xs uppercase tracking-[0.2em] text-gold">{copy.kicker}</p>
             <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">{copy.heading}</h1>
             <p className="mt-2 text-sm text-muted">
-              {codeStep ? "Enter the 6-digit code we emailed. Teachers and parents do not use this code." : copy.text}
+              {codeStep
+                ? "Enter the 6-digit code we emailed. Teachers and parents do not use this code."
+                : demoAdmin
+                  ? "Assalamu alaikum. Sign in with your own username and password."
+                  : copy.text}
             </p>
           </div>
           {codeStep ? (
