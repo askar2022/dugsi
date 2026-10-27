@@ -19,7 +19,7 @@ function LoginForm() {
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
   const [codeStep, setCodeStep] = useState<{ sentTo?: string | null; needsEmail?: boolean } | null>(
-    params.get("code") === "1" ? { needsEmail: false } : null,
+    params.get("code") === "1" ? { needsEmail: true } : null,
   );
 
   useEffect(() => {

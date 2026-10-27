@@ -60,7 +60,7 @@ function SchoolLoginForm({
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
   const [codeStep, setCodeStep] = useState<{ sentTo?: string | null; needsEmail?: boolean } | null>(
-    params.get("code") === "1" && portal === "admin" ? { needsEmail: false } : null,
+    params.get("code") === "1" && portal === "admin" ? { needsEmail: true } : null,
   );
 
   function goHome(role?: Session["role"]) {

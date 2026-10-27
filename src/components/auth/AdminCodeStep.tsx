@@ -90,9 +90,23 @@ export function AdminCodeStep({
         {pending ? "Checking..." : askEmail ? "Send code" : "Continue"}
       </button>
       {askEmail ? null : (
-        <button className="btn btn-ghost w-full" type="button" disabled={pending} onClick={() => void resend()}>
-          Send a new code
-        </button>
+        <>
+          <button className="btn btn-ghost w-full" type="button" disabled={pending} onClick={() => void resend()}>
+            Send a new code
+          </button>
+          <button
+            className="btn btn-ghost w-full"
+            type="button"
+            disabled={pending}
+            onClick={() => {
+              setAskEmail(true);
+              setError("");
+              setMessage("Enter a real email you can open. admin@noor.dugsi cannot receive mail.");
+            }}
+          >
+            Send the code to a different email
+          </button>
+        </>
       )}
     </form>
   );
