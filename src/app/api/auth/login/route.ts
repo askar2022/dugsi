@@ -4,9 +4,9 @@ import {
   attachAdminOtpCookies,
   clearAdminOtpCookies,
   isAdminLoginRole,
-  isDemoSchool,
   maskEmail,
 } from "@/lib/admin-otp";
+import { skipAdminLoginCode } from "@/lib/demo-school";
 import { sendAdminLoginCode } from "@/lib/admin-otp-send";
 import { normalizeSchoolCode } from "@/lib/auth";
 import { resolveSchoolLoginEmail } from "@/lib/parent-account";
@@ -159,7 +159,12 @@ export async function POST(request: Request) {
   });
 
   const wantsAdminCode =
-    (parsed.data.portal === "admin" || slug === "platform") && !isDemoSchool(slug);
+    (parsed.data.portal === "admin" || slug === "platform") &&
+    !skipAdminLoginCode({
+      slug: tenant?.slug ?? slug,
+      tenantId: tenant?.id ?? profile.tenantId,
+      email,
+    });
   if (wantsAdminCode && isAdminLoginRole(profile.role)) {
     const dest = await adminCodeDestination(admin, {
       userId: profile.id,

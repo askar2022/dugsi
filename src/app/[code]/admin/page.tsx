@@ -12,7 +12,7 @@ export default async function SchoolAdminLoginPage({
   return (
     <>
       {school ? <RememberSchool code={school.code} /> : null}
-      <SchoolLogin portal="admin" schoolCode={school?.code} />
+      <SchoolLogin portal="admin" schoolCode={school?.code ?? code} />
     </>
   );
 }

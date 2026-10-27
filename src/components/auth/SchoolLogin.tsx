@@ -7,7 +7,7 @@ import { FormField } from "@/components/forms/FormField";
 import { PublicHeader } from "@/components/PublicHeader";
 import { SchoolTheme } from "@/components/SchoolTheme";
 import { AdminCodeStep } from "@/components/auth/AdminCodeStep";
-import { isDemoSchool } from "@/lib/admin-otp";
+import { isDemoSchool } from "@/lib/demo-school";
 import { api } from "@/lib/api";
 import { portalForRole, type Session } from "@/lib/types";
 
@@ -86,6 +86,15 @@ function SchoolLoginForm({
   }
 
   useEffect(() => {
+    if (!demoAdmin) return;
+    api<{ user: Session }>("/api/auth/me")
+      .then((data) => {
+        if (data.user?.role === "ADMIN" || data.user?.role === "STAFF") goHome(data.user.role);
+      })
+      .catch(() => undefined);
+  }, [demoAdmin]);
+
+  useEffect(() => {
     if (!schoolCode) {
       setSchool(null);
       return;
@@ -110,7 +119,7 @@ function SchoolLoginForm({
           portal,
         }),
       });
-      if (data.needsCode) {
+      if (data.needsCode && !demoAdmin && !isDemoSchool(String(form.get("schoolCode") ?? schoolCode))) {
         setCodeStep({ sentTo: data.sentTo, needsEmail: data.needsEmail });
         return;
       }
@@ -177,7 +186,7 @@ function SchoolLoginForm({
                   : copy.text}
             </p>
           </div>
-          {codeStep ? (
+          {codeStep && !demoAdmin ? (
             <AdminCodeStep sentTo={codeStep.sentTo} needsEmail={codeStep.needsEmail} onDone={() => goHome("ADMIN")} />
           ) : (
             <form onSubmit={onSubmit} className="space-y-4">

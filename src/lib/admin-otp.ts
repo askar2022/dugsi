@@ -24,9 +24,7 @@ export function isAdminLoginRole(role?: string | null) {
   return role === "ADMIN" || role === "STAFF" || role === "PLATFORM";
 }
 
-export function isDemoSchool(slug?: string | null) {
-  return slug?.trim().toLowerCase() === "noor";
-}
+export { isDemoSchool, skipAdminLoginCode } from "@/lib/demo-school";
 
 export function createAdminCode() {
   return String(randomInt(0, 1_000_000)).padStart(6, "0");
