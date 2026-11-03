@@ -132,7 +132,7 @@ function SchoolLoginForm({
   }
 
   async function onForgot() {
-    const form = document.querySelector(".login-form") as HTMLFormElement | null;
+    const form = document.querySelector(".login-form form") as HTMLFormElement | null;
     const username = String(form?.elements.namedItem("email") instanceof HTMLInputElement ? (form.elements.namedItem("email") as HTMLInputElement).value : "").trim();
     const code = school?.code ?? schoolCode;
     if (!code || username.length < 3) {
