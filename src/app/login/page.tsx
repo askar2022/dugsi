@@ -127,7 +127,11 @@ function LoginForm() {
               Reset password
             </button>
             <p className="text-sm text-muted">
-              New school waiting? Sign in here, then Approve.{" "}
+              School admin?{" "}
+              <Link className="text-green underline" href="/signin">
+                School sign in
+              </Link>
+              . New school waiting? Sign in here, then Approve.{" "}
               <Link className="text-green underline" href="/register">Create a dugsi</Link>
             </p>
           </form>
