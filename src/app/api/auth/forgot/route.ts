@@ -67,11 +67,12 @@ export async function POST(request: Request) {
       .from("User")
       .select("id, name, email, securityEmail, role")
       .eq("role", "PLATFORM");
-    const user = (first.data ?? []).find((row) => {
-      const email = String(row.email ?? "").toLowerCase();
-      const security = "securityEmail" in row ? String(row.securityEmail ?? "").toLowerCase() : "";
-      return email === username || security === username;
-    });
+    const user =
+      (first.data ?? []).find((row) => {
+        const email = String(row.email ?? "").toLowerCase();
+        const security = "securityEmail" in row ? String(row.securityEmail ?? "").toLowerCase() : "";
+        return email === username || security === username;
+      }) ?? null;
     const dest = resetEmailDestination(user) || (user && isDeliverableEmail(user.email) ? user.email : null);
     if (!user || !dest) {
       return json({
