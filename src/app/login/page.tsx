@@ -102,8 +102,8 @@ function LoginForm() {
               type="button"
               disabled={pending}
               onClick={async () => {
-                const form = document.querySelector(".login-form") as HTMLFormElement | null;
-                const username = String(form?.email instanceof HTMLInputElement ? form.email.value : "").trim();
+                const form = document.querySelector(".login-form form") as HTMLFormElement | null;
+                const username = String(form?.elements.namedItem("email") instanceof HTMLInputElement ? (form.elements.namedItem("email") as HTMLInputElement).value : "").trim();
                 if (username.length < 3) {
                   setError("Enter your username first.");
                   return;
