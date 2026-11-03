@@ -79,8 +79,8 @@ export function isDeliverableEmail(email: string) {
   return value.includes("@") && !value.endsWith(".dugsi");
 }
 
-export function resetEmailDestination(user: { email?: string | null; securityEmail?: string | null } | null) {
-  const security = user?.securityEmail?.trim().toLowerCase() ?? "";
+export function resetEmailDestination(user?: { email?: string | null; securityEmail?: string | null } | null) {
+  const security = String(user?.securityEmail ?? "").trim().toLowerCase();
   if (security && isDeliverableEmail(security)) return security;
   if (user?.email && isDeliverableEmail(user.email)) return user.email;
   return null;
