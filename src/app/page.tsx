@@ -17,8 +17,11 @@ export default function HomePage() {
             <li>2. Families enroll and sign in on that school page, not on OurDugsi.</li>
             <li>3. Each admin, teacher, and parent uses their own username and password. A super admin approves a new dugsi.</li>
           </ol>
-          <div className="mt-6">
-            <Link href="/s/noor" className="btn btn-primary">
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link href="/signin" className="btn btn-primary">
+              School sign in
+            </Link>
+            <Link href="/s/noor" className="btn btn-ghost">
               See a sample
             </Link>
           </div>

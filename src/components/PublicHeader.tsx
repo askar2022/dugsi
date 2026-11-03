@@ -55,6 +55,9 @@ export function PublicHeader(props: PlatformProps | SchoolProps) {
         <p className="font-[family-name:var(--font-fraunces)] text-2xl text-green">Dugsi</p>
       </Link>
       <nav className="flex flex-wrap gap-3">
+        <Link href="/signin" className="btn btn-ghost">
+          School sign in
+        </Link>
         <Link href="/login" className="btn btn-ghost">
           Super admin
         </Link>
