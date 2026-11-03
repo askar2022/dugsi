@@ -56,7 +56,7 @@ export function PublicHeader(props: PlatformProps | SchoolProps) {
       </Link>
       <nav className="flex flex-wrap gap-3">
         <Link href="/login" className="btn btn-ghost">
-          Sign in
+          Super admin
         </Link>
         <Link href="/register" className="btn btn-primary">
           Create

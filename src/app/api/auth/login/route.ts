@@ -159,7 +159,8 @@ export async function POST(request: Request) {
   });
 
   const wantsAdminCode =
-    (parsed.data.portal === "admin" || slug === "platform") &&
+    parsed.data.portal === "admin" &&
+    slug !== "platform" &&
     !skipAdminLoginCode({
       slug: tenant?.slug ?? slug,
       tenantId: tenant?.id ?? profile.tenantId,
