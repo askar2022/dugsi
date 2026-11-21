@@ -15,7 +15,7 @@ export default function HomePage() {
           <ol className="mt-4 grid gap-2 text-sm text-muted">
             <li>1. Create your dugsi here. You get a school page and a school code.</li>
             <li>2. Families enroll and sign in on that school page, not on OurDugsi.</li>
-            <li>3. Each admin, teacher, and parent uses their own username and password. A super admin approves a new dugsi.</li>
+            <li>3. Office, Teacher, and Parent are three separate logins. A super admin approves a new dugsi.</li>
           </ol>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link href="/signin" className="btn btn-primary">

@@ -7,13 +7,34 @@ type PlatformProps = {
   schoolCode?: never;
 };
 
+type SchoolDoor = "parent" | "teacher" | "admin";
+
 type SchoolProps = {
   variant: "school";
   schoolName: string;
   schoolCode: string;
-  audience?: "public" | "parent" | "staff";
+  audience?: "public" | "parent" | "staff" | "login";
+  loginPortal?: SchoolDoor;
   homeHref?: string;
 };
+
+const SCHOOL_DOORS: { portal: SchoolDoor; label: string }[] = [
+  { portal: "parent", label: "Parent" },
+  { portal: "teacher", label: "Teacher" },
+  { portal: "admin", label: "Office" },
+];
+
+function schoolDoorLinks(schoolCode: string, current?: SchoolDoor) {
+  return SCHOOL_DOORS.map((door) => (
+    <Link
+      key={door.portal}
+      href={schoolLoginPath(door.portal, schoolCode)}
+      className={current === door.portal ? "btn btn-primary" : "btn btn-ghost"}
+    >
+      {door.label}
+    </Link>
+  ));
+}
 
 export function PublicHeader(props: PlatformProps | SchoolProps) {
   if (props.variant === "school") {
@@ -24,24 +45,14 @@ export function PublicHeader(props: PlatformProps | SchoolProps) {
           <p className="text-xs uppercase tracking-[0.24em] text-gold">Dugsi</p>
           <p className="font-[family-name:var(--font-fraunces)] text-2xl text-green">{props.schoolName}</p>
         </Link>
-        {audience === "staff" ? null : (
+        {audience === "staff" ? null : audience === "login" ? (
+          <nav className="flex flex-wrap gap-3">{schoolDoorLinks(props.schoolCode, props.loginPortal)}</nav>
+        ) : (
           <nav className="flex flex-wrap gap-3">
             <Link href={`/enroll/${props.schoolCode}`} className="btn btn-primary">
               Enroll
             </Link>
-            {audience === "public" ? (
-              <>
-                <Link href={schoolLoginPath("parent", props.schoolCode)} className="btn btn-ghost">
-                  Parent
-                </Link>
-                <Link href={schoolLoginPath("teacher", props.schoolCode)} className="btn btn-ghost">
-                  Teacher
-                </Link>
-                <Link href={schoolLoginPath("admin", props.schoolCode)} className="btn btn-ghost">
-                  Admin
-                </Link>
-              </>
-            ) : null}
+            {audience === "public" ? schoolDoorLinks(props.schoolCode) : null}
           </nav>
         )}
       </header>

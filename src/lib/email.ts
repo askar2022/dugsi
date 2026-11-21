@@ -37,7 +37,7 @@ async function deliverWithResend(input: { toEmail: string; subject: string; body
       to: [input.toEmail],
       subject: input.subject,
       text: input.body,
-      html: input.html,
+      ...(input.html ? { html: input.html } : {}),
     }),
   });
 
@@ -50,7 +50,15 @@ async function deliverWithResend(input: { toEmail: string; subject: string; body
   return { status: "sent" as const, error: null };
 }
 
-export async function sendPlainEmail(input: { toEmail: string; subject: string; body: string }) {
+export type EmailDelivery = { status: "sent" | "failed" | "logged"; error: string | null };
+
+export function assertEmailDelivered(delivery: EmailDelivery) {
+  if (delivery.status === "sent") return;
+  if (delivery.status === "logged" && process.env.APP_ENV !== "production") return;
+  throw new Error("Could not email that. Use Gmail or another inbox you can open, then check Spam.");
+}
+
+export async function sendPlainEmail(input: { toEmail: string; subject: string; body: string; html?: string }) {
   return deliverWithResend(input);
 }
 
@@ -78,5 +86,5 @@ export async function sendTenantEmail(input: {
     .single();
 
   console.info(`[email:${input.event}] ${delivery.status} for ${input.toEmail}: ${input.subject}`);
-  return log;
+  return { ...delivery, log };
 }

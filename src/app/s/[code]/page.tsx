@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { PublicHeader } from "@/components/PublicHeader";
 import { RememberSchool } from "@/components/public/RememberSchool";
 import { SchoolHopeStrip } from "@/components/public/SchoolHope";
 import { SchoolImage } from "@/components/portal/SchoolImage";
 import { SchoolTheme } from "@/components/SchoolTheme";
+import { schoolLoginPath } from "@/lib/login-path";
 import { getPublicSchoolHope } from "@/lib/public-hope";
 import { getPublicSchool } from "@/lib/public-school";
 
@@ -37,6 +39,36 @@ export default async function SchoolLandingPage({ params }: { params: Promise<{ 
         </section>
 
         {hope ? <SchoolHopeStrip hope={hope} /> : null}
+
+        <section className="card login-choose p-6">
+          <p className="hero-kicker">Three separate logins</p>
+          <p className="mt-2 text-sm text-muted">
+            Office, Teacher, and Parent are three different doors. The person who opened this dugsi uses Office. That login does not open Teacher or Parent.
+          </p>
+          <div className="login-choose-grid three">
+            <Link className="card login-choose-card" href={schoolLoginPath("admin", school.code)}>
+              <img src="/admin_image.png" alt="" />
+              <div>
+                <h2>Office</h2>
+                <p>The login created when this dugsi was registered. Use that username and password here.</p>
+              </div>
+            </Link>
+            <Link className="card login-choose-card" href={schoolLoginPath("teacher", school.code)}>
+              <img src="/teacher_image.png" alt="" />
+              <div>
+                <h2>Teacher</h2>
+                <p>Teachers only. Create your own account. The office approves it on Staff.</p>
+              </div>
+            </Link>
+            <Link className="card login-choose-card" href={schoolLoginPath("parent", school.code)}>
+              <img src="/parent_Image.png" alt="" />
+              <div>
+                <h2>Parent</h2>
+                <p>Families only. Enroll your child to create a parent username and password.</p>
+              </div>
+            </Link>
+          </div>
+        </section>
 
         <section className="card p-6">
           <p className="hero-kicker">How to enroll</p>

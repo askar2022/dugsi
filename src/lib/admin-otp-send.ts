@@ -1,5 +1,5 @@
 import { adminLoginCodeEmail } from "@/lib/email-messages";
-import { sendPlainEmail } from "@/lib/email";
+import { assertEmailDelivered, sendPlainEmail, sendTenantEmail } from "@/lib/email";
 import {
   attachAdminOtpCookies,
   createAdminCode,
@@ -23,7 +23,22 @@ export async function sendAdminLoginCode(input: {
     name: input.name,
     code,
   });
-  await sendPlainEmail({ toEmail: input.dest, subject: copy.subject, body: copy.body });
+  const delivery = input.tenantId
+    ? await sendTenantEmail({
+        tenantId: input.tenantId,
+        toEmail: input.dest,
+        subject: copy.subject,
+        body: copy.body,
+        html: copy.html,
+        event: "admin_login_code",
+      })
+    : await sendPlainEmail({
+        toEmail: input.dest,
+        subject: copy.subject,
+        body: copy.body,
+        html: copy.html,
+      });
+  assertEmailDelivered(delivery);
 
   const payload: AdminOtpPayload = {
     userId: input.userId,

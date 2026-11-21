@@ -117,7 +117,7 @@ export async function POST(request: Request) {
     }
     if (parsed.data.portal === "parent" && profile.role !== "PARENT") {
       await supabase.auth.signOut();
-      return error("This page is for parents. Use Teacher or Admin on the school page.");
+      return error("This is the Parent door. Your office login is under Office on this school page.");
     }
     if (parsed.data.portal === "staff" && profile.role === "PARENT") {
       await supabase.auth.signOut();
@@ -125,11 +125,11 @@ export async function POST(request: Request) {
     }
     if (parsed.data.portal === "teacher" && profile.role !== "TEACHER") {
       await supabase.auth.signOut();
-      return error("This page is for teachers. Admin uses Admin on the school page.");
+      return error("This is the Teacher door. The office uses Office on this school page.");
     }
     if (parsed.data.portal === "admin" && profile.role !== "ADMIN" && profile.role !== "STAFF") {
       await supabase.auth.signOut();
-      return error("This page is for the school office. Teachers and parents use the school page.");
+      return error("This is the Office door. Teachers use Teacher. Parents use Parent.");
     }
   }
 
@@ -172,30 +172,56 @@ export async function POST(request: Request) {
       authEmail: email,
       tenantEmail: tenant?.email ?? null,
     });
+    if (dest) {
+      try {
+        const response = json({
+          needsCode: true,
+          needsEmail: false,
+          sentTo: maskEmail(dest),
+        });
+        await sendAdminLoginCode({
+          response,
+          userId: profile.id,
+          dest,
+          name: profile.name,
+          schoolName: tenant?.name ?? "OurDugsi",
+          tenantId: profile.tenantId,
+        });
+        return response;
+      } catch (err) {
+        const response = json({
+          needsCode: true,
+          needsEmail: true,
+          sentTo: maskEmail(dest),
+          message:
+            err instanceof Error
+              ? err.message
+              : "Could not email the 6-digit code. Enter an email you can open.",
+        });
+        attachAdminOtpCookies(response, {
+          userId: profile.id,
+          dest,
+          hash: "",
+          exp: Date.now() + 10 * 60 * 1000,
+          tries: 0,
+          sentAt: 0,
+        });
+        return response;
+      }
+    }
     const response = json({
       needsCode: true,
-      needsEmail: !dest,
-      sentTo: dest ? maskEmail(dest) : null,
+      needsEmail: true,
+      sentTo: null,
     });
-    if (dest) {
-      await sendAdminLoginCode({
-        response,
-        userId: profile.id,
-        dest,
-        name: profile.name,
-        schoolName: tenant?.name ?? "OurDugsi",
-        tenantId: profile.tenantId,
-      });
-    } else {
-      attachAdminOtpCookies(response, {
-        userId: profile.id,
-        dest: "",
-        hash: "",
-        exp: Date.now() + 10 * 60 * 1000,
-        tries: 0,
-        sentAt: 0,
-      });
-    }
+    attachAdminOtpCookies(response, {
+      userId: profile.id,
+      dest: "",
+      hash: "",
+      exp: Date.now() + 10 * 60 * 1000,
+      tries: 0,
+      sentAt: 0,
+    });
     return response;
   }
 

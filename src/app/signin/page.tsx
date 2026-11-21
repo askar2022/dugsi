@@ -44,8 +44,8 @@ export default function SchoolSignInPage() {
             <p className="hero-kicker">School sign in</p>
             <h1 className="page-title">Open your dugsi</h1>
             <p className="page-copy">
-              Type your school code. You will open that school’s page. Admin,
-              teachers, and parents sign in there. Other schools are not listed.
+              Type your school code. You will open that school’s page. Office,
+              Teacher, and Parent are three separate doors there. Other schools are not listed.
             </p>
           </div>
           <FormField label="School code">

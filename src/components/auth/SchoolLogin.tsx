@@ -9,6 +9,7 @@ import { SchoolTheme } from "@/components/SchoolTheme";
 import { AdminCodeStep } from "@/components/auth/AdminCodeStep";
 import { isDemoSchool } from "@/lib/demo-school";
 import { api } from "@/lib/api";
+import { schoolLoginPath } from "@/lib/login-path";
 import { portalForRole, type Session } from "@/lib/types";
 
 type School = { name: string; code: string; imageUrl?: string | null; pageColor?: string | null };
@@ -20,30 +21,55 @@ const COPY = {
     artAlt: "Parent",
     kicker: "Welcome",
     heading: "Parent",
-    text: "Assalamu alaikum. Sign in with your own username and password. If you forget it, click Reset password and we email a link.",
+    text: "Assalamu alaikum. This door is only for families. The office uses Office. Teachers use Teacher. If you forget your password, click Reset password and we email a link.",
   },
   teacher: {
     art: "/teacher_image.png",
     artAlt: "Welcome back, Teacher",
     kicker: "Welcome",
     heading: "Teacher",
-    text: "Assalamu alaikum. Sign in with your own username and password.",
+    text: "Assalamu alaikum. This door is only for teachers. The office uses Office. Parents use Parent.",
   },
   admin: {
     art: "/admin_image.png",
-    artAlt: "Welcome back, Admin",
+    artAlt: "Welcome back, Office",
     kicker: "Office",
-    heading: "Admin",
-    text: "Assalamu alaikum. Sign in with your own password. We will email a 6-digit code.",
+    heading: "Office",
+    text: "Assalamu alaikum. This is the office login from when you opened this dugsi. After your password we email a 6-digit code. Check Inbox and Spam. Parent and Teacher are different doors.",
   },
   staff: {
     art: "/teacher_image.png",
     artAlt: "Welcome back, Teacher",
     kicker: "Welcome",
     heading: "Teacher",
-    text: "Assalamu alaikum. Sign in with your own username and password.",
+    text: "Assalamu alaikum. This door is only for teachers. The office uses Office. Parents use Parent.",
   },
 };
+
+function WrongDoorHint({ portal, schoolCode }: { portal: LoginPortal; schoolCode: string }) {
+  const others = [
+    portal !== "parent" ? { href: schoolLoginPath("parent", schoolCode), label: "Parent" } : null,
+    portal !== "teacher" && portal !== "staff" ? { href: schoolLoginPath("teacher", schoolCode), label: "Teacher" } : null,
+    portal !== "admin" ? { href: schoolLoginPath("admin", schoolCode), label: "Office" } : null,
+  ].filter((door): door is { href: string; label: string } => Boolean(door));
+  const hint =
+    portal === "admin"
+      ? "Wrong door? Office does not open Parent or Teacher."
+      : portal === "parent"
+        ? "Wrong door? Families only. The office uses Office."
+        : "Wrong door? Teachers only. The office uses Office.";
+  return (
+    <p className="login-no-account">
+      {hint}{" "}
+      {others.map((door, index) => (
+        <span key={door.label}>
+          {index > 0 ? " · " : null}
+          <Link href={door.href}>{door.label}</Link>
+        </span>
+      ))}
+    </p>
+  );
+}
 
 function SchoolLoginForm({
   portal,
@@ -61,7 +87,11 @@ function SchoolLoginForm({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
-  const [codeStep, setCodeStep] = useState<{ sentTo?: string | null; needsEmail?: boolean } | null>(
+  const [codeStep, setCodeStep] = useState<{
+    sentTo?: string | null;
+    needsEmail?: boolean;
+    message?: string | null;
+  } | null>(
     params.get("code") === "1" && portal === "admin" && !isDemoSchool(schoolCode)
       ? { needsEmail: true }
       : null,
@@ -110,7 +140,13 @@ function SchoolLoginForm({
     setError("");
     const form = new FormData(event.currentTarget);
     try {
-      const data = await api<{ user?: Session; needsCode?: boolean; needsEmail?: boolean; sentTo?: string | null }>("/api/auth/login", {
+      const data = await api<{
+        user?: Session;
+        needsCode?: boolean;
+        needsEmail?: boolean;
+        sentTo?: string | null;
+        message?: string | null;
+      }>("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({
           schoolCode: form.get("schoolCode"),
@@ -120,7 +156,7 @@ function SchoolLoginForm({
         }),
       });
       if (data.needsCode && !demoAdmin && !isDemoSchool(String(form.get("schoolCode") ?? schoolCode))) {
-        setCodeStep({ sentTo: data.sentTo, needsEmail: data.needsEmail });
+        setCodeStep({ sentTo: data.sentTo, needsEmail: data.needsEmail, message: data.message });
         return;
       }
       goHome(data.user?.role);
@@ -147,7 +183,12 @@ function SchoolLoginForm({
         method: "POST",
         body: JSON.stringify({ schoolCode: code, username }),
       });
-      setMessage(data.message || "If this login has an email, a reset link was sent. Otherwise ask the office.");
+      setMessage(
+        data.message ||
+          (portal === "admin"
+            ? "If this office login can receive email, a reset link was sent. That is not the 6-digit sign-in code. Check Spam."
+            : "If this login has an email, a reset link was sent. Otherwise ask the office."),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not start a password reset.");
     } finally {
@@ -163,7 +204,8 @@ function SchoolLoginForm({
           variant="school"
           schoolName={school?.name ?? schoolCode}
           schoolCode={school?.code ?? schoolCode}
-          audience={portal === "parent" ? "parent" : "staff"}
+          audience="login"
+          loginPortal={portal === "staff" ? "teacher" : portal}
         />
       ) : null}
       <div className="login-shell has-welcome">
@@ -187,7 +229,12 @@ function SchoolLoginForm({
             </p>
           </div>
           {codeStep && !demoAdmin ? (
-            <AdminCodeStep sentTo={codeStep.sentTo} needsEmail={codeStep.needsEmail} onDone={() => goHome("ADMIN")} />
+            <AdminCodeStep
+              sentTo={codeStep.sentTo}
+              needsEmail={codeStep.needsEmail}
+              notice={codeStep.message}
+              onDone={() => goHome("ADMIN")}
+            />
           ) : (
             <form onSubmit={onSubmit} className="space-y-4">
               {school || schoolCode ? (
@@ -226,6 +273,9 @@ function SchoolLoginForm({
                     Create account
                   </Link>
                 </p>
+              ) : null}
+              {school?.code || schoolCode ? (
+                <WrongDoorHint portal={portal} schoolCode={school?.code ?? schoolCode} />
               ) : null}
             </form>
           )}
