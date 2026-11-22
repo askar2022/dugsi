@@ -89,12 +89,9 @@ function SchoolLoginForm({
   const [pending, setPending] = useState(false);
   const [codeStep, setCodeStep] = useState<{
     sentTo?: string | null;
-    needsEmail?: boolean;
     message?: string | null;
   } | null>(
-    params.get("code") === "1" && portal === "admin" && !isDemoSchool(schoolCode)
-      ? { needsEmail: true }
-      : null,
+    params.get("code") === "1" && portal === "admin" && !isDemoSchool(schoolCode) ? {} : null,
   );
 
   function goHome(role?: Session["role"]) {
@@ -156,7 +153,7 @@ function SchoolLoginForm({
         }),
       });
       if (data.needsCode && !demoAdmin && !isDemoSchool(String(form.get("schoolCode") ?? schoolCode))) {
-        setCodeStep({ sentTo: data.sentTo, needsEmail: data.needsEmail, message: data.message });
+        setCodeStep({ sentTo: data.sentTo, message: data.message });
         return;
       }
       goHome(data.user?.role);
@@ -230,7 +227,6 @@ function SchoolLoginForm({
           {codeStep && !demoAdmin ? (
             <AdminCodeStep
               sentTo={codeStep.sentTo}
-              needsEmail={codeStep.needsEmail}
               notice={codeStep.message}
               onDone={() => goHome("ADMIN")}
             />

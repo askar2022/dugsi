@@ -10,10 +10,8 @@ import {
   markAdminOtpOk,
   maskEmail,
   readOtpPayload,
-  saveAdminSecurityEmail,
 } from "@/lib/admin-otp";
 import { sendAdminLoginCode } from "@/lib/admin-otp-send";
-import { isDeliverableEmail } from "@/lib/parent-account";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthedClient, publicUser } from "@/lib/supabase/request";
 import { adminCodeSchema } from "@/lib/validators";
@@ -47,28 +45,16 @@ export async function POST(request: NextRequest) {
 
   const admin = createAdminClient();
 
-  if (parsed.data.email || parsed.data.resend || !payload.hash) {
+  if (parsed.data.resend || !payload.hash) {
     if (payload.sentAt && Date.now() - payload.sentAt < 45_000 && payload.hash) {
       return error("Wait a moment, then ask for a new code.");
     }
-    const primary = await adminCodeDestination(admin, {
+    const dest = await adminCodeDestination(admin, {
       userId: session.userId,
       authEmail: session.email,
     });
-    let dest = primary || payload.dest;
-    if (parsed.data.email) {
-      const typed = parsed.data.email.trim().toLowerCase();
-      if (!isDeliverableEmail(typed)) {
-        return error("Enter a real email so we can send the 6-digit code.");
-      }
-      if (primary) {
-        dest = typed;
-      } else {
-        dest = await saveAdminSecurityEmail(admin, session.userId, typed);
-      }
-    }
     if (!dest) {
-      return error("Enter the email where we should send your 6-digit code.");
+      return error("This office login has no registered email. The code cannot go to a different inbox.");
     }
     try {
       const response = json({
@@ -90,7 +76,7 @@ export async function POST(request: NextRequest) {
       return error(
         err instanceof Error
           ? err.message
-          : "Could not email the 6-digit code. Enter an email you can open.",
+          : "Could not email the 6-digit code to the registered email.",
       );
     }
   }

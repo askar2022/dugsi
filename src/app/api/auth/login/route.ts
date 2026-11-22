@@ -191,12 +191,11 @@ export async function POST(request: Request) {
       } catch (err) {
         const response = json({
           needsCode: true,
-          needsEmail: true,
           sentTo: maskEmail(dest),
           message:
             err instanceof Error
               ? err.message
-              : "Could not email the 6-digit code. Enter an email you can open.",
+              : "Could not email the 6-digit code to the registered email. Check Spam, then Send a new code.",
         });
         attachAdminOtpCookies(response, {
           userId: profile.id,
@@ -209,20 +208,8 @@ export async function POST(request: Request) {
         return response;
       }
     }
-    const response = json({
-      needsCode: true,
-      needsEmail: true,
-      sentTo: null,
-    });
-    attachAdminOtpCookies(response, {
-      userId: profile.id,
-      dest: "",
-      hash: "",
-      exp: Date.now() + 10 * 60 * 1000,
-      tries: 0,
-      sentAt: 0,
-    });
-    return response;
+    await supabase.auth.signOut();
+    return error("This office login has no registered email. The 6-digit code cannot go to a different inbox.");
   }
 
   const response = json({ token: accessToken, user });

@@ -1,6 +1,6 @@
 import { error, json } from "@/lib/http";
 import { normalizeSchoolCode } from "@/lib/auth";
-import { ensureSchoolLogin } from "@/lib/parent-account";
+import { ensureSchoolLogin, saveSecurityEmail } from "@/lib/parent-account";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { teacherJoinSchema } from "@/lib/validators";
 
@@ -8,7 +8,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = teacherJoinSchema.safeParse(body);
   if (!parsed.success) {
-    return error("Enter your full name, phone, username, and password.");
+    return error("Enter your full name, phone, username, email, and password.");
   }
 
   const slug = normalizeSchoolCode(parsed.data.schoolCode);
@@ -49,6 +49,12 @@ export async function POST(request: Request) {
       return error("The office has not approved this teacher login yet.");
     }
     return error("That username already has a login. Sign in instead.");
+  }
+
+  try {
+    await saveSecurityEmail(login.userId, parsed.data.email);
+  } catch {
+    // Column may not be pasted yet.
   }
 
   const { error: staffError } = await admin.from("Staff").insert({

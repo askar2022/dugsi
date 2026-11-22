@@ -18,7 +18,7 @@ export const registerTenantSchema = z.object({
   schoolCode: schoolCodeSchema,
   adminName: z.string().min(2),
   username: z.string().min(3).optional(),
-  email: z.string().min(3).optional(),
+  email: z.string().email(),
   password: z.string().min(8),
   phone: z.string().optional(),
   city: z.string().optional(),
@@ -58,6 +58,7 @@ export const teacherJoinSchema = z.object({
   schoolCode: z.string().min(2),
   name: z.string().min(2),
   username: z.string().min(3),
+  email: z.string().email(),
   password: z.string().min(8),
   phone: z.string().min(7),
 });
@@ -204,6 +205,5 @@ export const settingsSchema = z.object({
 
 export const adminCodeSchema = z.object({
   code: z.string().regex(/^\d{6}$/).optional(),
-  email: z.string().email().optional(),
   resend: z.boolean().optional(),
 });

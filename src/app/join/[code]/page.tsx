@@ -42,6 +42,7 @@ export default function TeacherJoinPage() {
           name: form.get("name"),
           phone: form.get("phone"),
           username: form.get("username"),
+          email: form.get("email"),
           password: form.get("password"),
         }),
       });
@@ -106,7 +107,7 @@ export default function TeacherJoinPage() {
                   <p className="hero-kicker">Teacher account</p>
                   <h1 className="page-title">{school.name}</h1>
                   <p className="page-copy">
-                    Create your own username and password. The office must approve you before you can sign in. Do not share one login with another teacher.
+                    Create your own username and password. Use an email you can open. Password reset goes there. The office must approve you before you can sign in.
                   </p>
                 </div>
                 <FormField label="Full name">
@@ -117,6 +118,9 @@ export default function TeacherJoinPage() {
                 </FormField>
                 <FormField label="Username">
                   <input className="input" name="username" required minLength={3} autoComplete="username" />
+                </FormField>
+                <FormField label="Email for password reset">
+                  <input className="input" name="email" type="email" required autoComplete="email" />
                 </FormField>
                 <FormField label="Password">
                   <input className="input" name="password" type="password" required minLength={8} autoComplete="new-password" />

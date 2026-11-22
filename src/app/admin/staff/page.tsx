@@ -88,7 +88,7 @@ export default function StaffPage() {
           phone,
           username,
           password: portal ? password : undefined,
-          email: portal === "ADMIN" ? securityEmail : undefined,
+          email: portal ? securityEmail || undefined : undefined,
           title: position,
           classId: teaching ? classId : undefined,
           status,
@@ -177,8 +177,8 @@ export default function StaffPage() {
             <FormField label="Password">
               <input className="input" type="password" required={status === "active"} minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" />
             </FormField>
-            {portal === "ADMIN" ? (
-              <FormField label="Email for 6-digit code">
+            {portal ? (
+              <FormField label={portal === "ADMIN" ? "Email for 6-digit code" : "Email for password reset"}>
                 <input className="input" type="email" required={status === "active"} value={securityEmail} onChange={(event) => setSecurityEmail(event.target.value)} />
               </FormField>
             ) : null}
