@@ -140,6 +140,52 @@ export default function AdminProgressPage() {
     }));
   }, [classId, historyByStudent, latest, query, students, teacherId]);
 
+  const classBoard = useMemo(() => {
+    const groups = new Map<string, {
+      id: string;
+      name: string;
+      teacherName: string;
+      students: typeof rows;
+    }>();
+    for (const row of rows) {
+      const id = row.student.class?.id ?? "none";
+      const teacherName =
+        teacherOf(row.student)?.name
+        ?? classes.find((item) => item.id === row.student.class?.id)?.teacher?.name
+        ?? "No teacher yet";
+      const group = groups.get(id) ?? {
+        id,
+        name: row.student.class?.name ?? "No class yet",
+        teacherName,
+        students: [],
+      };
+      group.students.push(row);
+      groups.set(id, group);
+    }
+    if (!query.trim()) {
+      for (const klass of classes) {
+        if (classId && klass.id !== classId) continue;
+        if (teacherId && klass.teacher?.id !== teacherId) continue;
+        if (groups.has(klass.id)) continue;
+        groups.set(klass.id, {
+          id: klass.id,
+          name: klass.name,
+          teacherName: klass.teacher?.name ?? "No teacher yet",
+          students: [],
+        });
+      }
+    }
+    return [...groups.values()]
+      .map((group) => ({
+        ...group,
+        students: [...group.students].sort((left, right) =>
+          left.student.lastName.localeCompare(right.student.lastName)
+          || left.student.firstName.localeCompare(right.student.firstName),
+        ),
+      }))
+      .sort((left, right) => left.teacherName.localeCompare(right.teacherName) || left.name.localeCompare(right.name));
+  }, [classId, classes, query, rows, teacherId]);
+
   const currentPage = Math.min(page, Math.max(1, Math.ceil(rows.length / PAGE_SIZE) || 1));
   const visible = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const historyStudent = students.find((item) => item.id === historyFor) ?? null;
@@ -176,8 +222,62 @@ export default function AdminProgressPage() {
     <div className="page-stack">
       <PageHeader
         title="Qur’an Progress"
-        description="Each student’s exact learning record: Juz, Surah, ayah range, and update history. How well they are doing is on Performance."
+        description="Office view of each class and teacher, with every student’s latest Juz, Surah, and ayah. How well they are doing is on Performance."
       />
+
+      <section className="card progress-board">
+        <div>
+          <h2 className="progress-board-title">Class and teacher progress</h2>
+          <p className="page-copy" style={{ margin: "0.35rem 0 0" }}>
+            {classBoard.length === 0
+              ? "No classes to show yet."
+              : `${rows.length} students · ${classBoard.length} ${classBoard.length === 1 ? "class" : "classes"}. Each line is that child’s latest Juz, Surah, and ayah.`}
+          </p>
+        </div>
+        {classBoard.length === 0 ? (
+          <p className="page-copy">Teachers save Qur’an records from Record Progress. Classes appear here after students are placed.</p>
+        ) : (
+          <div className="progress-board-grid">
+            {classBoard.map((klass) => (
+              <article key={klass.id} className="progress-board-class">
+                <p className="perf-kicker">{klass.teacherName}</p>
+                <h3 className="progress-board-class-title">{klass.name}</h3>
+                <p className="record-meta">
+                  {klass.students.length === 0
+                    ? "No students yet"
+                    : `${klass.students.length} ${klass.students.length === 1 ? "student" : "students"}`}
+                </p>
+                {klass.students.length === 0 ? null : (
+                  <ul className="progress-board-list">
+                    {klass.students.map((row) => (
+                      <li key={row.student.id}>
+                        <button
+                          type="button"
+                          className="progress-board-student"
+                          onClick={() => setHistoryFor(row.student.id)}
+                        >
+                          <span className="progress-board-name">
+                            {row.student.firstName} {row.student.lastName}
+                          </span>
+                          {row.record ? (
+                            <span className="progress-board-place">
+                              <span>Juz {row.record.juz ?? "—"}</span>
+                              <span>Surah {row.record.surah}</span>
+                              <span>Ayah {ayahRange(row.record)}</span>
+                            </span>
+                          ) : (
+                            <span className="progress-board-empty">No Juz, Surah, or ayah yet</span>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
 
       <section className="card progress-filters">
         <input
