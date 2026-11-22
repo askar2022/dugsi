@@ -1799,6 +1799,135 @@ body:has(.teacher-dock) .site-footer {
   font-weight: 600;
 }
 
+.subject-panel {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.15rem 1.2rem 1.25rem;
+}
+
+.subject-offer-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.subject-offer {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.95rem;
+  background: white;
+  text-align: left;
+  cursor: pointer;
+}
+
+.subject-offer.is-on {
+  border-color: var(--green);
+  background: var(--cream);
+}
+
+.subject-offer-name {
+  font-weight: 700;
+  color: var(--green);
+}
+
+.subject-offer-copy {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.subject-class-pick {
+  display: grid;
+  gap: 0.4rem;
+  color: var(--green);
+  font-weight: 700;
+}
+
+.subject-assign,
+.subject-quran {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.subject-quran {
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 0.95rem;
+  background: var(--cream);
+}
+
+.subject-assign-row {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.subject-assign-row span {
+  display: grid;
+  gap: 0.15rem;
+  color: var(--green);
+  font-weight: 700;
+}
+
+.subject-assign-row small {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.subject-assign-row.is-part {
+  padding-left: 0.2rem;
+}
+
+.subject-class-grid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.subject-class-card {
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.95rem;
+  background: var(--cream);
+}
+
+.subject-class-card.is-open {
+  border-color: var(--green);
+  background: white;
+}
+
+.subject-class-pick-btn {
+  display: grid;
+  gap: 0.1rem;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.subject-class-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.subject-class-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.subject-class-list strong {
+  color: var(--green);
+  font-weight: 700;
+}
+
 .attendance-row {
   padding: 1rem 1.1rem;
 }
@@ -2813,6 +2942,16 @@ body:has(.teacher-dock) .site-footer {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .subject-offer-list,
+  .subject-class-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .subject-assign-row {
+    grid-template-columns: minmax(0, 1.1fr) minmax(12rem, 0.9fr);
+    align-items: center;
+  }
+
   .progress-desktop .mark-group {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -3105,5 +3244,9 @@ button.school-chart-link {
 @media (min-width: 1100px) {
   .school-graphics.is-four {
     grid-template-columns: 1fr 1fr 1fr 1fr;
+  }
+
+  .subject-class-grid {
+    grid-template-columns: 1fr 1fr 1fr;
   }
 }

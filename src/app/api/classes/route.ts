@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { isAssessmentClass } from "@/lib/assessment-class";
 import { assistantIdFromRoom, roomForAssistant } from "@/lib/class-schedule";
-import { ApiError, handleApiError } from "@/lib/guard";
+import { ApiError, handleApiError, teacherAssignedClassIds } from "@/lib/guard";
 import { json } from "@/lib/http";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
@@ -16,7 +16,11 @@ export async function GET(request: NextRequest) {
       .select("*, teacher:User!teacherId(id, name, email), students:Student(id)")
       .eq("tenantId", session.tenantId)
       .order("name");
-    if (session.role === "TEACHER") query = query.eq("teacherId", session.userId);
+    if (session.role === "TEACHER") {
+      const assigned = await teacherAssignedClassIds(supabase, session);
+      if (!assigned?.length) return json({ classes: [] });
+      query = query.in("id", assigned);
+    }
     const { data: classes, error } = await query;
     throwIfError(error, "Could not load classes.");
     const visible = (classes ?? []).filter((item) => {
