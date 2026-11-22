@@ -112,6 +112,11 @@ export function adminLoginCodeEmail(input: {
       "It expires in 10 minutes. Do not share it.",
       "Teachers and parents do not use this code.",
     ].join("\n"),
+    html: [
+      `<p>${greeting(input.name)}</p>`,
+      `<p>Your admin sign-in code is <strong style="font-size:28px;letter-spacing:0.18em">${input.code}</strong>.</p>`,
+      "<p>It expires in 10 minutes. Do not share it. Teachers and parents do not use this code.</p>",
+    ].join(""),
   };
 }
 

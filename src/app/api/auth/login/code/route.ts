@@ -64,21 +64,29 @@ export async function POST(request: NextRequest) {
     if (!dest) {
       return error("Enter the email where we should send your 6-digit code.");
     }
-    const response = json({
-      needsCode: true,
-      needsEmail: false,
-      sentTo: maskEmail(dest),
-    });
-    await sendAdminLoginCode({
-      response,
-      userId: session.userId,
-      dest,
-      name: session.name,
-      schoolName: session.tenantName ?? "OurDugsi",
-      tenantId: session.tenantId,
-      tries: payload.tries,
-    });
-    return response;
+    try {
+      const response = json({
+        needsCode: true,
+        needsEmail: false,
+        sentTo: maskEmail(dest),
+      });
+      await sendAdminLoginCode({
+        response,
+        userId: session.userId,
+        dest,
+        name: session.name,
+        schoolName: session.tenantName ?? "OurDugsi",
+        tenantId: session.tenantId,
+        tries: payload.tries,
+      });
+      return response;
+    } catch (err) {
+      return error(
+        err instanceof Error
+          ? err.message
+          : "Could not email the 6-digit code. Enter an email you can open.",
+      );
+    }
   }
 
   const code = parsed.data.code ?? "";

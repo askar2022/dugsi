@@ -5,10 +5,12 @@ import { FormEvent, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
 import { PublicHeader } from "@/components/PublicHeader";
 import { api } from "@/lib/api";
+import { normalizeSchoolCode } from "@/lib/auth";
 
 export default function RegisterPage() {
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
+  const [schoolSlug, setSchoolSlug] = useState("");
   const [pending, setPending] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -17,7 +19,7 @@ export default function RegisterPage() {
     setError("");
     const form = new FormData(event.currentTarget);
     try {
-      const data = await api<{ message?: string }>("/api/tenants/register", {
+      const data = await api<{ message?: string; tenant?: { slug?: string } }>("/api/tenants/register", {
         method: "POST",
         body: JSON.stringify({
           dugsiName: form.get("dugsiName"),
@@ -30,6 +32,7 @@ export default function RegisterPage() {
           city: form.get("city"),
         }),
       });
+      setSchoolSlug(normalizeSchoolCode(String(data.tenant?.slug ?? form.get("schoolCode") ?? "")));
       setDone(data.message || "Your dugsi is waiting for OurDugsi to approve it.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not register this dugsi.");
@@ -47,8 +50,12 @@ export default function RegisterPage() {
           <p className="text-xs uppercase tracking-[0.2em] text-gold">Waiting for approval</p>
           <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">Request received</h1>
           <p className="page-copy">{done}</p>
-          <p className="page-copy">The super admin will approve this dugsi. After that, sign in with the admin username and password you chose.</p>
-          <Link className="btn btn-primary" href="/login">Back to sign in</Link>
+          <p className="page-copy">
+            This created the office login only. After approval, sign in on Office. Parent and Teacher are different doors and need their own usernames.
+          </p>
+          <Link className="btn btn-primary" href={schoolSlug ? `/${schoolSlug}/admin` : "/signin"}>
+            Open office sign in
+          </Link>
         </div>
       ) : (
       <form onSubmit={onSubmit} className="card mx-auto w-full max-w-xl space-y-4 p-6">
@@ -56,7 +63,7 @@ export default function RegisterPage() {
           <p className="text-xs uppercase tracking-[0.2em] text-gold">New school</p>
           <h1 className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl text-green">Register a dugsi</h1>
           <p className="mt-2 text-sm text-muted">
-            Create the school on OurDugsi. A super admin must approve it before the office can sign in. Each admin uses their own username and password.
+            Create the school on OurDugsi. This creates the office login only. A super admin must approve it before the office can sign in. Teachers and parents each create their own username later.
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -90,7 +97,8 @@ export default function RegisterPage() {
           {pending ? "Sending request..." : "Ask to open this school"}
         </button>
         <p className="text-sm text-muted">
-          Already approved? <Link className="text-green underline" href="/login">Sign in</Link>
+          Already approved? Open your school page, then <span className="text-green">Office</span>.{" "}
+          <Link className="text-green underline" href="/signin">School sign in</Link>
         </p>
       </form>
       )}

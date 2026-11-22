@@ -1,6 +1,6 @@
 import { applyCors, error, json } from "@/lib/http";
 import { normalizeSchoolCode } from "@/lib/auth";
-import { sendPlainEmail, sendTenantEmail } from "@/lib/email";
+import { assertEmailDelivered, sendPlainEmail, sendTenantEmail } from "@/lib/email";
 import { passwordResetEmail } from "@/lib/email-messages";
 import { getAppUrl } from "@/lib/env";
 import { isDeliverableEmail, resetEmailDestination, resolveSchoolLoginEmail } from "@/lib/parent-account";
@@ -37,18 +37,21 @@ async function sendResetLink(input: {
     name: input.name,
     resetLink,
   });
-  if (input.tenantId) {
-    await sendTenantEmail({
-      tenantId: input.tenantId,
-      toEmail: input.dest,
-      subject: copy.subject,
-      body: copy.body,
-      event: "password_reset",
-    });
-  } else {
-    await sendPlainEmail({ toEmail: input.dest, subject: copy.subject, body: copy.body });
+  try {
+    const delivery = input.tenantId
+      ? await sendTenantEmail({
+          tenantId: input.tenantId,
+          toEmail: input.dest,
+          subject: copy.subject,
+          body: copy.body,
+          event: "password_reset",
+        })
+      : await sendPlainEmail({ toEmail: input.dest, subject: copy.subject, body: copy.body });
+    assertEmailDelivered(delivery);
+  } catch {
+    return error("Could not email a reset link. Check Spam, or use a Gmail address on file.");
   }
-  return json({ ok: true, emailed: true, message: "Check your email for a reset link." });
+  return json({ ok: true, emailed: true, message: "Check Inbox and Spam for a reset link. That is not the 6-digit office code." });
 }
 
 export async function POST(request: Request) {

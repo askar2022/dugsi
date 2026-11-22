@@ -935,6 +935,10 @@ body:has(.teacher-dock) .site-footer {
   .login-choose-grid {
     grid-template-columns: 1fr 1fr;
   }
+
+  .login-choose-grid.three {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
 }
 
 .hero-art {

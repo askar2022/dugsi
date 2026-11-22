@@ -7,15 +7,20 @@ import { api } from "@/lib/api";
 export function AdminCodeStep({
   sentTo,
   needsEmail,
+  notice,
   onDone,
 }: {
   sentTo?: string | null;
   needsEmail?: boolean;
+  notice?: string | null;
   onDone: () => void;
 }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState(
-    sentTo ? `We sent a 6-digit code to ${sentTo}.` : "Enter the email where we should send your 6-digit code.",
+    notice ||
+      (sentTo
+        ? `We sent a 6-digit code to ${sentTo}. Check Inbox and Spam. It is from Dugsi.`
+        : "Enter an email you can open. We will send a 6-digit code there."),
   );
   const [askEmail, setAskEmail] = useState(Boolean(needsEmail));
   const [pending, setPending] = useState(false);
@@ -32,7 +37,11 @@ export function AdminCodeStep({
           body: JSON.stringify({ email: form.get("securityEmail") }),
         });
         setAskEmail(false);
-        setMessage(data.sentTo ? `We sent a 6-digit code to ${data.sentTo}.` : "Enter the 6-digit code.");
+        setMessage(
+          data.sentTo
+            ? `We sent a 6-digit code to ${data.sentTo}. Check Inbox and Spam. It is from Dugsi.`
+            : "Enter the 6-digit code.",
+        );
         return;
       }
       await api("/api/auth/login/code", {
@@ -57,7 +66,11 @@ export function AdminCodeStep({
         method: "POST",
         body: JSON.stringify({ resend: true }),
       });
-      setMessage(data.sentTo ? `We sent a new 6-digit code to ${data.sentTo}.` : "A new code was sent.");
+      setMessage(
+        data.sentTo
+          ? `We sent a new 6-digit code to ${data.sentTo}. Check Inbox and Spam. It is from Dugsi.`
+          : "A new code was sent.",
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send a new code.");
     } finally {
@@ -101,7 +114,7 @@ export function AdminCodeStep({
             onClick={() => {
               setAskEmail(true);
               setError("");
-              setMessage("Enter a real email you can open. admin@noor.dugsi cannot receive mail.");
+              setMessage("Use Gmail or another inbox you can open now. Then check Inbox and Spam.");
             }}
           >
             Send the code to a different email
