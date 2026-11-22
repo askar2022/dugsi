@@ -62,7 +62,16 @@ export async function teacherAssignedClassIds(
   if (error) {
     throw new ApiError("Could not load assigned classes.");
   }
-  return (data ?? []).map((item) => item.id);
+  const ids = new Set((data ?? []).map((item) => item.id));
+  let subjects = admin.from("ClassSubjectTeacher").select("classId").eq("teacherId", session.userId);
+  if (session.tenantId) subjects = subjects.eq("tenantId", session.tenantId);
+  const assigned = await subjects;
+  if (!assigned.error) {
+    for (const row of assigned.data ?? []) {
+      if (row.classId) ids.add(row.classId);
+    }
+  }
+  return [...ids];
 }
 
 export async function getTenantClass(request: NextRequest, classId: string) {
@@ -76,7 +85,10 @@ export async function getTenantClass(request: NextRequest, classId: string) {
     throw new ApiError("Class not found in this dugsi.", 404);
   }
   if (session.role === "TEACHER" && schoolClass.teacherId !== session.userId) {
-    throw new ApiError("You can only manage your own class.", 403);
+    const assigned = await teacherAssignedClassIds(supabase, session);
+    if (!assigned?.includes(schoolClass.id)) {
+      throw new ApiError("You can only manage your own class.", 403);
+    }
   }
   return { schoolClass, session, supabase };
 }

@@ -101,6 +101,20 @@ export const classSchema = z.object({
   assistantId: z.string().optional(),
 });
 
+export const offeredSubjectsSchema = z.object({
+  subjectKeys: z.array(z.string().min(1)),
+});
+
+export const subjectAssignmentsSchema = z.object({
+  classId: z.string().min(1),
+  assignments: z.array(
+    z.object({
+      subjectKey: z.string().min(1),
+      teacherId: z.string().nullable().optional(),
+    }),
+  ),
+});
+
 export const attendanceSchema = z.object({
   classId: z.string(),
   date: z.string(),
