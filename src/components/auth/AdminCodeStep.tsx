@@ -114,7 +114,7 @@ export function AdminCodeStep({
             onClick={() => {
               setAskEmail(true);
               setError("");
-              setMessage("Use Gmail or another inbox you can open now. Then check Inbox and Spam.");
+              setMessage("This one code can go to another inbox. Next sign-in still emails your account first.");
             }}
           >
             Send the code to a different email

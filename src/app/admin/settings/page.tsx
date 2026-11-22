@@ -146,9 +146,12 @@ export default function SettingsPage() {
         <FormField label="Phone"><input className="input" name="phone" defaultValue={tenant.phone ?? ""} /></FormField>
         <FormField label="Address"><input className="input" name="address" defaultValue={tenant.address ?? ""} /></FormField>
         <FormField label="City"><input className="input" name="city" defaultValue={tenant.city ?? ""} /></FormField>
-        <FormField label="Email for your 6-digit admin code">
+        <FormField label="Backup email if your account email cannot receive mail">
           <input className="input" type="email" value={securityEmail} onChange={(event) => setSecurityEmail(event.target.value)} />
         </FormField>
+        <p className="text-sm text-muted">
+          The 6-digit office code goes to your account email first. A backup is used only if that account cannot receive mail.
+        </p>
         <FormField label="Welcome note">
           <textarea className="input min-h-32" name="welcomeNote" defaultValue={tenant.welcomeNote ?? ""} />
         </FormField>
