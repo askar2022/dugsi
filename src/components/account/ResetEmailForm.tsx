@@ -27,7 +27,7 @@ export function ResetEmailForm() {
         body: JSON.stringify({ email }),
       });
       setEmail(data.email);
-      setMessage("We will send password reset links to this email.");
+      setMessage("Saved. Reset links still go to your account email first if that inbox can receive mail.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save that email.");
     } finally {
@@ -40,7 +40,7 @@ export function ResetEmailForm() {
       <div>
         <h2 className="page-title" style={{ fontSize: "1.5rem" }}>Email if you forget your password</h2>
         <p className="page-copy">
-          If you forget your password, click Reset password on the parent sign-in page. We email a link here. This is not your username.
+          Reset links go to your account email first. Use a backup here only if that account cannot receive mail. This is not your username.
         </p>
       </div>
       <FormField label="Email for password reset">

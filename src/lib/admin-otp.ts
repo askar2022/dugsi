@@ -1,6 +1,6 @@
 import { createHmac, randomInt, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
-import { isDeliverableEmail } from "@/lib/parent-account";
+import { isDeliverableEmail, primaryMailDestination } from "@/lib/parent-account";
 import { getSupabaseServiceRoleKey } from "@/lib/supabase/config";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -118,12 +118,10 @@ export async function adminCodeDestination(
   const user =
     first.data ??
     (await admin.from("User").select("email").eq("id", input.userId).maybeSingle()).data;
-  const securityEmail = user && "securityEmail" in user ? String(user.securityEmail ?? "") : "";
-  if (input.authEmail && isDeliverableEmail(input.authEmail)) return input.authEmail;
-  if (user?.email && isDeliverableEmail(user.email)) return user.email;
-  if (securityEmail && isDeliverableEmail(securityEmail)) return securityEmail;
-  if (input.tenantEmail && isDeliverableEmail(input.tenantEmail)) return input.tenantEmail;
-  return null;
+  return primaryMailDestination(user, {
+    authEmail: input.authEmail,
+    tenantEmail: input.tenantEmail,
+  });
 }
 
 export async function saveAdminSecurityEmail(admin: SupabaseClient, userId: string, email: string) {

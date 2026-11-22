@@ -79,11 +79,19 @@ export function isDeliverableEmail(email: string) {
   return value.includes("@") && !value.endsWith(".dugsi");
 }
 
-export function resetEmailDestination(user?: { email?: string | null; securityEmail?: string | null } | null) {
-  if (user?.email && isDeliverableEmail(user.email)) return user.email;
-  const security = String(user?.securityEmail ?? "").trim().toLowerCase();
-  if (security && isDeliverableEmail(security)) return security;
+export function primaryMailDestination(
+  user?: { email?: string | null; securityEmail?: string | null } | null,
+  extra?: { authEmail?: string | null; tenantEmail?: string | null },
+) {
+  for (const raw of [extra?.authEmail, user?.email, user?.securityEmail, extra?.tenantEmail]) {
+    const value = String(raw ?? "").trim().toLowerCase();
+    if (value && isDeliverableEmail(value)) return value;
+  }
   return null;
+}
+
+export function resetEmailDestination(user?: { email?: string | null; securityEmail?: string | null } | null) {
+  return primaryMailDestination(user);
 }
 
 export async function saveSecurityEmail(userId: string, email: string) {
