@@ -2913,3 +2913,186 @@ body:has(.teacher-dock) .site-footer {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
+
+.school-graphics {
+  display: grid;
+  gap: 1rem;
+}
+
+.school-chart-card {
+  padding: 1.1rem 1.15rem 1.2rem;
+}
+
+.school-chart-title {
+  margin: 0;
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.2rem;
+  color: var(--green);
+}
+
+.school-chart-empty {
+  margin: 1rem 0 0;
+  color: var(--muted);
+}
+
+.school-donut-wrap {
+  position: relative;
+  width: 10.5rem;
+  height: 10.5rem;
+  margin: 1rem auto 0;
+}
+
+.school-donut {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.school-donut-track,
+.school-donut circle {
+  fill: none;
+  stroke-width: 6;
+}
+
+.school-donut-track {
+  stroke: var(--cream-deep);
+}
+
+.school-donut-center {
+  position: absolute;
+  inset: 22%;
+  display: grid;
+  place-content: center;
+  text-align: center;
+}
+
+.school-donut-center p {
+  margin: 0;
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.45rem;
+  color: var(--green);
+}
+
+.school-donut-center span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.school-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 1rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.school-chart-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.school-chart-swatch {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  background: var(--cream-deep);
+}
+
+.school-chart-swatch.is-paid {
+  background: var(--paid);
+}
+
+.school-chart-swatch.is-due {
+  background: var(--due);
+}
+
+.school-chart-swatch.is-late {
+  background: var(--late);
+}
+
+.school-chart-swatch.is-gold {
+  background: var(--gold);
+}
+
+.school-chart-swatch.is-muted {
+  background: var(--cream-deep);
+  border: 1px solid var(--line);
+}
+
+.school-chart-link {
+  display: inline-block;
+  margin-top: 0.85rem;
+  color: var(--green);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.school-bars-card {
+  grid-column: 1 / -1;
+}
+
+.school-bars {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.55rem;
+  align-items: end;
+  height: 11rem;
+  margin-top: 1rem;
+  padding-top: 0.4rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.school-bar-group {
+  display: grid;
+  gap: 0.4rem;
+  height: 100%;
+}
+
+.school-bar-pair {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.22rem;
+  height: 100%;
+}
+
+.school-bar {
+  width: 0.7rem;
+  min-height: 0.2rem;
+  border-radius: 0.25rem 0.25rem 0 0;
+}
+
+.school-bar.is-paid {
+  background: var(--paid);
+}
+
+.school-bar.is-unpaid {
+  background: var(--gold);
+}
+
+.school-bar-group p {
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+@media (min-width: 800px) {
+  .school-graphics {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .school-graphics.is-four {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1100px) {
+  .school-graphics.is-four {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+  }
+}

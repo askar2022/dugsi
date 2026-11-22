@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { SchoolBars } from "@/components/charts/SchoolBars";
+import { SchoolDonut } from "@/components/charts/SchoolDonut";
 import { SchoolImage } from "@/components/portal/SchoolImage";
 import { StatusBadge } from "@/components/StatusBadge";
 import { classPlaceLabel, isAssessmentClass, needsClassPlacement } from "@/lib/assessment-class";
@@ -182,6 +184,70 @@ export default function AdminHomePage() {
     () => invoices.filter((item) => item.status === "due" || item.status === "late"),
     [invoices],
   );
+
+  const pictures = useMemo(() => {
+    const recentAttendance = attendance.filter((row) => row.date >= windowStart);
+    const attendanceSlices = [
+      { label: "Present", value: recentAttendance.filter((row) => row.status === "present").length, tone: "paid" as const },
+      { label: "Late", value: recentAttendance.filter((row) => row.status === "late").length, tone: "due" as const },
+      { label: "Absent", value: recentAttendance.filter((row) => row.status === "absent").length, tone: "late" as const },
+    ];
+
+    const homeworkSlices = [
+      { label: "Done", value: 0, tone: "paid" as const },
+      { label: "Needs help", value: 0, tone: "late" as const },
+      { label: "Assigned", value: 0, tone: "gold" as const },
+    ];
+    for (const item of homework) {
+      for (const student of roster) {
+        if (!homeworkAssignedToStudent(item, student)) continue;
+        const status = item.completions?.find((row) => row.studentId === student.id)?.status ?? "assigned";
+        if (status === "done") homeworkSlices[0].value += 1;
+        else if (status === "needs_help") homeworkSlices[1].value += 1;
+        else homeworkSlices[2].value += 1;
+      }
+    }
+
+    const performanceSlices = [
+      { label: "On track", value: 0, tone: "paid" as const },
+      { label: "Needs practice", value: 0, tone: "due" as const },
+      { label: "Needs support", value: 0, tone: "late" as const },
+      { label: "No record", value: 0, tone: "muted" as const },
+    ];
+    for (const student of roster) {
+      const latest = latestProgress(progress, student.id);
+      if (!latest) performanceSlices[3].value += 1;
+      else {
+        const status = normalizeProgressStatus(latest.status);
+        if (status === "on_track") performanceSlices[0].value += 1;
+        else if (status === "needs_practice") performanceSlices[1].value += 1;
+        else performanceSlices[2].value += 1;
+      }
+    }
+
+    const months: Array<{ key: string; label: string; paid: number; unpaid: number }> = [];
+    const start = new Date(`${asOf}T12:00:00`);
+    for (let i = 5; i >= 0; i -= 1) {
+      const date = new Date(start.getFullYear(), start.getMonth() - i, 1);
+      months.push({
+        key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`,
+        label: date.toLocaleDateString("en-US", { month: "short" }),
+        paid: 0,
+        unpaid: 0,
+      });
+    }
+    for (const invoice of invoices) {
+      const stamp = invoice.status === "paid" ? invoice.paidDate || invoice.dueDate : invoice.dueDate;
+      const key = String(stamp ?? "").slice(0, 7);
+      const month = months.find((item) => item.key === key);
+      if (!month) continue;
+      const amount = Number(invoice.amount || 0);
+      if (invoice.status === "paid") month.paid += amount;
+      else month.unpaid += amount;
+    }
+
+    return { attendanceSlices, homeworkSlices, performanceSlices, months };
+  }, [asOf, attendance, homework, invoices, progress, roster, windowStart]);
 
   const glance = useMemo(() => {
     const todayClasses = realClasses.filter((item) => classMeetsOn(item.dayOfWeek, weekday));
@@ -442,6 +508,19 @@ export default function AdminHomePage() {
           </div>
         ) : null}
       </div>
+
+      <section>
+        <h2 className="teacher-panel-title">How the school looks</h2>
+        <p className="record-meta" style={{ marginTop: "0.35rem" }}>
+          Pictures of attendance, homework, Qur’an, and payments. Open a chart to see the list.
+        </p>
+        <div className="school-graphics" style={{ marginTop: "0.85rem" }}>
+          <SchoolDonut title="Attendance" slices={pictures.attendanceSlices} href="/admin/attendance" />
+          <SchoolDonut title="Homework" slices={pictures.homeworkSlices} href="/admin/performance" />
+          <SchoolDonut title="Qur’an" slices={pictures.performanceSlices} href="/admin/progress" />
+          <SchoolBars title="Payments" groups={pictures.months} />
+        </div>
+      </section>
 
       <section>
         <h2 className="teacher-panel-title">Today at a Glance</h2>
