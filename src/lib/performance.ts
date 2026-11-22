@@ -115,3 +115,14 @@ export function homeworkAssignedToStudent(
 export function completionFollowedUp(status?: string | null) {
   return status === "done" || status === "needs_help" || status === "not_finished";
 }
+
+export function homeworkPicture(status?: string | null) {
+  if (status === "done") return "done";
+  if (status === "needs_help") return "needsHelp";
+  return "waiting";
+}
+
+export function attendancePicture(status?: string | null) {
+  if (status === "present" || status === "late" || status === "absent") return status;
+  return null;
+}

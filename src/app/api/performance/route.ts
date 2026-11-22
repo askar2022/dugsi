@@ -4,11 +4,13 @@ import { ApiError, handleApiError, teacherAssignedClassIds } from "@/lib/guard";
 import { json } from "@/lib/http";
 import {
   arrivalScore,
+  attendancePicture,
   attendanceScore,
   average,
   completionFollowedUp,
   homeworkAssignedToStudent,
   homeworkFollowUp,
+  homeworkPicture,
   inWindow,
   percent,
   quranOwnGoalScore,
@@ -16,6 +18,8 @@ import {
   weekRanges,
   windowRange,
 } from "@/lib/performance";
+import { sortProgress } from "@/lib/progress-compare";
+import { normalizeProgressStatus } from "@/lib/progress-status";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuthedTenant, throwIfError } from "@/lib/supabase/request";
 
@@ -103,6 +107,47 @@ export async function GET(request: NextRequest) {
     const homework = homeworkRes.data ?? [];
     const parentNames = new Map((parentsRes.data ?? []).map((item) => [item.id, item.name]));
 
+    function latestQuranTone(studentId: string) {
+      const latest = sortProgress(progressByStudent.get(studentId) ?? [])[0];
+      if (!latest?.status) return null;
+      return normalizeProgressStatus(latest.status);
+    }
+
+    function quranCounts(kids: StudentRow[]) {
+      const counts = { on_track: 0, needs_practice: 0, contact_parent: 0, none: 0 };
+      for (const student of kids) {
+        const tone = latestQuranTone(student.id);
+        if (!tone) counts.none += 1;
+        else counts[tone] += 1;
+      }
+      return counts;
+    }
+
+    function homeworkCounts(kids: StudentRow[], classId?: string) {
+      const counts = { done: 0, needsHelp: 0, waiting: 0 };
+      for (const student of kids) {
+        for (const item of homework) {
+          if (classId && item.classId !== classId) continue;
+          if (!homeworkAssignedToStudent(item, student)) continue;
+          const status = item.completions?.find((row) => row.studentId === student.id)?.status ?? "assigned";
+          counts[homeworkPicture(status)] += 1;
+        }
+      }
+      return counts;
+    }
+
+    function attendanceCounts(kids: StudentRow[], classId?: string) {
+      const counts = { present: 0, late: 0, absent: 0 };
+      for (const student of kids) {
+        for (const mark of attendanceByStudent.get(student.id) ?? []) {
+          if (classId && mark.classId !== classId) continue;
+          const bucket = attendancePicture(mark.status);
+          if (bucket) counts[bucket] += 1;
+        }
+      }
+      return counts;
+    }
+
     function studentScore(student: StudentRow, rangeStart = start, rangeEnd = end, requiredQuran = false) {
       const quran = quranOwnGoalScore(progressByStudent.get(student.id) ?? [], rangeStart, rangeEnd, requiredQuran);
       const marks = (attendanceByStudent.get(student.id) ?? []).filter((row) => inWindow(row.date, rangeStart, rangeEnd));
@@ -137,15 +182,18 @@ export async function GET(request: NextRequest) {
 
     const classCards = visibleClasses.map((klass) => {
       const kids = scored.filter((row) => row.student.classId === klass.id);
-      const rated = kids.filter((row) => row.classScore != null);
-      const onTrack = rated.filter((row) => (row.classScore ?? 0) >= 80).length;
-      const support = rated.filter((row) => (row.classScore ?? 0) < 60).length;
-      const attention = Math.max(0, kids.length - onTrack - support);
+      const roster = kids.map((row) => row.student);
+      const quran = quranCounts(roster);
+      const onTrack = quran.on_track;
+      const attention = quran.needs_practice;
+      const support = quran.contact_parent;
       const onTrackPct = percent(onTrack, kids.length);
       const needsSupportPct = percent(support, kids.length);
       const score = onTrackPct;
       const homeworkAssigned = kids.reduce((sum, row) => sum + row.work.assigned, 0);
       const homeworkReviewed = kids.reduce((sum, row) => sum + row.work.reviewed, 0);
+      const homeworkPictureCounts = homeworkCounts(roster, klass.id);
+      const attendancePictureCounts = attendanceCounts(roster, klass.id);
       const attendanceDays = new Set(
         kids.flatMap((row) => (attendanceByStudent.get(row.student.id) ?? []).filter((mark) => mark.classId === klass.id).map((mark) => mark.date)),
       ).size;
@@ -176,7 +224,9 @@ export async function GET(request: NextRequest) {
         rating: ratingFromScore(score),
         homeworkAssigned,
         homeworkReviewed,
+        homework: homeworkPictureCounts,
         attendanceDays,
+        attendance: attendancePictureCounts,
         trend,
       };
     }).sort((a, b) => (a.score ?? 101) - (b.score ?? 101));
@@ -208,11 +258,15 @@ export async function GET(request: NextRequest) {
         };
       }).sort((a, b) => (a.score ?? 101) - (b.score ?? 101));
 
-    const schoolStudents = classCards.reduce((sum, item) => sum + item.students, 0);
-    const schoolOnTrack = classCards.reduce((sum, item) => sum + item.onTrackCount, 0);
-    const schoolAttention = classCards.reduce((sum, item) => sum + item.attentionCount, 0);
-    const schoolSupport = classCards.reduce((sum, item) => sum + item.supportCount, 0);
+    const schoolRoster = scored.map((row) => row.student);
+    const schoolQuran = quranCounts(schoolRoster);
+    const schoolStudents = schoolRoster.length;
+    const schoolOnTrack = schoolQuran.on_track;
+    const schoolAttention = schoolQuran.needs_practice;
+    const schoolSupport = schoolQuran.contact_parent;
     const schoolScore = percent(schoolOnTrack, schoolStudents);
+    const schoolHomework = homeworkCounts(schoolRoster);
+    const schoolAttendance = attendanceCounts(schoolRoster);
 
     const detailStudents = scored
       .filter((row) => (classId && row.student.classId === classId) || (parentId && row.student.parentId === parentId))
@@ -242,6 +296,8 @@ export async function GET(request: NextRequest) {
         needsSupportPct: percent(schoolSupport, schoolStudents),
         score: schoolScore,
         rating: ratingFromScore(schoolScore),
+        homework: schoolHomework,
+        attendance: schoolAttendance,
       },
       classes: classId ? classCards.filter((item) => item.id === classId) : classCards,
       families: parentId ? familyCards.filter((item) => item.id === parentId) : familyCards,

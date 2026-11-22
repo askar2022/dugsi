@@ -2,6 +2,9 @@ import Link from "next/link";
 import { SchoolDonut } from "@/components/charts/SchoolDonut";
 import { FAMILY_RATING_LABELS, type RatingKey } from "@/lib/performance";
 
+type HomeworkPicture = { done: number; needsHelp: number; waiting: number };
+type AttendancePicture = { present: number; late: number; absent: number };
+
 export type ClassCard = {
   id: string;
   name: string;
@@ -16,7 +19,9 @@ export type ClassCard = {
   rating: RatingKey | "none";
   homeworkAssigned: number;
   homeworkReviewed: number;
+  homework?: HomeworkPicture;
   attendanceDays: number;
+  attendance?: AttendancePicture;
   trend: Array<{ start: string; end: string; onTrackCount?: number; total?: number; onTrackPct: number | null }>;
 };
 
@@ -42,6 +47,8 @@ export type SchoolCard = {
   supportCount: number;
   onTrackPct: number | null;
   rating: RatingKey | "none";
+  homework?: HomeworkPicture;
+  attendance?: AttendancePicture;
 };
 
 function noneCount(item: { students: number; onTrackCount: number; attentionCount: number; supportCount: number }) {
@@ -60,40 +67,37 @@ function quranSlices(item: { students: number; onTrackCount: number; attentionCo
 export function SchoolPerformanceCard({
   item,
   windowLabel,
-  homework,
-  attendance,
 }: {
   item: SchoolCard;
   windowLabel?: string;
-  homework?: { reviewed: number; assigned: number };
-  attendance?: { recorded: number; expected: number };
 }) {
-  const assigned = homework?.assigned ?? 0;
-  const reviewed = homework?.reviewed ?? 0;
-  const recorded = attendance?.recorded ?? 0;
-  const expected = attendance?.expected ?? 0;
+  const homework = item.homework ?? { done: 0, needsHelp: 0, waiting: 0 };
+  const attendance = item.attendance ?? { present: 0, late: 0, absent: 0 };
 
   return (
     <section className="school-graphics">
       {windowLabel ? (
         <p className="record-meta school-bars-card">
-          {item.students} students · {windowLabel}
+          {item.students} students · homework and attendance {windowLabel}
         </p>
       ) : null}
-      <SchoolDonut title="Qur’an" slices={quranSlices(item)} />
+      <SchoolDonut title="Qur’an" slices={quranSlices(item)} href="/admin/progress" />
       <SchoolDonut
         title="Homework"
         slices={[
-          { label: "Reviewed", value: reviewed, tone: "paid" },
-          { label: "Waiting", value: Math.max(0, assigned - reviewed), tone: "gold" },
+          { label: "Done", value: homework.done, tone: "paid" },
+          { label: "Needs help", value: homework.needsHelp, tone: "late" },
+          { label: "Waiting", value: homework.waiting, tone: "gold" },
         ]}
       />
       <SchoolDonut
         title="Attendance"
         slices={[
-          { label: "Recorded", value: recorded, tone: "paid" },
-          { label: "Missing", value: Math.max(0, expected - recorded), tone: "due" },
+          { label: "Present", value: attendance.present, tone: "paid" },
+          { label: "Late", value: attendance.late, tone: "due" },
+          { label: "Absent", value: attendance.absent, tone: "late" },
         ]}
+        href="/admin/attendance"
       />
     </section>
   );

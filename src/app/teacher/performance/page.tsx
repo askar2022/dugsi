@@ -27,7 +27,7 @@ export default function TeacherPerformancePage() {
         {report && report.classes.length === 0 ? (
           <div className="card empty-state">
             <p className="empty-state-title">No class records yet</p>
-            <p className="empty-state-text">Save attendance, homework, and Qur’an progress. Your card uses the last four weeks.</p>
+            <p className="empty-state-text">Save attendance, homework, and Qur’an progress. Your card uses the same Qur’an record as Reports.</p>
           </div>
         ) : null}
       </section>
