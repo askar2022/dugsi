@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { SchoolDonut } from "@/components/charts/SchoolDonut";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { api } from "@/lib/api";
 import { downloadLeadershipPdf } from "@/lib/leadership-pdf";
@@ -14,6 +15,7 @@ type Report = {
   pending: number;
   progress: { on_track: number; needs_practice: number; contact_parent: number; none: number };
   tuition: { paid: number; due: number; late: number };
+  expenses?: { salary: number; rent: number; equipment: number; other: number };
   expenseTotal: number;
 };
 
@@ -162,7 +164,7 @@ export default function ReportsPage() {
     <div className="page-stack report-page">
       <PageHeader
         title="Reports Overview"
-        description="Official school numbers and records. Open Performance for analysis, or Qur’an Progress for each student’s Juz, Surah, and ayah."
+        description="Pictures of enrollment, Qur’an, payments, and spending. Open a chart for the list behind it."
       />
 
       {!report ? (
@@ -172,74 +174,44 @@ export default function ReportsPage() {
         </div>
       ) : (
         <>
-          <section className="card report-section">
-            <div className="report-section-top">
-              <h2 className="report-section-title">Enrollment</h2>
-              <Link href="/admin/enrollment" className="btn btn-primary">View Enrollment Report</Link>
-            </div>
-            <div className="report-metrics">
-              <div className="report-metric">
-                <p className="report-metric-value is-paid">{report.enrolled}</p>
-                <p className="report-metric-label">Enrolled</p>
-              </div>
-              <div className="report-metric">
-                <p className="report-metric-value is-due">{waiting}</p>
-                <p className="report-metric-label">Waiting for Assessment</p>
-              </div>
-            </div>
-          </section>
-
-          <section className="card report-section">
-            <div className="report-section-top">
-              <h2 className="report-section-title">Qur’an Progress</h2>
-              <Link href="/admin/progress" className="btn btn-primary">View Qur’an Report</Link>
-            </div>
-            <div className="report-metrics">
-              <div className="report-metric">
-                <p className="report-metric-value is-paid">{report.progress.on_track}</p>
-                <p className="report-metric-label">On Track</p>
-              </div>
-              <div className="report-metric">
-                <p className="report-metric-value is-due">{report.progress.needs_practice}</p>
-                <p className="report-metric-label">Need Practice</p>
-              </div>
-              <div className="report-metric">
-                <p className="report-metric-value is-late">{report.progress.contact_parent}</p>
-                <p className="report-metric-label">Need Support</p>
-              </div>
-              <div className="report-metric">
-                <p className="report-metric-value is-muted">{report.progress.none}</p>
-                <p className="report-metric-label">Without Progress Records</p>
-              </div>
-            </div>
-            <p className="report-note">
-              These are official counts. Open Performance if you need trends over time.
-            </p>
-          </section>
-
-          <section className="card report-section">
-            <div className="report-section-top">
-              <h2 className="report-section-title">Finance</h2>
-              <Link href="/admin/billing" className="btn btn-primary">View Finance Report</Link>
-            </div>
-            <div className="report-metrics">
-              <div className="report-metric">
-                <p className="report-metric-value is-paid">{money(report.tuition.paid)}</p>
-                <p className="report-metric-label">Paid</p>
-              </div>
-              <div className="report-metric">
-                <p className="report-metric-value is-due">{money(report.tuition.due)}</p>
-                <p className="report-metric-label">Due</p>
-              </div>
-              <div className="report-metric">
-                <p className="report-metric-value is-late">{money(report.tuition.late)}</p>
-                <p className="report-metric-label">Late</p>
-              </div>
-              <div className="report-metric">
-                <p className="report-metric-value">{money(report.expenseTotal)}</p>
-                <p className="report-metric-label">Expenses</p>
-              </div>
-            </div>
+          <section className="school-graphics is-four">
+            <SchoolDonut
+              title="Enrollment"
+              slices={[
+                { label: "Enrolled", value: report.enrolled, tone: "paid" },
+                { label: "Waiting", value: waiting, tone: "due" },
+              ]}
+              href="/admin/enrollment"
+            />
+            <SchoolDonut
+              title="Qur’an"
+              slices={[
+                { label: "On track", value: report.progress.on_track, tone: "paid" },
+                { label: "Needs practice", value: report.progress.needs_practice, tone: "due" },
+                { label: "Needs support", value: report.progress.contact_parent, tone: "late" },
+                { label: "No record", value: report.progress.none, tone: "muted" },
+              ]}
+              href="/admin/progress"
+            />
+            <SchoolDonut
+              title="Payments"
+              slices={[
+                { label: "Paid", value: report.tuition.paid, tone: "paid" },
+                { label: "Due", value: report.tuition.due, tone: "due" },
+                { label: "Late", value: report.tuition.late, tone: "late" },
+              ]}
+              href="/admin/billing"
+            />
+            <SchoolDonut
+              title="Dugsi spending"
+              slices={[
+                { label: "Staff", value: report.expenses?.salary ?? 0, tone: "paid" },
+                { label: "Rent", value: report.expenses?.rent ?? 0, tone: "gold" },
+                { label: "Equipment", value: report.expenses?.equipment ?? 0, tone: "due" },
+                { label: "Other", value: report.expenses?.other ?? 0, tone: "muted" },
+              ]}
+              href="/admin/expenses"
+            />
           </section>
 
           <section className="card report-section">
