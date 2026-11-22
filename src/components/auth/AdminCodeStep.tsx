@@ -6,12 +6,10 @@ import { api } from "@/lib/api";
 
 export function AdminCodeStep({
   sentTo,
-  needsEmail,
   notice,
   onDone,
 }: {
   sentTo?: string | null;
-  needsEmail?: boolean;
   notice?: string | null;
   onDone: () => void;
 }) {
@@ -20,9 +18,8 @@ export function AdminCodeStep({
     notice ||
       (sentTo
         ? `We sent a 6-digit code to ${sentTo}. Check Inbox and Spam. It is from Dugsi.`
-        : "Enter an email you can open. We will send a 6-digit code there."),
+        : "We email the 6-digit code only to the email registered on this office login."),
   );
-  const [askEmail, setAskEmail] = useState(Boolean(needsEmail));
   const [pending, setPending] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -31,28 +28,13 @@ export function AdminCodeStep({
     setError("");
     const form = new FormData(event.currentTarget);
     try {
-      if (askEmail) {
-        const data = await api<{ sentTo?: string | null }>("/api/auth/login/code", {
-          method: "POST",
-          body: JSON.stringify({ email: form.get("securityEmail") }),
-        });
-        setAskEmail(false);
-        setMessage(
-          data.sentTo
-            ? `We sent a 6-digit code to ${data.sentTo}. Check Inbox and Spam. It is from Dugsi.`
-            : "Enter the 6-digit code.",
-        );
-        return;
-      }
       await api("/api/auth/login/code", {
         method: "POST",
         body: JSON.stringify({ code: String(form.get("code") ?? "").replace(/\D/g, "") }),
       });
       onDone();
     } catch (err) {
-      const text = err instanceof Error ? err.message : "Could not check that code.";
-      setError(text);
-      if (/email/i.test(text)) setAskEmail(true);
+      setError(err instanceof Error ? err.message : "Could not check that code.");
     } finally {
       setPending(false);
     }
@@ -69,7 +51,7 @@ export function AdminCodeStep({
       setMessage(
         data.sentTo
           ? `We sent a new 6-digit code to ${data.sentTo}. Check Inbox and Spam. It is from Dugsi.`
-          : "A new code was sent.",
+          : "A new code was sent to the registered email.",
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send a new code.");
@@ -81,46 +63,24 @@ export function AdminCodeStep({
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <p className="text-sm text-muted">{message}</p>
-      {askEmail ? (
-        <FormField label="Email for the 6-digit code">
-          <input className="input" name="securityEmail" type="email" required autoComplete="email" />
-        </FormField>
-      ) : (
-        <FormField label="6-digit code">
-          <input
-            className="input"
-            name="code"
-            inputMode="numeric"
-            pattern="\d{6}"
-            maxLength={6}
-            required
-            autoComplete="one-time-code"
-          />
-        </FormField>
-      )}
+      <FormField label="6-digit code">
+        <input
+          className="input"
+          name="code"
+          inputMode="numeric"
+          pattern="\d{6}"
+          maxLength={6}
+          required
+          autoComplete="one-time-code"
+        />
+      </FormField>
       {error ? <p className="text-sm text-late">{error}</p> : null}
       <button className="btn btn-primary w-full" disabled={pending}>
-        {pending ? "Checking..." : askEmail ? "Send code" : "Continue"}
+        {pending ? "Checking..." : "Continue"}
       </button>
-      {askEmail ? null : (
-        <>
-          <button className="btn btn-ghost w-full" type="button" disabled={pending} onClick={() => void resend()}>
-            Send a new code
-          </button>
-          <button
-            className="btn btn-ghost w-full"
-            type="button"
-            disabled={pending}
-            onClick={() => {
-              setAskEmail(true);
-              setError("");
-              setMessage("This one code can go to another inbox. Next sign-in still emails your account first.");
-            }}
-          >
-            Send the code to a different email
-          </button>
-        </>
-      )}
+      <button className="btn btn-ghost w-full" type="button" disabled={pending} onClick={() => void resend()}>
+        Send a new code
+      </button>
     </form>
   );
 }

@@ -205,6 +205,5 @@ export const settingsSchema = z.object({
 
 export const adminCodeSchema = z.object({
   code: z.string().regex(/^\d{6}$/).optional(),
-  email: z.string().email().optional(),
   resend: z.boolean().optional(),
 });

@@ -49,10 +49,7 @@ export async function PATCH(request: NextRequest) {
     if (!parsed.success) {
       throw new ApiError("Check the school settings and try again.");
     }
-    const { securityEmail, ...tenantPatch } = parsed.data;
-    if (securityEmail) {
-      await supabase.from("User").update({ securityEmail: securityEmail.trim().toLowerCase() }).eq("id", session.userId);
-    }
+    const { securityEmail: _securityEmail, ...tenantPatch } = parsed.data;
     let { data: tenant, error } = await supabase
       .from("Tenant")
       .update(tenantPatch)
