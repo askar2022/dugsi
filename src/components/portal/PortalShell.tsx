@@ -41,6 +41,7 @@ const NAV: Record<string, NavSection[]> = {
         { href: "/admin", label: "Overview", icon: Home },
         { href: "/admin/enrollment", label: "Enrollment", icon: UserPlus },
         { href: "/admin/attendance", label: "Attendance", icon: CalendarDays },
+        { href: "/admin/subjects", label: "Subjects", icon: Library },
       ],
     },
     {
@@ -50,7 +51,6 @@ const NAV: Record<string, NavSection[]> = {
         { href: "/admin/parents", label: "Parents", icon: Contact },
         { href: "/admin/teachers", label: "Teachers", icon: GraduationCap },
         { href: "/admin/classes", label: "Classes", icon: BookOpen },
-        { href: "/admin/subjects", label: "Subjects & Teachers", icon: Library },
         { href: "/admin/staff", label: "Staff", icon: ClipboardList },
       ],
     },
