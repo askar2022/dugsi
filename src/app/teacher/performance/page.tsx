@@ -20,7 +20,7 @@ export default function TeacherPerformancePage() {
         title="Your class"
         description="This is only your class. You will not see other teachers."
       />
-      <section className="perf-grid">
+      <section className="school-graphics">
         {(report?.classes ?? []).map((item) => (
           <ClassPerformanceCard key={item.id} item={item} studentsHref={`/teacher/performance/${item.id}`} />
         ))}

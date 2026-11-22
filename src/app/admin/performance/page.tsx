@@ -33,7 +33,7 @@ export default function AdminPerformancePage() {
     <div className="page-stack">
       <PageHeader
         title="Performance"
-        description="How well students, classes, teachers, and families are doing. On Track, Needs Practice, and Needs Support come from Qur’an progress, attendance, and homework."
+        description="Pictures of Qur’an, homework, and attendance for the last four weeks. Open a class for the list behind it."
       />
 
       {!report || !report.school ? (
@@ -45,6 +45,14 @@ export default function AdminPerformancePage() {
         <SchoolPerformanceCard
           item={report.school}
           windowLabel={`${report.window.start} to ${report.window.end}`}
+          homework={{
+            reviewed: report.classes.reduce((sum, item) => sum + item.homeworkReviewed, 0),
+            assigned: report.classes.reduce((sum, item) => sum + item.homeworkAssigned, 0),
+          }}
+          attendance={{
+            recorded: report.classes.reduce((sum, item) => sum + item.attendanceDays, 0),
+            expected: report.classes.length * 4,
+          }}
         />
       )}
 
@@ -58,7 +66,7 @@ export default function AdminPerformancePage() {
       </div>
 
       {tab === "classes" ? (
-        <section className="perf-grid">
+        <section className="school-graphics">
           {(report?.classes ?? []).map((item) => (
             <ClassPerformanceCard key={item.id} item={item} studentsHref={`/admin/performance/classes/${item.id}`} />
           ))}
@@ -70,7 +78,7 @@ export default function AdminPerformancePage() {
           ) : null}
         </section>
       ) : (
-        <section className="perf-grid">
+        <section className="school-graphics">
           {(report?.families ?? []).map((item) => (
             <FamilyPerformanceCard key={item.id} item={item} href={`/admin/performance/families/${item.id}`} />
           ))}

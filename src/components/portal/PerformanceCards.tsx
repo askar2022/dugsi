@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { StatusBadge } from "@/components/StatusBadge";
+import { SchoolDonut } from "@/components/charts/SchoolDonut";
 import { FAMILY_RATING_LABELS, type RatingKey } from "@/lib/performance";
 
 export type ClassCard = {
@@ -44,65 +44,58 @@ export type SchoolCard = {
   rating: RatingKey | "none";
 };
 
-function badge(rating: RatingKey | "none") {
-  return rating === "none" ? "needs_attention" : rating;
+function noneCount(item: { students: number; onTrackCount: number; attentionCount: number; supportCount: number }) {
+  return Math.max(0, item.students - item.onTrackCount - item.attentionCount - item.supportCount);
 }
 
-function of(part: number, whole: number) {
-  return `${part} of ${whole}`;
-}
-
-function Bar({ value, max, tone }: { value: number; max: number; tone: "paid" | "due" | "late" }) {
-  const width = max ? Math.min(100, Math.round((value / max) * 100)) : 0;
-  return (
-    <div className="perf-bar" aria-hidden="true">
-      <span className={`perf-bar-fill is-${tone}`} style={{ width: `${width}%` }} />
-    </div>
-  );
-}
-
-function Stat({
-  value,
-  label,
-  tone,
-}: {
-  value: string;
-  label: string;
-  tone: "paid" | "due" | "late" | "muted";
-}) {
-  return (
-    <div className={`perf-stat is-${tone}`}>
-      <p className="perf-stat-value">{value}</p>
-      <p className="perf-stat-label">{label}</p>
-    </div>
-  );
+function quranSlices(item: { students: number; onTrackCount: number; attentionCount: number; supportCount: number }) {
+  return [
+    { label: "On track", value: item.onTrackCount, tone: "paid" as const },
+    { label: "Needs practice", value: item.attentionCount, tone: "due" as const },
+    { label: "Needs support", value: item.supportCount, tone: "late" as const },
+    { label: "No record", value: noneCount(item), tone: "muted" as const },
+  ];
 }
 
 export function SchoolPerformanceCard({
   item,
   windowLabel,
+  homework,
+  attendance,
 }: {
   item: SchoolCard;
   windowLabel?: string;
+  homework?: { reviewed: number; assigned: number };
+  attendance?: { recorded: number; expected: number };
 }) {
+  const assigned = homework?.assigned ?? 0;
+  const reviewed = homework?.reviewed ?? 0;
+  const recorded = attendance?.recorded ?? 0;
+  const expected = attendance?.expected ?? 0;
+
   return (
-    <article className="card perf-card">
-      <div className="perf-card-top">
-        <div>
-          <p className="perf-kicker">Last four weeks</p>
-          <h2 className="perf-title">Whole dugsi</h2>
-          <p className="perf-sub">{item.students} students{windowLabel ? ` · ${windowLabel}` : ""}</p>
-        </div>
-        <StatusBadge status={badge(item.rating)} />
-      </div>
-      <p className="perf-lead">{of(item.onTrackCount, item.students)} on track</p>
-      <Bar value={item.onTrackCount} max={item.students} tone="paid" />
-      <div className="perf-stats">
-        <Stat value={of(item.onTrackCount, item.students)} label="On Track" tone="paid" />
-        <Stat value={of(item.attentionCount, item.students)} label="Needs Practice" tone="due" />
-        <Stat value={of(item.supportCount, item.students)} label="Needs Support" tone="late" />
-      </div>
-    </article>
+    <section className="school-graphics">
+      {windowLabel ? (
+        <p className="record-meta school-bars-card">
+          {item.students} students · {windowLabel}
+        </p>
+      ) : null}
+      <SchoolDonut title="Qur’an" slices={quranSlices(item)} />
+      <SchoolDonut
+        title="Homework"
+        slices={[
+          { label: "Reviewed", value: reviewed, tone: "paid" },
+          { label: "Waiting", value: Math.max(0, assigned - reviewed), tone: "gold" },
+        ]}
+      />
+      <SchoolDonut
+        title="Attendance"
+        slices={[
+          { label: "Recorded", value: recorded, tone: "paid" },
+          { label: "Missing", value: Math.max(0, expected - recorded), tone: "due" },
+        ]}
+      />
+    </section>
   );
 }
 
@@ -114,33 +107,14 @@ export function ClassPerformanceCard({
   studentsHref?: string;
 }) {
   return (
-    <article className="card perf-card">
-      <div className="perf-card-top">
-        <div>
-          <p className="perf-kicker">{item.teacherName}</p>
-          <h2 className="perf-title">{item.name}</h2>
-          <p className="perf-sub">{item.students} students</p>
-        </div>
-        <StatusBadge status={badge(item.rating)} />
-      </div>
-      <p className="perf-lead">{of(item.onTrackCount, item.students)} on track</p>
-      <Bar value={item.onTrackCount} max={item.students} tone={item.rating === "support_needed" ? "late" : item.rating === "needs_attention" ? "due" : "paid"} />
-      <div className="perf-stats">
-        <Stat value={of(item.onTrackCount, item.students)} label="On Track" tone="paid" />
-        <Stat value={of(item.attentionCount, item.students)} label="Needs Practice" tone="due" />
-        <Stat value={of(item.supportCount, item.students)} label="Needs Support" tone="late" />
-      </div>
-      <div className="perf-stats">
-        <Stat value={item.homeworkAssigned ? of(item.homeworkReviewed, item.homeworkAssigned) : "—"} label="Homework reviewed" tone="muted" />
-        <Stat value={`${item.attendanceDays} of 4`} label="Days recorded" tone="muted" />
-        <Stat
-          value={item.trend.map((week) => (week.total ? of(week.onTrackCount ?? 0, week.total) : "—")).join(" · ")}
-          label="Weekly on track"
-          tone="muted"
-        />
-      </div>
+    <article className="card school-chart-card">
+      <p className="perf-kicker">{item.teacherName}</p>
+      <h3 className="school-chart-title">{item.name}</h3>
+      <SchoolDonut title={`${item.name} Qur’an`} slices={quranSlices(item)} embed />
       {studentsHref ? (
-        <Link href={studentsHref} className="btn btn-primary perf-card-btn">View Students</Link>
+        <Link href={studentsHref} className="school-chart-link">
+          Open
+        </Link>
       ) : null}
     </article>
   );
@@ -154,27 +128,37 @@ export function FamilyPerformanceCard({
   href?: string;
 }) {
   const arrivals = item.arrivalCount ?? 0;
+  const onTime = item.onTimeCount ?? 0;
   const assigned = item.homeworkAssigned ?? 0;
+  const reviewed = item.homeworkReviewed ?? 0;
+
   return (
-    <article className="card perf-card">
-      <div className="perf-card-top">
-        <div>
-          <p className="perf-kicker">{item.students} students</p>
-          <h2 className="perf-title">{item.name}</h2>
-          <p className="perf-sub">
-            {item.rating === "none" ? "Not enough records yet" : FAMILY_RATING_LABELS[item.rating]}
-          </p>
-        </div>
-        <StatusBadge status={badge(item.rating)} />
-      </div>
-      <Bar value={item.onTimeCount ?? 0} max={arrivals} tone={item.rating === "support_needed" ? "late" : item.rating === "needs_attention" ? "due" : "paid"} />
-      <div className="perf-stats">
-        <Stat value={arrivals ? of(item.onTimeCount ?? 0, arrivals) : "—"} label="On-time arrival" tone="paid" />
-        <Stat value={assigned ? of(item.homeworkReviewed ?? 0, assigned) : "—"} label="Homework follow-up" tone="due" />
-        <Stat value="—" label="On-time pickup" tone="muted" />
-      </div>
+    <article className="card school-chart-card">
+      <p className="perf-kicker">{item.students} students</p>
+      <h3 className="school-chart-title">{item.name}</h3>
+      <p className="record-meta">{item.rating === "none" ? "Not enough records yet" : FAMILY_RATING_LABELS[item.rating]}</p>
+      <SchoolDonut
+        title={`${item.name} arrival`}
+        slices={[
+          { label: "On time", value: onTime, tone: "paid" },
+          { label: "Late", value: Math.max(0, arrivals - onTime), tone: "due" },
+        ]}
+        embed
+      />
+      {assigned ? (
+        <SchoolDonut
+          title={`${item.name} homework`}
+          slices={[
+            { label: "Followed up", value: reviewed, tone: "paid" },
+            { label: "Waiting", value: Math.max(0, assigned - reviewed), tone: "gold" },
+          ]}
+          embed
+        />
+      ) : null}
       {href ? (
-        <Link href={href} className="btn btn-primary perf-card-btn">View Students</Link>
+        <Link href={href} className="school-chart-link">
+          Open
+        </Link>
       ) : null}
     </article>
   );
