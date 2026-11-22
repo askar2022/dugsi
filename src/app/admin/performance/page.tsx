@@ -33,7 +33,7 @@ export default function AdminPerformancePage() {
     <div className="page-stack">
       <PageHeader
         title="Performance"
-        description="Pictures of Qur’an, homework, and attendance for the last four weeks. Open a class for the list behind it."
+        description="Pictures of Qur’an, homework, and attendance. Qur’an is the same latest record as Reports. Open a class for the list behind it."
       />
 
       {!report || !report.school ? (
@@ -45,14 +45,6 @@ export default function AdminPerformancePage() {
         <SchoolPerformanceCard
           item={report.school}
           windowLabel={`${report.window.start} to ${report.window.end}`}
-          homework={{
-            reviewed: report.classes.reduce((sum, item) => sum + item.homeworkReviewed, 0),
-            assigned: report.classes.reduce((sum, item) => sum + item.homeworkAssigned, 0),
-          }}
-          attendance={{
-            recorded: report.classes.reduce((sum, item) => sum + item.attendanceDays, 0),
-            expected: report.classes.length * 4,
-          }}
         />
       )}
 
