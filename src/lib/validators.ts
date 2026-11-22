@@ -79,6 +79,7 @@ export const staffSchema = z.object({
 export const forgotPasswordSchema = z.object({
   schoolCode: z.string().min(2),
   username: z.string().min(3),
+  portal: z.enum(["parent", "staff", "admin", "teacher"]).optional(),
 });
 
 export const changePasswordSchema = z.object({

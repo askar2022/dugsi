@@ -133,8 +133,14 @@ export function passwordResetEmail(input: {
       `Reset your own password for ${input.schoolName} here:`,
       input.resetLink,
       "",
-      "This login is only for you. Do not share it.",
+      "This was sent to the email registered on this login. This login is only for you. Do not share it.",
     ].join("\n"),
+    html: [
+      `<p>${greeting(input.name)}</p>`,
+      `<p>Reset your own password for ${input.schoolName} here:</p>`,
+      `<p><a href="${input.resetLink}">Reset password</a></p>`,
+      "<p>This was sent to the email registered on this login. This login is only for you. Do not share it.</p>",
+    ].join(""),
   };
 }
 

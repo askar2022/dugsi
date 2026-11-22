@@ -3,9 +3,16 @@ import { normalizeSchoolCode } from "@/lib/auth";
 import { assertEmailDelivered, sendPlainEmail, sendTenantEmail } from "@/lib/email";
 import { passwordResetEmail } from "@/lib/email-messages";
 import { getAppUrl } from "@/lib/env";
-import { isDeliverableEmail, resetEmailDestination, resolveSchoolLoginEmail } from "@/lib/parent-account";
+import { parentUsernameLabel, primaryMailDestination, resolveSchoolLoginEmail } from "@/lib/parent-account";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { forgotPasswordSchema } from "@/lib/validators";
+
+function rolesForPortal(portal?: "parent" | "staff" | "admin" | "teacher") {
+  if (portal === "parent") return ["PARENT"];
+  if (portal === "teacher" || portal === "staff") return ["TEACHER"];
+  if (portal === "admin") return ["ADMIN", "STAFF"];
+  return null;
+}
 
 export async function OPTIONS() {
   return applyCors(json({ ok: true }));
@@ -44,14 +51,24 @@ async function sendResetLink(input: {
           toEmail: input.dest,
           subject: copy.subject,
           body: copy.body,
+          html: copy.html,
           event: "password_reset",
         })
-      : await sendPlainEmail({ toEmail: input.dest, subject: copy.subject, body: copy.body });
+      : await sendPlainEmail({
+          toEmail: input.dest,
+          subject: copy.subject,
+          body: copy.body,
+          html: copy.html,
+        });
     assertEmailDelivered(delivery);
   } catch {
-    return error("Could not email a reset link. Check Spam, or use a Gmail address on file.");
+    return error("Could not email that reset. Check Spam on the email registered for this login.");
   }
-  return json({ ok: true, emailed: true, message: "Check Inbox and Spam for a reset link. That is not the 6-digit office code." });
+  return json({
+    ok: true,
+    emailed: true,
+    message: "Check Inbox and Spam on the email registered for this login.",
+  });
 }
 
 export async function POST(request: Request) {
@@ -76,7 +93,7 @@ export async function POST(request: Request) {
         const security = "securityEmail" in row ? String(row.securityEmail ?? "").toLowerCase() : "";
         return email === username || security === username;
       }) ?? null;
-    const dest = resetEmailDestination(user) || (user && isDeliverableEmail(user.email) ? user.email : null);
+    const dest = primaryMailDestination(user);
     if (!user || !dest) {
       return json({
         ok: true,
@@ -101,33 +118,32 @@ export async function POST(request: Request) {
     return json({ ok: true, emailed: false, message: "If this login can receive email, a reset link was sent." });
   }
 
-  const email = await resolveSchoolLoginEmail({
+  const loginEmail = await resolveSchoolLoginEmail({
     tenantId: tenant.id,
     schoolCode: tenant.slug,
     username: parsed.data.username,
   });
-  const lookup = await admin
+  const first = await admin
     .from("User")
-    .select("id, name, email, securityEmail")
-    .eq("tenantId", tenant.id)
-    .eq("email", email)
-    .maybeSingle();
+    .select("id, name, email, securityEmail, role")
+    .eq("tenantId", tenant.id);
+  const roles = rolesForPortal(parsed.data.portal);
+  const candidates = (first.data ?? []).filter((row) => !roles || roles.includes(row.role));
   const user =
-    lookup.data ??
-    (
-      await admin
-        .from("User")
-        .select("id, name, email")
-        .eq("tenantId", tenant.id)
-        .eq("email", email)
-        .maybeSingle()
-    ).data;
-  const dest = resetEmailDestination(user);
+    candidates.find((row) => String(row.email ?? "").toLowerCase() === loginEmail.toLowerCase()) ??
+    candidates.find((row) => {
+      const email = String(row.email ?? "").toLowerCase();
+      const security = "securityEmail" in row ? String(row.securityEmail ?? "").toLowerCase() : "";
+      const label = parentUsernameLabel(email, tenant.slug).toLowerCase();
+      return email === username || security === username || label === username;
+    }) ??
+    null;
+  const dest = primaryMailDestination(user);
   if (!user || !dest) {
     return json({
       ok: true,
       emailed: false,
-      message: "Add an email on the Password page after you sign in, or ask the office to reset this password.",
+      message: "If this login has a registered email, a reset was sent there.",
     });
   }
 
