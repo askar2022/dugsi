@@ -244,7 +244,7 @@ export default function AdminProgressPage() {
     <div className="page-stack">
       <PageHeader
         title="Qur’an Progress"
-        description="Pictures of Qur’an progress for the whole dugsi and each teacher’s class. Use the list below for one student."
+        description="Pictures of each class at the top. Search the list below for one student."
       />
 
       <section className="school-graphics is-four">
@@ -275,6 +275,12 @@ export default function AdminProgressPage() {
       </section>
 
       <section id="progress-students" className="card progress-filters">
+        <div>
+          <h2 className="school-chart-title">Students</h2>
+          <p className="page-copy" style={{ margin: "0.35rem 0 0" }}>
+            Search a student, teacher, or class. Each row is Juz, Surah, ayah, and history.
+          </p>
+        </div>
         <input
           className="input"
           value={query}
