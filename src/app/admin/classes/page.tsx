@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { FormField } from "@/components/forms/FormField";
 import { PageHeader } from "@/components/portal/PageHeader";
@@ -97,6 +98,12 @@ export default function ClassesPage() {
         title="Classes"
         description="Each class has its own days. The same dugsi can run weekend classes and weekday classes at the same time."
       />
+      <Link href="/admin/subjects" className="card subject-panel" style={{ textDecoration: "none" }}>
+        <h2 className="school-chart-title">Subjects & teachers</h2>
+        <p className="page-copy" style={{ margin: 0 }}>
+          Choose the subjects this dugsi offers, then assign a teacher to each subject by class. Open Subjects.
+        </p>
+      </Link>
       <form onSubmit={onSubmit} className="card grid gap-4 p-5 md:grid-cols-2">
         <FormField label="Class Name">
           <input className="input" name="name" required placeholder="Saturday Morning Class" />
