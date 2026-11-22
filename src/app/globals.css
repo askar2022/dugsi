@@ -2350,81 +2350,6 @@ body:has(.teacher-dock) .site-footer {
   color: var(--muted);
 }
 
-.progress-board {
-  display: grid;
-  gap: 1rem;
-  padding: 1.15rem 1.2rem 1.25rem;
-}
-
-.progress-board-title {
-  margin: 0;
-  font-family: var(--font-fraunces), serif;
-  font-size: 1.35rem;
-  color: var(--green);
-}
-
-.progress-board-grid {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.progress-board-class {
-  padding: 0.9rem 1rem 1rem;
-  background: var(--cream);
-  border: 1px solid var(--line);
-  border-radius: 0.9rem;
-}
-
-.progress-board-class-title {
-  margin: 0.1rem 0 0;
-  font-family: var(--font-fraunces), serif;
-  font-size: 1.2rem;
-  color: var(--green);
-}
-
-.progress-board-list {
-  display: grid;
-  gap: 0.45rem;
-  margin: 0.75rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.progress-board-student {
-  display: grid;
-  gap: 0.2rem;
-  width: 100%;
-  padding: 0.55rem 0.7rem;
-  border: 1px solid var(--line);
-  border-radius: 0.7rem;
-  background: white;
-  text-align: left;
-  cursor: pointer;
-}
-
-.progress-board-student:hover {
-  border-color: var(--green);
-}
-
-.progress-board-name {
-  font-weight: 700;
-  color: var(--green);
-}
-
-.progress-board-place {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem 0.85rem;
-  color: var(--green);
-  font-size: 0.9rem;
-  font-weight: 650;
-}
-
-.progress-board-empty {
-  color: var(--muted);
-  font-size: 0.88rem;
-}
-
 .progress-filters {
   display: grid;
   gap: 0.75rem;
@@ -2888,10 +2813,6 @@ body:has(.teacher-dock) .site-footer {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .progress-board-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
   .progress-desktop .mark-group {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -2991,10 +2912,6 @@ body:has(.teacher-dock) .site-footer {
   .progress-filter-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
-
-  .progress-board-grid {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
 }
 
 .school-graphics {
@@ -3004,6 +2921,10 @@ body:has(.teacher-dock) .site-footer {
 
 .school-chart-card {
   padding: 1.1rem 1.15rem 1.2rem;
+}
+
+.school-chart-card.is-open {
+  border-color: var(--green);
 }
 
 .school-chart-title {
@@ -3112,6 +3033,13 @@ body:has(.teacher-dock) .site-footer {
   color: var(--green);
   font-weight: 700;
   text-decoration: underline;
+}
+
+button.school-chart-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
 }
 
 .school-bars-card {

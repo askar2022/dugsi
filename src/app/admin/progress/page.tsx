@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { SchoolDonut } from "@/components/charts/SchoolDonut";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { ProgressForm, type ProgressPayload, type ProgressRecord, type ProgressStudent } from "@/components/portal/ProgressForm";
 import { isAssessmentClass } from "@/lib/assessment-class";
 import { api } from "@/lib/api";
+import { normalizeProgressStatus } from "@/lib/progress-status";
 
 type Student = {
   id: string;
@@ -27,6 +29,7 @@ type Progress = {
   ayahTo?: number | null;
   juz: number | null;
   date: string;
+  status?: string | null;
 };
 
 type SchoolClass = { id: string; name: string; level?: string | null; teacher?: { id: string; name: string } | null };
@@ -49,6 +52,21 @@ function ayahRange(record?: Progress) {
   if (!record?.ayahFrom && !record?.ayahTo) return "—";
   if (record.ayahFrom && record.ayahTo) return `${record.ayahFrom}–${record.ayahTo}`;
   return String(record.ayahFrom || record.ayahTo);
+}
+
+function quranSlices(kids: Student[], latest: Map<string, Progress>) {
+  const counts = { on_track: 0, needs_practice: 0, contact_parent: 0, none: 0 };
+  for (const student of kids) {
+    const status = latest.get(student.id)?.status;
+    if (!status) counts.none += 1;
+    else counts[normalizeProgressStatus(status)] += 1;
+  }
+  return [
+    { label: "On track", value: counts.on_track, tone: "paid" as const },
+    { label: "Needs practice", value: counts.needs_practice, tone: "due" as const },
+    { label: "Needs support", value: counts.contact_parent, tone: "late" as const },
+    { label: "No record", value: counts.none, tone: "muted" as const },
+  ];
 }
 
 export default function AdminProgressPage() {
@@ -130,7 +148,9 @@ export default function AdminProgressPage() {
       const teacher = teacherOf(student)?.name ?? "";
       const haystack = `${student.firstName} ${student.lastName} ${student.class?.name ?? ""} ${teacher}`.toLowerCase();
       if (needle && !haystack.includes(needle)) return false;
-      if (classId && student.class?.id !== classId) return false;
+      if (classId === "none") {
+        if (student.class?.id) return false;
+      } else if (classId && student.class?.id !== classId) return false;
       if (teacherId && teacherOf(student)?.id !== teacherId) return false;
       return true;
     }).map((student) => ({
@@ -140,51 +160,53 @@ export default function AdminProgressPage() {
     }));
   }, [classId, historyByStudent, latest, query, students, teacherId]);
 
-  const classBoard = useMemo(() => {
-    const groups = new Map<string, {
-      id: string;
-      name: string;
-      teacherName: string;
-      students: typeof rows;
-    }>();
-    for (const row of rows) {
-      const id = row.student.class?.id ?? "none";
-      const teacherName =
-        teacherOf(row.student)?.name
-        ?? classes.find((item) => item.id === row.student.class?.id)?.teacher?.name
-        ?? "No teacher yet";
-      const group = groups.get(id) ?? {
-        id,
-        name: row.student.class?.name ?? "No class yet",
-        teacherName,
-        students: [],
+  const classPictures = useMemo(() => {
+    const byClass = new Map<string, Student[]>();
+    for (const student of students) {
+      const id = student.class?.id ?? "none";
+      const list = byClass.get(id) ?? [];
+      list.push(student);
+      byClass.set(id, list);
+    }
+    const cards = classes.map((klass) => {
+      const kids = byClass.get(klass.id) ?? [];
+      return {
+        id: klass.id,
+        name: klass.name,
+        teacherName: klass.teacher?.name ?? "No teacher yet",
+        students: kids.length,
+        slices: quranSlices(kids, latest),
       };
-      group.students.push(row);
-      groups.set(id, group);
+    });
+    const unplaced = byClass.get("none") ?? [];
+    if (unplaced.length) {
+      cards.push({
+        id: "none",
+        name: "No class yet",
+        teacherName: "No teacher yet",
+        students: unplaced.length,
+        slices: quranSlices(unplaced, latest),
+      });
     }
-    if (!query.trim()) {
-      for (const klass of classes) {
-        if (classId && klass.id !== classId) continue;
-        if (teacherId && klass.teacher?.id !== teacherId) continue;
-        if (groups.has(klass.id)) continue;
-        groups.set(klass.id, {
-          id: klass.id,
-          name: klass.name,
-          teacherName: klass.teacher?.name ?? "No teacher yet",
-          students: [],
-        });
-      }
-    }
-    return [...groups.values()]
-      .map((group) => ({
-        ...group,
-        students: [...group.students].sort((left, right) =>
-          left.student.lastName.localeCompare(right.student.lastName)
-          || left.student.firstName.localeCompare(right.student.firstName),
-        ),
-      }))
-      .sort((left, right) => left.teacherName.localeCompare(right.teacherName) || left.name.localeCompare(right.name));
-  }, [classId, classes, query, rows, teacherId]);
+    return cards;
+  }, [classes, latest, students]);
+
+  function showClassStudents(id: string) {
+    setQuery("");
+    setTeacherId("");
+    setClassId(id);
+    setPage(1);
+    window.requestAnimationFrame(() => {
+      document.getElementById("progress-students")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  function showAllStudents() {
+    setQuery("");
+    setTeacherId("");
+    setClassId("");
+    setPage(1);
+  }
 
   const currentPage = Math.min(page, Math.max(1, Math.ceil(rows.length / PAGE_SIZE) || 1));
   const visible = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -222,64 +244,37 @@ export default function AdminProgressPage() {
     <div className="page-stack">
       <PageHeader
         title="Qur’an Progress"
-        description="Office view of each class and teacher, with every student’s latest Juz, Surah, and ayah. How well they are doing is on Performance."
+        description="Pictures of Qur’an progress for the whole dugsi and each teacher’s class. Use the list below for one student."
       />
 
-      <section className="card progress-board">
-        <div>
-          <h2 className="progress-board-title">Class and teacher progress</h2>
-          <p className="page-copy" style={{ margin: "0.35rem 0 0" }}>
-            {classBoard.length === 0
-              ? "No classes to show yet."
-              : `${rows.length} students · ${classBoard.length} ${classBoard.length === 1 ? "class" : "classes"}. Each line is that child’s latest Juz, Surah, and ayah.`}
-          </p>
-        </div>
-        {classBoard.length === 0 ? (
-          <p className="page-copy">Teachers save Qur’an records from Record Progress. Classes appear here after students are placed.</p>
-        ) : (
-          <div className="progress-board-grid">
-            {classBoard.map((klass) => (
-              <article key={klass.id} className="progress-board-class">
-                <p className="perf-kicker">{klass.teacherName}</p>
-                <h3 className="progress-board-class-title">{klass.name}</h3>
-                <p className="record-meta">
-                  {klass.students.length === 0
-                    ? "No students yet"
-                    : `${klass.students.length} ${klass.students.length === 1 ? "student" : "students"}`}
-                </p>
-                {klass.students.length === 0 ? null : (
-                  <ul className="progress-board-list">
-                    {klass.students.map((row) => (
-                      <li key={row.student.id}>
-                        <button
-                          type="button"
-                          className="progress-board-student"
-                          onClick={() => setHistoryFor(row.student.id)}
-                        >
-                          <span className="progress-board-name">
-                            {row.student.firstName} {row.student.lastName}
-                          </span>
-                          {row.record ? (
-                            <span className="progress-board-place">
-                              <span>Juz {row.record.juz ?? "—"}</span>
-                              <span>Surah {row.record.surah}</span>
-                              <span>Ayah {ayahRange(row.record)}</span>
-                            </span>
-                          ) : (
-                            <span className="progress-board-empty">No Juz, Surah, or ayah yet</span>
-                          )}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </article>
-            ))}
-          </div>
-        )}
+      <section className="school-graphics is-four">
+        <article className={`card school-chart-card${classId ? "" : " is-open"}`}>
+          <p className="perf-kicker">Whole dugsi</p>
+          <h3 className="school-chart-title">All classes</h3>
+          <p className="record-meta">{students.length} students</p>
+          <SchoolDonut title="Whole dugsi Qur’an" slices={quranSlices(students, latest)} embed />
+          {classId ? (
+            <button type="button" className="school-chart-link" onClick={showAllStudents}>
+              See all students
+            </button>
+          ) : null}
+        </article>
+        {classPictures.map((klass) => (
+          <article key={klass.id} className={`card school-chart-card${classId === klass.id ? " is-open" : ""}`}>
+            <p className="perf-kicker">{klass.teacherName}</p>
+            <h3 className="school-chart-title">{klass.name}</h3>
+            <p className="record-meta">
+              {klass.students === 0 ? "No students yet" : `${klass.students} ${klass.students === 1 ? "student" : "students"}`}
+            </p>
+            <SchoolDonut title={`${klass.name} Qur’an`} slices={klass.slices} embed />
+            <button type="button" className="school-chart-link" onClick={() => showClassStudents(klass.id)}>
+              See students
+            </button>
+          </article>
+        ))}
       </section>
 
-      <section className="card progress-filters">
+      <section id="progress-students" className="card progress-filters">
         <input
           className="input"
           value={query}
