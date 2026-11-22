@@ -150,7 +150,8 @@ export default function AdminSubjectsPage() {
                 {SUBJECTS.map((subject) => {
                   if (!offered.includes(subject.key)) return null;
                   const parts = "parts" in subject ? subject.parts : null;
-                  if (parts) {
+                  if (parts || subject.key === "quran") {
+                    if (!parts) return null;
                     return (
                       <div key={subject.key} className="subject-quran">
                         <p className="subject-offer-name">{subject.label}</p>
@@ -177,17 +178,18 @@ export default function AdminSubjectsPage() {
                       </div>
                     );
                   }
+                  const key = subject.key;
                   return (
-                    <label key={subject.key} className="subject-assign-row">
+                    <label key={key} className="subject-assign-row">
                       <span>
                         {subject.label}
                         <small>{subject.description}</small>
                       </span>
                       <select
                         className="select"
-                        value={teacherFor(subject.key)}
-                        disabled={savingClass === subject.key}
-                        onChange={(event) => saveTeacher(subject.key, event.target.value)}
+                        value={teacherFor(key)}
+                        disabled={savingClass === key}
+                        onChange={(event) => saveTeacher(key, event.target.value)}
                       >
                         <option value="">Unassigned</option>
                         {(report.teachers ?? []).map((teacher) => (
