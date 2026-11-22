@@ -119,9 +119,9 @@ export async function adminCodeDestination(
     first.data ??
     (await admin.from("User").select("email").eq("id", input.userId).maybeSingle()).data;
   const securityEmail = user && "securityEmail" in user ? String(user.securityEmail ?? "") : "";
-  if (securityEmail && isDeliverableEmail(securityEmail)) return securityEmail;
   if (input.authEmail && isDeliverableEmail(input.authEmail)) return input.authEmail;
   if (user?.email && isDeliverableEmail(user.email)) return user.email;
+  if (securityEmail && isDeliverableEmail(securityEmail)) return securityEmail;
   if (input.tenantEmail && isDeliverableEmail(input.tenantEmail)) return input.tenantEmail;
   return null;
 }

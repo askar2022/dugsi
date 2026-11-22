@@ -80,9 +80,9 @@ export function isDeliverableEmail(email: string) {
 }
 
 export function resetEmailDestination(user?: { email?: string | null; securityEmail?: string | null } | null) {
+  if (user?.email && isDeliverableEmail(user.email)) return user.email;
   const security = String(user?.securityEmail ?? "").trim().toLowerCase();
   if (security && isDeliverableEmail(security)) return security;
-  if (user?.email && isDeliverableEmail(user.email)) return user.email;
   return null;
 }
 
