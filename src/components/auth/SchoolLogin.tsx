@@ -181,14 +181,13 @@ function SchoolLoginForm({
     try {
       const data = await api<{ message?: string }>("/api/auth/forgot", {
         method: "POST",
-        body: JSON.stringify({ schoolCode: code, username }),
+        body: JSON.stringify({
+          schoolCode: code,
+          username,
+          portal: portal === "staff" ? "teacher" : portal,
+        }),
       });
-      setMessage(
-        data.message ||
-          (portal === "admin"
-            ? "If this office login can receive email, a reset link was sent. That is not the 6-digit sign-in code. Check Spam."
-            : "If this login has an email, a reset link was sent. Otherwise ask the office."),
-      );
+      setMessage(data.message || "Check Inbox and Spam on the email registered for this login.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not start a password reset.");
     } finally {
