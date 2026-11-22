@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       });
       userId = created.userId;
       loginEmail = created.email;
-      if ((portal === "ADMIN" || portal === "STAFF") && parsed.data.email) {
+      if (parsed.data.email) {
         await saveAdminSecurityEmail(writer, created.userId, parsed.data.email);
       }
     }
